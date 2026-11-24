@@ -11,7 +11,7 @@ async function bootstrap() {
   app.useGlobalFilters(new DomainExceptionFilter());
   app.enableCors({
     origin: config.get<string>('CORS_ORIGIN') ?? 'http://localhost:3000',
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 

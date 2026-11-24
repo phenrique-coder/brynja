@@ -1,5 +1,5 @@
 import { BadRequestException, PipeTransform } from '@nestjs/common';
-import { z, ZodSchema } from 'zod';
+import { z } from 'zod';
 
 const ALLOWED_MANIFEST_PATH =
   /^(?:[A-Za-z0-9._-]+\/)*(package\.json|package-lock\.json|pnpm-lock\.yaml|requirements\.txt|pyproject\.toml)$/;
@@ -39,7 +39,7 @@ export const CreateAuthorizationSchema = z.object({
 export type CreateAuthorizationDto = z.infer<typeof CreateAuthorizationSchema>;
 
 export class ZodValidationPipe<T> implements PipeTransform {
-  constructor(private readonly schema: ZodSchema<T>) {}
+  constructor(private readonly schema: z.ZodType<T>) {}
 
   transform(value: unknown): T {
     const parsed = this.schema.safeParse(value);
