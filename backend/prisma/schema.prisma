@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VerificationMethod {
+  WELL_KNOWN_FILE
+  DNS_TXT
+  LOCAL_DEV_SANDBOX
+}
+
+enum AuthorizationStatus {
+  PENDING
+  VERIFIED
+  REVOKED
+}
+
+enum ScanStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum SeverityLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum FindingVerdict {
+  CONFIRMED_ACTIVE
+  POTENTIALLY_EXPOSED
+  DEPENDENCY_ONLY
+}
+
+enum ProbeOutcome {
+  PASSED
+  FINDING
+  SKIPPED
+  ABORTED
+}
+
+model TargetAuthorization {
+  id                String              @id @default(uuid())
+  ownerGithubUserId String              @default("legacy-unassigned") @map("owner_github_user_id")
+  origin            String
+  hostname          String
+  method            VerificationMethod
+  challengeToken    String              @map("challenge_token")
+  tokenHash         String              @map("token_hash")
+  status            AuthorizationStatus @default(PENDING)
+  verifiedAt        DateTime?           @map("verified_at")
+  expiresAt         DateTime?           @map("expires_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  scans     Scan[]
+  auditLogs ProbeAuditLog[]
+
+  @@unique([ownerGithubUserId, origin])
+  @@index([ownerGithubUserId])
+  @@map("target_authorizations")
+}
+
+model Scan {
+  id                   String               @id @default(uuid())
+  ownerGithubUserId    String               @default("legacy-unassigned") @map("owner_github_user_id")
+  ownerLogin           String?              @map("owner_login")
+  repositoryUrl        String               @map("repository_url")
+  branch               String               @default("main")
+  targetUrl            String?              @map("target_url")
+  authorizationId      String?              @map("authorization_id")
+  status               ScanStatus           @default(QUEUED)
+  currentStage         String               @default("queued") @map("current_stage")
+  ecosystems           String[]             @default([])
+  totalDependencies    Int                  @default(0) @map("total_dependencies")
+  criticalCount        Int                  @default(0) @map("critical_count")
+  highCount            Int                  @default(0) @map("high_count")
+  mediumCount          Int                  @default(0) @map("medium_count")
+  lowCount             Int                  @default(0) @map("low_count")
+  confirmedActiveCount Int                  @default(0) @map("confirmed_active_count")
+  warnings             Json                 @default("[]")
+  errorMessage         String?              @map("error_message")
+  startedAt            DateTime?            @map("started_at")
+  completedAt          DateTime?            @map("completed_at")
+  createdAt            DateTime             @default(now()) @map("created_at")
+
+  authorization TargetAuthorization? @relation(fields: [authorizationId], references: [id], onDelete: SetNull)
+  dependencies  Dependency[]
+  findings      VulnerabilityFinding[]
+  probeResults  ProbeFinding[]
+  auditLogs     ProbeAuditLog[]
+
+  @@index([ownerGithubUserId, createdAt(sort: Desc)])
+  @@map("scans")
+}
+
+model Dependency {
+  id         String  @id @default(uuid())
+  scanId     String  @map("scan_id")
+  name       String
+  version    String
+  ecosystem  String
+  purl       String
+  sourceFile String  @map("source_file")
+  isDirect   Boolean @default(true) @map("is_direct")
+
+  scan     Scan                   @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  findings VulnerabilityFinding[]
+
+  @@index([scanId])
+  @@map("dependencies")
+}
+
+model VulnerabilityFinding {
+  id               String         @id @default(uuid())
+  scanId           String         @map("scan_id")
+  dependencyId     String         @map("dependency_id")
+  advisoryId       String         @map("advisory_id")
+  cveId            String?        @map("cve_id")
+  title            String
+  description      String
+  severity         SeverityLevel
+  cvssScore        Float?         @map("cvss_score")
+  cvssVector       String?        @map("cvss_vector")
+  cweIds           String[]       @default([]) @map("cwe_ids")
+  epssScore        Float?         @map("epss_score")
+  epssPercentile   Float?         @map("epss_percentile")
+  isKnownExploited Boolean        @default(false) @map("is_known_exploited")
+  fixedVersion     String?        @map("fixed_version")
+  references       String[]       @default([])
+  verdict          FindingVerdict @default(DEPENDENCY_ONLY)
+  source           String
+
+  scan       Scan       @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  dependency Dependency @relation(fields: [dependencyId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
+  @@index([severity])
+  @@map("vulnerability_findings")
+}
+
+model ProbeFinding {
+  id             String        @id @default(uuid())
+  scanId         String        @map("scan_id")
+  probeId        String        @map("probe_id")
+  title          String
+  severity       SeverityLevel
+  status         ProbeOutcome
+  targetUrl      String        @map("target_url")
+  evidence       String
+  recommendation String
+  matchedPackage String?       @map("matched_package")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
+  @@map("probe_findings")
+}
+
+model ProbeAuditLog {
+  id                String   @id @default(uuid())
+  ownerGithubUserId String?  @map("owner_github_user_id")
+  scanId            String?  @map("scan_id")
+  authorizationId   String?  @map("authorization_id")
+  targetUrl         String   @map("target_url")
+  probeId           String   @map("probe_id")
+  httpMethod        String   @map("http_method")
+  requestPath       String   @map("request_path")
+  statusCode        Int?     @map("status_code")
+  durationMs        Int      @map("duration_ms")
+  outcome           String
+  details           String
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  scan          Scan?                @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  authorization TargetAuthorization? @relation(fields: [authorizationId], references: [id], onDelete: SetNull)
+
+  @@index([scanId])
+  @@index([ownerGithubUserId, createdAt(sort: Desc)])
+  @@map("probe_audit_logs")
+}
+
+model VulnerabilityCache {
+  cacheKey  String   @id @map("cache_key")
+  payload   Json
+  expiresAt DateTime @map("expires_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("vulnerability_cache")
+}

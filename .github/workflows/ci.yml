@@ -1,0 +1,156 @@
+name: VereditoSec CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guardrails-check:
+    name: Guardrails & Secrets Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure no .env files are committed
+        run: |
+          TRACKED_ENV=$(git ls-files | grep -E '(^|/)\.env($|\.(local|production|development)$)' || true)
+          if [ -n "$TRACKED_ENV" ]; then
+            echo "ERROR: .env files must never be committed:"
+            echo "$TRACKED_ENV"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm prisma:generate
+
+      - name: Run mandatory SafeProbe & Authorization Guardrails tests
+        working-directory: backend
+        run: pnpm jest safe-probe.policy.spec.ts authorization-guardrails.spec.ts safe-probes.spec.ts --runInBand
+
+  backend:
+    name: Backend (Typecheck, Tests & Build)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veredito
+          POSTGRES_PASSWORD: veredito_ci_pwd
+          POSTGRES_DB: veredito_sec_ci
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd="pg_isready -U veredito -d veredito_sec_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://veredito:veredito_ci_pwd@localhost:5434/veredito_sec_ci?schema=public
+      TOKEN_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      ALLOW_LOCAL_LOOPBACK_TARGETS: "true"
+      SAFE_PROBE_MAX_RPS: "2"
+      SAFE_PROBE_TIMEOUT_MS: "5000"
+      SAFE_PROBE_MAX_REQUESTS_PER_SCAN: "40"
+      FRONTEND_URL: http://localhost:3000
+      CORS_ORIGIN: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client & Apply Migrations
+        working-directory: backend
+        run: |
+          pnpm prisma:generate
+          pnpm prisma migrate deploy
+
+      - name: Typecheck
+        working-directory: backend
+        run: pnpm typecheck
+
+      - name: Unit & Integration Tests
+        working-directory: backend
+        run: pnpm test -- --runInBand
+
+      - name: Build
+        working-directory: backend
+        run: pnpm build
+
+  frontend:
+    name: Frontend (Typecheck, Tests & Build)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: frontend
+        run: pnpm typecheck
+
+      - name: Unit Tests
+        working-directory: frontend
+        run: pnpm test
+
+      - name: Build
+        working-directory: frontend
+        run: pnpm build

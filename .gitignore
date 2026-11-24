@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build & Framework outputs
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary clone / scan workspaces
+tmp/
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,282 @@
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { ScanReport } from '@/core/models/scan.models';
+import { IVereditoGateway } from '@/core/ports/scan-gateway.port';
+import { GatewayProvider } from '@/core/providers/gateway-provider';
+import { AuthorizationsView } from '../components/AuthorizationsView';
+import { ScanHistoryView } from '../components/ScanHistoryView';
+import {
+  buildScanReportPdf,
+  sanitizePdfText,
+} from '../exporters/scan-pdf.exporter';
+
+vi.mock('next/link', () => ({
+  default: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+function makeBaseGateway(
+  overrides: Partial<IVereditoGateway> = {},
+): IVereditoGateway {
+  return {
+    listScans: vi.fn().mockResolvedValue([]),
+    getScanReport: vi.fn(),
+    deleteScan: vi.fn().mockResolvedValue(undefined),
+    createScan: vi.fn(),
+    listAuthorizations: vi.fn().mockResolvedValue([]),
+    createAuthorization: vi.fn(),
+    verifyAuthorization: vi.fn(),
+    revokeAuthorization: vi.fn().mockResolvedValue(undefined),
+    listAuditLogs: vi.fn().mockResolvedValue([]),
+    getGitHubStatus: vi.fn(),
+    listGitHubRepos: vi.fn(),
+    disconnectGitHub: vi.fn(),
+    getGitHubConnectUrl: () =>
+      'http://localhost:3001/api/integrations/github/connect',
+    ...overrides,
+  };
+}
+
+describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
+  it('requires inline confirmation and permanently removes both active and previously revoked targets', async () => {
+    const revokeAuthorization = vi.fn().mockResolvedValue(undefined);
+    const listAuthorizations = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'auth-1',
+          origin: 'https://staging.example.com',
+          hostname: 'staging.example.com',
+          method: 'WELL_KNOWN_FILE',
+          status: 'VERIFIED',
+          verifiedAt: '2026-11-24T17:00:00.000Z',
+          expiresAt: '2026-11-25T17:00:00.000Z',
+          createdAt: '2026-11-24T17:00:00.000Z',
+        },
+        {
+          id: 'auth-2',
+          origin: 'https://old.example.com',
+          hostname: 'old.example.com',
+          method: 'WELL_KNOWN_FILE',
+          status: 'REVOKED',
+          verifiedAt: null,
+          expiresAt: null,
+          createdAt: '2026-11-24T16:00:00.000Z',
+        },
+      ])
+      .mockResolvedValueOnce([]);
+
+    const gateway = makeBaseGateway({
+      listAuthorizations,
+      revokeAuthorization,
+    });
+
+    render(
+      <GatewayProvider gateway={gateway}>
+        <AuthorizationsView />
+      </GatewayProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('https://staging.example.com')).toBeTruthy();
+      expect(screen.getByText('https://old.example.com')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText('Revogar'));
+    expect(revokeAuthorization).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Remover permanentemente'));
+    await waitFor(() => {
+      expect(revokeAuthorization).toHaveBeenCalledWith('auth-1');
+    });
+  });
+
+  it('filters scan history by scope (Safe Probes vs SCA only) and search query', async () => {
+    const gateway = makeBaseGateway({
+      listScans: vi.fn().mockResolvedValue([
+        {
+          id: 'scan-1',
+          repositoryUrl: 'https://github.com/octocat/web-app',
+          branch: 'main',
+          targetUrl: 'https://staging.example.com',
+          authorizationId: 'auth-1',
+          status: 'COMPLETED',
+          currentStage: 'completed',
+          ecosystems: ['npm'],
+          totalDependencies: 120,
+          criticalCount: 1,
+          highCount: 4,
+          mediumCount: 8,
+          lowCount: 2,
+          confirmedActiveCount: 1,
+          warnings: [],
+          errorMessage: null,
+          startedAt: null,
+          completedAt: '2026-11-24T19:00:00.000Z',
+          createdAt: '2026-11-24T19:00:00.000Z',
+        },
+        {
+          id: 'scan-2',
+          repositoryUrl: 'https://github.com/octocat/python-worker',
+          branch: 'develop',
+          targetUrl: null,
+          authorizationId: null,
+          status: 'COMPLETED',
+          currentStage: 'completed',
+          ecosystems: ['PyPI'],
+          totalDependencies: 45,
+          criticalCount: 0,
+          highCount: 0,
+          mediumCount: 2,
+          lowCount: 0,
+          confirmedActiveCount: 0,
+          warnings: [],
+          errorMessage: null,
+          startedAt: null,
+          completedAt: '2026-11-24T18:00:00.000Z',
+          createdAt: '2026-11-24T18:00:00.000Z',
+        },
+      ]),
+    });
+
+    render(
+      <GatewayProvider gateway={gateway}>
+        <ScanHistoryView />
+      </GatewayProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('octocat/web-app')).toBeTruthy();
+      expect(screen.getByText('octocat/python-worker')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Safe Probes' }));
+    expect(screen.getByText('octocat/web-app')).toBeTruthy();
+    expect(screen.queryByText('octocat/python-worker')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Somente SCA' }));
+    expect(screen.queryByText('octocat/web-app')).toBeNull();
+    expect(screen.getByText('octocat/python-worker')).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Excluir varredura octocat/python-worker',
+      }),
+    );
+    await waitFor(() => {
+      expect(gateway.deleteScan).toHaveBeenCalledWith('scan-2');
+      expect(screen.queryByText('octocat/python-worker')).toBeNull();
+    });
+  });
+
+  it('builds a valid multi-section PDF report with Portuguese Latin-1 sanitization', async () => {
+    expect(sanitizePdfText('Atualizar → versão ≥ 15.2.3 (segurança)')).toBe(
+      'Atualizar -> versão >= 15.2.3 (segurança)',
+    );
+
+    const sampleReport: ScanReport = {
+      id: '11111111-2222-3333-4444-555555555555',
+      repositoryUrl: 'https://github.com/octocat/demo-app',
+      branch: 'main',
+      targetUrl: 'https://staging.example.com',
+      authorizationId: 'auth-1',
+      status: 'COMPLETED',
+      currentStage: 'completed',
+      ecosystems: ['npm'],
+      totalDependencies: 2,
+      criticalCount: 1,
+      highCount: 0,
+      mediumCount: 1,
+      lowCount: 0,
+      confirmedActiveCount: 1,
+      warnings: [],
+      errorMessage: null,
+      startedAt: '2026-11-24T20:00:00.000Z',
+      completedAt: '2026-11-24T20:00:15.000Z',
+      createdAt: '2026-11-24T20:00:00.000Z',
+      dependencies: [
+        {
+          id: 'dep-1',
+          name: 'next',
+          version: '15.0.0',
+          ecosystem: 'npm',
+          purl: 'pkg:npm/next@15.0.0',
+          sourceFile: 'package.json',
+          isDirect: true,
+        },
+      ],
+      findings: [
+        {
+          id: 'find-1',
+          dependencyId: 'dep-1',
+          advisoryId: 'GHSA-demo-0001',
+          cveId: 'CVE-2025-29927',
+          packageName: 'next',
+          packageVersion: '15.0.0',
+          ecosystem: 'npm',
+          title: 'Authorization Bypass in Middleware',
+          description: 'Vulnerability summary for executive PDF testing.',
+          severity: 'CRITICAL',
+          cvssScore: 9.1,
+          cvssVector: null,
+          cweIds: ['CWE-285'],
+          epssScore: 0.94,
+          epssPercentile: 0.99,
+          isKnownExploited: true,
+          fixedVersion: '15.2.3',
+          references: ['https://osv.dev'],
+          verdict: 'CONFIRMED_ACTIVE',
+          source: 'OSV.dev + EPSS + CISA KEV',
+        },
+      ],
+      probeResults: [
+        {
+          id: 'probe-1',
+          probeId: 'safe-probe:hsts-tls',
+          title: 'Cabeçalho Strict-Transport-Security (HSTS) ausente em HTTPS',
+          severity: 'MEDIUM',
+          status: 'FINDING',
+          targetUrl: 'https://staging.example.com',
+          evidence: 'HEAD / retornou HTTP 200 sem HSTS.',
+          recommendation: 'Configure Strict-Transport-Security com max-age=31536000.',
+          matchedPackage: null,
+          createdAt: '2026-11-24T20:00:10.000Z',
+        },
+      ],
+      auditLogs: [
+        {
+          id: 'audit-1',
+          scanId: '11111111-2222-3333-4444-555555555555',
+          authorizationId: 'auth-1',
+          targetUrl: 'https://staging.example.com',
+          probeId: 'safe-probe:hsts-tls',
+          httpMethod: 'HEAD',
+          requestPath: '/',
+          statusCode: 200,
+          durationMs: 42,
+          outcome: 'EXECUTED',
+          details: 'Safe probe executado (HEAD / -> HTTP 200).',
+          createdAt: '2026-11-24T20:00:10.000Z',
+        },
+      ],
+    };
+
+    const doc = await buildScanReportPdf(sampleReport);
+    expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1);
+
+    const bytes = new Uint8Array(doc.output('arraybuffer'));
+    const header = String.fromCharCode(...bytes.slice(0, 5));
+    expect(header).toBe('%PDF-');
+  });
+});
