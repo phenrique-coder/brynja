@@ -49,7 +49,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-subtle bg-header/90 backdrop-blur-md transition-colors">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Left: Brand */}
         <Link
           href="/"
@@ -139,7 +139,7 @@ export function Navbar() {
           aria-label="Navegação mobile"
           className="border-t border-subtle bg-surface px-4 py-3 md:hidden"
         >
-          <div className="mx-auto grid max-w-6xl gap-1">
+          <div className="mx-auto grid max-w-7xl gap-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const active = isNavItemActive(item.href, pathname);

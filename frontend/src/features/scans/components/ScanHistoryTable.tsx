@@ -40,15 +40,15 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
   }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[780px] border-collapse text-left text-sm">
+      <table className="w-full border-collapse text-left text-sm">
         <thead className="border-b border-subtle bg-surface-subtle/80 text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
           <tr>
-            <th className="py-3 pl-5 pr-4 sm:pl-6">Repositório</th>
-            <th className="whitespace-nowrap px-3.5 py-3">Status</th>
-            <th className="whitespace-nowrap px-3.5 py-3">Dependências</th>
-            <th className="whitespace-nowrap px-3.5 py-3">Severidade</th>
-            <th className="whitespace-nowrap px-3.5 py-3">Alvo Staging</th>
-            <th className="whitespace-nowrap py-3 pl-3.5 pr-5 text-right sm:pr-6">
+            <th className="py-3 pl-5 pr-3 sm:pl-6">Repositório</th>
+            <th className="whitespace-nowrap px-3 py-3">Status</th>
+            <th className="whitespace-nowrap px-3 py-3">Dependências</th>
+            <th className="whitespace-nowrap px-3 py-3">Severidade</th>
+            <th className="whitespace-nowrap px-3 py-3">Alvo Staging</th>
+            <th className="whitespace-nowrap py-3 pl-3 pr-5 text-right sm:pr-6">
               Ação
             </th>
           </tr>
@@ -79,8 +79,8 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                 className="group transition-colors hover:bg-surface-hover/50"
               >
                 {/* Repository */}
-                <td className="py-4 pl-5 pr-4 sm:pl-6">
-                  <div className="flex items-start gap-3">
+                <td className="max-w-[280px] py-3.5 pl-5 pr-3 sm:pl-6 lg:max-w-[320px]">
+                  <div className="flex items-start gap-2.5">
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-subtle bg-surface-subtle text-cyan-700 transition group-hover:border-cyan-500/30 dark:text-cyan-300">
                       <FolderGit2 className="h-4 w-4" />
                     </div>
@@ -92,7 +92,7 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                       >
                         {repo.displayName}
                       </Link>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-fg-muted">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-fg-muted">
                         <span className="inline-flex items-center gap-1 rounded-md border border-subtle bg-surface-subtle px-1.5 py-0.5 font-mono text-[10px] text-fg-secondary">
                           <GitBranch className="h-3 w-3" />
                           {scan.branch}
@@ -110,13 +110,13 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                 </td>
 
                 {/* Status */}
-                <td className="whitespace-nowrap px-3.5 py-4 align-middle">
+                <td className="whitespace-nowrap px-3 py-3.5 align-middle">
                   <StatusPill meta={SCAN_STATUS_REGISTRY[scan.status]} />
                 </td>
 
                 {/* Dependencies */}
-                <td className="whitespace-nowrap px-3.5 py-4 align-middle">
-                  <div className="flex items-center gap-2">
+                <td className="whitespace-nowrap px-3 py-3.5 align-middle">
+                  <div className="flex items-center gap-1.5">
                     <span className="font-mono text-sm font-semibold text-fg">
                       {scan.totalDependencies}
                     </span>
@@ -130,31 +130,31 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                 </td>
 
                 {/* Severity */}
-                <td className="whitespace-nowrap px-3.5 py-4 align-middle">
+                <td className="whitespace-nowrap px-3 py-3.5 align-middle">
                   <div className="inline-flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold">
+                    <div className="flex items-center gap-1 font-mono text-[11px] font-semibold">
                       <span
                         title={`${scan.criticalCount} Crítica(s)`}
-                        className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300"
+                        className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300"
                       >
                         C:{scan.criticalCount}
                       </span>
                       <span
                         title={`${scan.highCount} Alta(s)`}
-                        className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300"
+                        className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300"
                       >
                         A:{scan.highCount}
                       </span>
                       <span
                         title={`${scan.mediumCount} Média(s)`}
-                        className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
+                        className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
                       >
                         M:{scan.mediumCount}
                       </span>
                       {scan.lowCount > 0 ? (
                         <span
                           title={`${scan.lowCount} Baixa(s)`}
-                          className="inline-flex items-center rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300"
+                          className="inline-flex items-center rounded-md border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300"
                         >
                           B:{scan.lowCount}
                         </span>
@@ -195,11 +195,11 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                 </td>
 
                 {/* Target Staging */}
-                <td className="whitespace-nowrap px-3.5 py-4 align-middle">
+                <td className="whitespace-nowrap px-3 py-3.5 align-middle">
                   {targetHost ? (
                     <span
                       title={scan.targetUrl ?? undefined}
-                      className="inline-flex max-w-[200px] items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200"
+                      className="inline-flex max-w-[185px] items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200"
                     >
                       <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate">{targetHost}</span>
@@ -213,11 +213,11 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                 </td>
 
                 {/* Action */}
-                <td className="whitespace-nowrap py-4 pl-3.5 pr-5 text-right align-middle sm:pr-6">
-                  <div className="inline-flex items-center justify-end gap-2">
+                <td className="whitespace-nowrap py-3.5 pl-3 pr-5 text-right align-middle sm:pr-6">
+                  <div className="inline-flex items-center justify-end gap-1.5">
                     <Link
                       href={`/scans/${scan.id}`}
-                      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-cyan-500/30 bg-cyan-50 px-3.5 py-2 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
+                      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-cyan-500/30 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
                     >
                       <span>Ver Veredito</span>
                       <ArrowRight className="h-3.5 w-3.5 shrink-0" />
