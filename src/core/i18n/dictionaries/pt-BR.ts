@@ -380,6 +380,25 @@ export const PT_BR_MESSAGES = {
     sshStep4Label: 'Teste rápido via curl',
     sshStep4Caption:
       'Resultado esperado: {token}. Se apareceu exatamente isso, suba a página e clique em "Verificar Posse"!',
+    sshStep5Title:
+      'Passo 5 — (Opcional) Reverter tudo: remover o arquivo, a pasta .well-known e o Passo 3 (Nginx)',
+    sshStep5Body:
+      'Quando quiser voltar o servidor exatamente ao estado anterior (ou revogar o acesso), siga a sequência abaixo. Atenção: remover o arquivo impede a renovação automática do certificado após 7 dias.',
+    sshStep5RemoveFileLabel:
+      '5.1 — Remover .well-known/brynja-verify.txt e a pasta .well-known (se vazia)',
+    sshStep5RemoveFileCaption:
+      'Apaga o arquivo brynja-verify.txt e remove a pasta .well-known apenas se ela ficar vazia (preservando pastas existentes como acme-challenge do Certbot/Let’s Encrypt). Ajuste /var/www/html se tiver usado outro diretório raiz.',
+    sshStep5NginxBodyBefore:
+      'Se você adicionou o bloco do Passo 3 no Nginx, localize o arquivo de configuração com o comando abaixo, remova o bloco',
+    sshStep5NginxBodyAfter:
+      '(somente se ele não for usado pelo Certbot/Let’s Encrypt), salve e recarregue o Nginx:',
+    sshStep5NginxFindLabel: '5.2 — Localizar o bloco no Nginx (Passo 3)',
+    sshStep5NginxReloadLabel:
+      '5.3 — Validar e recarregar o Nginx após remover o bloco do Passo 3',
+    sshStep5VerifyLabel:
+      '5.4 — Confirmar pelo terminal que o arquivo foi removido',
+    sshStep5VerifyCaption:
+      'Deve retornar HTTP 404 (ou a rota padrão da aplicação). Para finalizar, clique também em "Revogar" na lista de alvos acima.',
     webOptionATitle:
       'Opção A — Projeto Web (Next.js, React, Vite, Vercel, Netlify)',
     webOptionAStep1: 'Abra a pasta public/ na raiz do seu projeto.',
@@ -399,6 +418,11 @@ export const PT_BR_MESSAGES = {
       'Crie a pasta .well-known (se ainda não existir) e crie dentro dela o arquivo brynja-verify.txt.',
     webOptionBStep4:
       'Edite o arquivo, cole apenas o token, salve e clique em Verificar Posse aqui no Brynja.',
+    webCleanupTitle:
+      'Como reverter e remover .well-known/brynja-verify.txt depois (opcional)',
+    webCleanupBody:
+      'Em projetos web (Next.js/React/Vercel/Netlify), rode o comando abaixo na raiz do projeto e faça commit/deploy. No cPanel/FTP, apague brynja-verify.txt e remova a pasta .well-known se ela ficar vazia.',
+    webCleanupCodeLabel: 'Remover arquivo e pasta .well-known no projeto web',
     dnsIntro:
       'Ideal se você não tem acesso aos arquivos do servidor web, mas controla o painel de DNS do domínio (Cloudflare, Registro.br, GoDaddy, Route 53, Vercel DNS). Crie um registro com os valores abaixo:',
     dnsColType: 'Tipo',

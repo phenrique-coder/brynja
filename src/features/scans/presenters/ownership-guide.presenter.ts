@@ -18,6 +18,10 @@ export interface OwnershipGuideSnippets {
   nginxSnippet: string;
   nginxReloadCmd: string;
   curlVerifyCmd: string;
+  sshCleanupFileCmd: string;
+  nginxFindBlockCmd: string;
+  curlCleanupVerifyCmd: string;
+  webCleanupCmd: string;
   dnsRecordHost: string;
   dnsVerifyCmd: string;
   sandboxEnvLine: string;
@@ -161,6 +165,10 @@ export function buildOwnershipGuideSnippets(
 }`,
     nginxReloadCmd: `sudo nginx -t && sudo systemctl reload nginx`,
     curlVerifyCmd: `curl -fsSL ${wellKnownUrl}`,
+    sshCleanupFileCmd: `sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)`,
+    nginxFindBlockCmd: `sudo grep -rn "well-known" /etc/nginx/sites-available/ /etc/nginx/conf.d/ 2>/dev/null`,
+    curlCleanupVerifyCmd: `curl -i ${wellKnownUrl}`,
+    webCleanupCmd: `rm -f public/.well-known/brynja-verify.txt && (rmdir public/.well-known 2>/dev/null || true)`,
     dnsRecordHost: `_brynja.${hostname}`,
     dnsVerifyCmd: `dig +short TXT _brynja.${hostname}\n${dnsAltComment}\nnslookup -type=TXT _brynja.${hostname}`,
     sandboxEnvLine: `ALLOW_LOCAL_LOOPBACK_TARGETS=true`,

@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Laptop,
   Loader2,
+  RotateCcw,
   Server,
   Terminal,
 } from 'lucide-react';
@@ -512,43 +513,118 @@ export function OwnershipSetupGuide({
                     copiedLabel={messages.common.copied}
                   />
                 </div>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2.5 rounded-xl border border-subtle bg-surface-subtle/60 p-4">
-                  <h3 className="text-xs font-bold text-fg">
-                    {g.webOptionATitle}
-                  </h3>
-                  <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-fg-secondary">
-                    <li>{g.webOptionAStep1}</li>
-                    <li>{g.webOptionAStep2}</li>
-                    <li>{g.webOptionAStep3}</li>
-                    <li>
-                      {t(g.webOptionAStep4, { url: snippets.wellKnownUrl })}
-                    </li>
-                  </ol>
+
+                {/* Step 5: Optional full rollback / cleanup */}
+                <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-50/40 p-4 dark:bg-amber-500/5">
+                  <div className="flex items-start gap-2">
+                    <RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-fg">
+                        {g.sshStep5Title}
+                      </h3>
+                      <p className="text-xs leading-relaxed text-fg-secondary">
+                        {g.sshStep5Body}
+                      </p>
+                    </div>
+                  </div>
+
                   <CopyableCodeBlock
-                    label={g.webOptionACodeLabel}
-                    code={snippets.fileContent}
-                    resolveCode={
-                      needsTokenOnCopy ? resolveTokenOnDemand : undefined
-                    }
+                    label={g.sshStep5RemoveFileLabel}
+                    code={snippets.sshCleanupFileCmd}
+                    caption={g.sshStep5RemoveFileCaption}
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
-                    copyingLabel={g.copyingToken}
+                  />
+
+                  <p className="text-xs leading-relaxed text-fg-secondary">
+                    {g.sshStep5NginxBodyBefore}{' '}
+                    <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                      location ^~ /.well-known/ &#123; ... &#125;
+                    </code>{' '}
+                    {g.sshStep5NginxBodyAfter}
+                  </p>
+
+                  <CopyableCodeBlock
+                    label={g.sshStep5NginxFindLabel}
+                    code={snippets.nginxFindBlockCmd}
+                    copyLabel={messages.common.copy}
+                    copiedLabel={messages.common.copied}
+                  />
+
+                  <CopyableCodeBlock
+                    label={g.sshStep5NginxReloadLabel}
+                    code={snippets.nginxReloadCmd}
+                    copyLabel={messages.common.copy}
+                    copiedLabel={messages.common.copied}
+                  />
+
+                  <CopyableCodeBlock
+                    label={g.sshStep5VerifyLabel}
+                    code={snippets.curlCleanupVerifyCmd}
+                    caption={g.sshStep5VerifyCaption}
+                    copyLabel={messages.common.copy}
+                    copiedLabel={messages.common.copied}
                   />
                 </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2.5 rounded-xl border border-subtle bg-surface-subtle/60 p-4">
+                    <h3 className="text-xs font-bold text-fg">
+                      {g.webOptionATitle}
+                    </h3>
+                    <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-fg-secondary">
+                      <li>{g.webOptionAStep1}</li>
+                      <li>{g.webOptionAStep2}</li>
+                      <li>{g.webOptionAStep3}</li>
+                      <li>
+                        {t(g.webOptionAStep4, { url: snippets.wellKnownUrl })}
+                      </li>
+                    </ol>
+                    <CopyableCodeBlock
+                      label={g.webOptionACodeLabel}
+                      code={snippets.fileContent}
+                      resolveCode={
+                        needsTokenOnCopy ? resolveTokenOnDemand : undefined
+                      }
+                      copyLabel={messages.common.copy}
+                      copiedLabel={messages.common.copied}
+                      copyingLabel={g.copyingToken}
+                    />
+                  </div>
 
-                <div className="space-y-2.5 rounded-xl border border-subtle bg-surface-subtle/60 p-4">
-                  <h3 className="text-xs font-bold text-fg">
-                    {g.webOptionBTitle}
-                  </h3>
-                  <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-fg-secondary">
-                    <li>{g.webOptionBStep1}</li>
-                    <li>{g.webOptionBStep2}</li>
-                    <li>{g.webOptionBStep3}</li>
-                    <li>{g.webOptionBStep4}</li>
-                  </ol>
+                  <div className="space-y-2.5 rounded-xl border border-subtle bg-surface-subtle/60 p-4">
+                    <h3 className="text-xs font-bold text-fg">
+                      {g.webOptionBTitle}
+                    </h3>
+                    <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-fg-secondary">
+                      <li>{g.webOptionBStep1}</li>
+                      <li>{g.webOptionBStep2}</li>
+                      <li>{g.webOptionBStep3}</li>
+                      <li>{g.webOptionBStep4}</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 rounded-xl border border-amber-500/30 bg-amber-50/40 p-4 dark:bg-amber-500/5">
+                  <div className="flex items-start gap-2">
+                    <RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-bold text-fg">
+                        {g.webCleanupTitle}
+                      </h3>
+                      <p className="text-xs leading-relaxed text-fg-secondary">
+                        {g.webCleanupBody}
+                      </p>
+                    </div>
+                  </div>
+                  <CopyableCodeBlock
+                    label={g.webCleanupCodeLabel}
+                    code={snippets.webCleanupCmd}
+                    copyLabel={messages.common.copy}
+                    copiedLabel={messages.common.copied}
+                  />
                 </div>
               </div>
             )}

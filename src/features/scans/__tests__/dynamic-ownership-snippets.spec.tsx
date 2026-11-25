@@ -108,6 +108,16 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     expect(snippets.sshCreateFileCmd).toContain(
       "'brynja-verify-1234567890abcdef'",
     );
+    expect(snippets.sshCleanupFileCmd).toBe(
+      'sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
+    );
+    expect(snippets.nginxFindBlockCmd).toContain('/etc/nginx/sites-available/');
+    expect(snippets.curlCleanupVerifyCmd).toBe(
+      'curl -i https://app.acme.io/.well-known/brynja-verify.txt',
+    );
+    expect(snippets.webCleanupCmd).toBe(
+      'rm -f public/.well-known/brynja-verify.txt && (rmdir public/.well-known 2>/dev/null || true)',
+    );
   });
 
   it('dynamically updates terminal snippets from the typed target URL and copies with the real derived token', async () => {
@@ -164,6 +174,34 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith(
         "sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' 'brynja-verify-deadbeef00112233445566778899aabb' | sudo tee /var/www/html/.well-known/brynja-verify.txt > /dev/null",
+      );
+    });
+
+    // Step 5 rollback commands include safe file/folder removal, Step 3 Nginx revert, and dynamic curl check
+    expect(
+      screen.getByText(
+        /sudo rm -f \/var\/www\/html\/\.well-known\/brynja-verify\.txt && \(sudo rmdir \/var\/www\/html\/\.well-known 2>\/dev\/null \|\| true\)/i,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /sudo grep -rn "well-known" \/etc\/nginx\/sites-available\//i,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /curl -i https:\/\/app\.minhaempresa\.com\/\.well-known\/brynja-verify\.txt/i,
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Copiar — 5\.1 — Remover \.well-known\/brynja-verify\.txt/i,
+      }),
+    );
+    await waitFor(() => {
+      expect(writeTextMock).toHaveBeenLastCalledWith(
+        'sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
       );
     });
 

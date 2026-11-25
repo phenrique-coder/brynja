@@ -6,6 +6,11 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-11-25
+
+### Added
+- Optional Step 5 rollback guide on `/authorizations` (`OwnershipSetupGuide`) with copyable commands to safely remove `.well-known/brynja-verify.txt` and the `.well-known` folder only when empty (preserving Let's Encrypt/Certbot files), locate and revert the Step 3 Nginx reverse-proxy block, validate/reload Nginx, and verify removal via `curl -i` (plus a web-project cleanup command in the non-SSH tab), translated across PT-BR, EN, and ES.
+
 ## [1.3.0] - 2026-11-25
 
 ### Added

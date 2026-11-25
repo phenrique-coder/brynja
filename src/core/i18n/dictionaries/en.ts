@@ -381,6 +381,25 @@ export const EN_MESSAGES: Messages = {
     sshStep4Label: 'Quick check via curl',
     sshStep4Caption:
       'Expected output: {token}. If that exact string appears, scroll up and click "Verify Ownership"!',
+    sshStep5Title:
+      'Step 5 — (Optional) Revert everything: remove the file, .well-known folder, and Step 3 (Nginx)',
+    sshStep5Body:
+      'Whenever you want to restore your server to its exact previous state (or revoke access), follow the steps below. Note: removing the file stops automatic 7-day certificate renewal.',
+    sshStep5RemoveFileLabel:
+      '5.1 — Remove .well-known/brynja-verify.txt and the .well-known folder (if empty)',
+    sshStep5RemoveFileCaption:
+      'Deletes brynja-verify.txt and removes the .well-known folder only if empty (safely preserving existing folders such as Certbot/Let’s Encrypt acme-challenge). Adjust /var/www/html if you used a different web root.',
+    sshStep5NginxBodyBefore:
+      'If you added the Step 3 block in Nginx, locate the config file with the command below, remove the',
+    sshStep5NginxBodyAfter:
+      'block (only if it is not used by Certbot/Let’s Encrypt), save, and reload Nginx:',
+    sshStep5NginxFindLabel: '5.2 — Locate the Nginx block (Step 3)',
+    sshStep5NginxReloadLabel:
+      '5.3 — Validate and reload Nginx after removing the Step 3 block',
+    sshStep5VerifyLabel:
+      '5.4 — Confirm from the terminal that the file was removed',
+    sshStep5VerifyCaption:
+      'Should return HTTP 404 (or your app default route). To finish, also click "Revoke" in the registered targets list above.',
     webOptionATitle:
       'Option A — Web Project (Next.js, React, Vite, Vercel, Netlify)',
     webOptionAStep1: 'Open the public/ folder at the root of your project.',
@@ -400,6 +419,11 @@ export const EN_MESSAGES: Messages = {
       'Create the .well-known folder (if missing) and create brynja-verify.txt inside it.',
     webOptionBStep4:
       'Edit the file, paste only the token, save, and click Verify Ownership here in Brynja.',
+    webCleanupTitle:
+      'How to revert and remove .well-known/brynja-verify.txt later (optional)',
+    webCleanupBody:
+      'In web projects (Next.js/React/Vercel/Netlify), run the command below at the project root and commit/deploy. In cPanel/FTP, delete brynja-verify.txt and remove the .well-known folder if it is empty.',
+    webCleanupCodeLabel: 'Remove verification file and .well-known folder in web project',
     dnsIntro:
       'Ideal when you do not have server file access but manage your domain DNS (Cloudflare, Route 53, GoDaddy, Vercel DNS, etc.). Create a record with the values below:',
     dnsColType: 'Type',
