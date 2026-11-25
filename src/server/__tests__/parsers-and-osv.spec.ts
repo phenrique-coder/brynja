@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryVulnerabilityCacheService } from '../infrastructure/cache/memory-vuln-cache.service';
 import { GitHubApiRepositoryFetcher } from '../infrastructure/github/github-api-repository.fetcher';
+import { GitHubOAuthClient } from '../infrastructure/github/github-oauth.client';
 import { NpmManifestParser } from '../infrastructure/parsers/npm-manifest.parser';
 import { PythonManifestParser } from '../infrastructure/parsers/python-manifest.parser';
 import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enricher.adapter';
@@ -193,6 +194,146 @@ describe('Manifest Parsers, OSV SemVer Resolver & GitHub API Fetcher', () => {
       expect(res.advisories[0].source).toBe('OSV.dev + NVD');
     } finally {
       fetchSpy.mockRestore();
+    }
+  });
+
+  it('merges personal and GitHub organization repositories without duplicates and includes read:org scope', async () => {
+    const client = new GitHubOAuthClient();
+    const authUrl = client.buildAuthorizeUrl('state-1', 'https://brynja-sec.vercel.app');
+    expect(authUrl).toContain('read%3Aorg');
+
+    const fetchSpy = vi
+      .spyOn(global, 'fetch')
+      .mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes('/user/repos?')) {
+          return new Response(
+            JSON.stringify([
+              {
+                id: 10,
+                name: 'personal-app',
+                full_name: 'alice/personal-app',
+                html_url: 'https://github.com/alice/personal-app',
+                private: true,
+                default_branch: 'main',
+                updated_at: '2026-11-25T08:00:00Z',
+                owner: { login: 'alice', type: 'User' },
+              },
+            ]),
+            { status: 200 },
+          );
+        }
+        if (u.includes('/user/orgs?')) {
+          return new Response(
+            JSON.stringify([{ login: 'acme-org' }]),
+            { status: 200 },
+          );
+        }
+        if (u.includes('/orgs/acme-org/repos?')) {
+          return new Response(
+            JSON.stringify([
+              {
+                id: 20,
+                name: 'org-backend',
+                full_name: 'acme-org/org-backend',
+                html_url: 'https://github.com/acme-org/org-backend',
+                private: true,
+                default_branch: 'main',
+                updated_at: '2026-11-25T09:00:00Z',
+                owner: { login: 'acme-org', type: 'Organization' },
+              },
+            ]),
+            { status: 200 },
+          );
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+    try {
+      const repos = await client.listRepositories('gho_token');
+      expect(repos).toHaveLength(2);
+      expect(repos[0].fullName).toBe('acme-org/org-backend');
+      expect(repos[0].ownerType).toBe('Organization');
+      expect(repos[1].fullName).toBe('alice/personal-app');
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('falls back to Contents API when recursive Git Tree fails and reports clear diagnostics for empty or SSO-gated repos', async () => {
+    const fetcher = new GitHubApiRepositoryFetcher();
+
+    const fallbackSpy = vi
+      .spyOn(global, 'fetch')
+      .mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes('/git/trees/')) {
+          return new Response(JSON.stringify({ message: 'Server Error' }), {
+            status: 500,
+          });
+        }
+        if (u.endsWith('/repos/acme/big-repo')) {
+          return new Response(
+            JSON.stringify({ default_branch: 'main', owner: { type: 'Organization' } }),
+            { status: 200 },
+          );
+        }
+        if (u.includes('/branches/')) {
+          return new Response(
+            JSON.stringify({ commit: { sha: 'abc123', commit: { tree: { sha: 'tree123' } } } }),
+            { status: 200 },
+          );
+        }
+        if (u.includes('/contents?ref=main')) {
+          return new Response(
+            JSON.stringify([
+              { name: 'package.json', path: 'package.json', type: 'file', sha: 'blob-pkg' },
+            ]),
+            { status: 200 },
+          );
+        }
+        if (u.includes('/git/blobs/blob-pkg')) {
+          const content = Buffer.from(
+            JSON.stringify({ dependencies: { express: '4.19.2' } }),
+          ).toString('base64');
+          return new Response(
+            JSON.stringify({ content, encoding: 'base64' }),
+            { status: 200 },
+          );
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+    try {
+      const files = await fetcher.fetchManifestFiles({
+        repositoryUrl: 'https://github.com/acme/big-repo',
+        branch: 'main',
+        accessToken: 'gho_123',
+      });
+      expect(files).toHaveLength(1);
+      expect(files[0].path).toBe('package.json');
+    } finally {
+      fallbackSpy.mockRestore();
+    }
+
+    const emptySpy = vi
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ message: 'Git Repository is empty.' }), {
+          status: 409,
+        }),
+      );
+
+    try {
+      await expect(
+        fetcher.fetchManifestFiles({
+          repositoryUrl: 'https://github.com/acme/empty-repo',
+          branch: 'main',
+          accessToken: 'gho_123',
+        }),
+      ).rejects.toThrow(/vazio/i);
+    } finally {
+      emptySpy.mockRestore();
     }
   });
 });

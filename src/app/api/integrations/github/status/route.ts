@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
       (session?.login ? `https://github.com/${session.login}` : null),
     sessionExpiresAt: session?.expiresAt ?? null,
     callbackUrl: config.callbackUrl,
-    scopes: config.scopes,
+    scopes: session?.scopes?.trim() || config.scopes,
+    oauthAppSettingsUrl: config.oauthAppSettingsUrl ?? null,
   });
 }

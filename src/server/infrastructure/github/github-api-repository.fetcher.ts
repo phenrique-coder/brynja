@@ -24,14 +24,28 @@ const IGNORED_SEGMENT_PREFIXES = [
   '.next/',
 ];
 
+const FALLBACK_SUBDIRS = [
+  'apps',
+  'packages',
+  'backend',
+  'frontend',
+  'server',
+  'client',
+  'api',
+  'web',
+  'services',
+];
+
+interface GitHubTreeEntry {
+  path: string;
+  type: string;
+  size?: number;
+  sha: string;
+}
+
 interface GitHubTreeResponse {
   truncated?: boolean;
-  tree?: Array<{
-    path: string;
-    type: string;
-    size?: number;
-    sha: string;
-  }>;
+  tree?: GitHubTreeEntry[];
 }
 
 interface GitHubBlobResponse {
@@ -41,6 +55,36 @@ interface GitHubBlobResponse {
 
 interface GitHubRepoMetaResponse {
   default_branch?: string;
+  private?: boolean;
+  owner?: {
+    type?: string;
+  };
+}
+
+interface GitHubBranchResponse {
+  commit?: {
+    sha?: string;
+    commit?: {
+      tree?: {
+        sha?: string;
+      };
+    };
+  };
+}
+
+interface GitHubContentItem {
+  name: string;
+  path: string;
+  type: 'file' | 'dir' | string;
+  sha?: string;
+  size?: number;
+}
+
+interface HttpFailureInfo {
+  status: number;
+  message: string;
+  ssoHeader: string | null;
+  oauthScopes: string | null;
 }
 
 export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
@@ -59,36 +103,108 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
     }
 
     const token = context.accessToken ?? null;
-    let tree = await this.fetchTree(
+    const requestedBranch = context.branch?.trim() || 'main';
+
+    // 1. Try direct recursive Git Tree on requested branch first (fast path, 1 request)
+    let resolvedBranch = requestedBranch;
+    let treeAttempt = await this.fetchTree(
       coords.owner,
       coords.repo,
-      context.branch,
+      resolvedBranch,
       token,
     );
 
-    if (!tree) {
-      const defaultBranch = await this.fetchDefaultBranch(
-        coords.owner,
-        coords.repo,
-        token,
-      );
-      if (defaultBranch && defaultBranch !== context.branch) {
-        tree = await this.fetchTree(
-          coords.owner,
-          coords.repo,
-          defaultBranch,
-          token,
-        );
+    // 2. If fast path failed, inspect repo metadata + branch ref (handles non-main default branches,
+    //    slashes in branch names, empty repos, SAML SSO, and exact HTTP error reporting)
+    let repoMetaFailure: HttpFailureInfo | null = null;
+    let ownerIsOrg = false;
+
+    if (!treeAttempt.ok) {
+      const metaRes = await this.fetchRepoMeta(coords.owner, coords.repo, token);
+      if (metaRes.ok) {
+        ownerIsOrg = metaRes.data.owner?.type === 'Organization';
+        const defaultBranch = metaRes.data.default_branch?.trim();
+
+        // Try resolving exact tree SHA via branch endpoint (supports slashes in branch names)
+        const branchToTry =
+          defaultBranch && defaultBranch !== requestedBranch
+            ? [requestedBranch, defaultBranch]
+            : [requestedBranch];
+
+        for (const candidateBranch of branchToTry) {
+          const treeSha = await this.fetchBranchTreeSha(
+            coords.owner,
+            coords.repo,
+            candidateBranch,
+            token,
+          );
+          if (treeSha) {
+            const shaTree = await this.fetchTree(
+              coords.owner,
+              coords.repo,
+              treeSha,
+              token,
+            );
+            if (shaTree.ok) {
+              resolvedBranch = candidateBranch;
+              treeAttempt = shaTree;
+              break;
+            }
+          } else if (candidateBranch !== requestedBranch) {
+            const altTree = await this.fetchTree(
+              coords.owner,
+              coords.repo,
+              candidateBranch,
+              token,
+            );
+            if (altTree.ok) {
+              resolvedBranch = candidateBranch;
+              treeAttempt = altTree;
+              break;
+            }
+            treeAttempt = altTree;
+          }
+        }
+      } else {
+        repoMetaFailure = metaRes.failure;
       }
     }
 
-    if (!tree) {
+    // 3. Fallback to Contents API if recursive Git Tree failed on a reachable repo (e.g. huge tree / 422 / 500)
+    if (!treeAttempt.ok) {
+      const failure = repoMetaFailure ?? treeAttempt.failure;
+
+      if (failure.status === 409) {
+        throw new InvalidRepositoryUrlError(
+          `O repositório "${coords.owner}/${coords.repo}" está vazio (sem commits publicados na branch "${resolvedBranch}").`,
+        );
+      }
+
+      // For 422 / 500 / 502 / 503 on git/trees (or when repo metadata succeeded), try Contents API fallback
+      if (!repoMetaFailure && [404, 422, 500, 502, 503].includes(failure.status)) {
+        const fallbackFiles = await this.fetchManifestsViaContentsApi(
+          coords.owner,
+          coords.repo,
+          resolvedBranch,
+          token,
+        );
+        if (fallbackFiles.length > 0) {
+          return fallbackFiles;
+        }
+      }
+
       throw new InvalidRepositoryUrlError(
-        `Não foi possível ler o repositório "${coords.owner}/${coords.repo}" via GitHub API (verifique permissões do OAuth App ou nome da branch).`,
+        this.formatActionableError(
+          coords.owner,
+          coords.repo,
+          resolvedBranch,
+          failure,
+          ownerIsOrg,
+        ),
       );
     }
 
-    const candidates = (tree.tree ?? []).filter((entry) => {
+    const candidates = (treeAttempt.data.tree ?? []).filter((entry) => {
       if (entry.type !== 'blob') return false;
       if ((entry.size ?? 0) > 4 * 1024 * 1024) return false;
       if (entry.path.split('/').length > 5) return false;
@@ -105,6 +221,32 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
       return SUPPORTED_FILENAMES.has(base);
     });
 
+    const files = await this.loadBlobs(
+      coords.owner,
+      coords.repo,
+      candidates,
+      token,
+    );
+
+    // If tree was truncated by GitHub and we found nothing, also check root via Contents API
+    if (treeAttempt.data.truncated && files.length === 0) {
+      return this.fetchManifestsViaContentsApi(
+        coords.owner,
+        coords.repo,
+        resolvedBranch,
+        token,
+      );
+    }
+
+    return files;
+  }
+
+  private async loadBlobs(
+    owner: string,
+    repo: string,
+    candidates: GitHubTreeEntry[],
+    token: string | null,
+  ): Promise<RepositoryFile[]> {
     const files: RepositoryFile[] = [];
     const concurrency = 6;
     for (let i = 0; i < candidates.length; i += concurrency) {
@@ -112,8 +254,8 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
       const loaded = await Promise.all(
         batch.map(async (item) => {
           const content = await this.fetchBlobContent(
-            coords.owner,
-            coords.repo,
+            owner,
+            repo,
             item.sha,
             token,
           );
@@ -124,8 +266,125 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
         if (file) files.push(file);
       }
     }
-
     return files;
+  }
+
+  private async fetchManifestsViaContentsApi(
+    owner: string,
+    repo: string,
+    branch: string,
+    token: string | null,
+  ): Promise<RepositoryFile[]> {
+    const rootItems = await this.listContentsDir(owner, repo, '', branch, token);
+    if (rootItems.length === 0) return [];
+
+    const toFetch: GitHubTreeEntry[] = [];
+    const dirsToScan: string[] = [];
+
+    for (const item of rootItems) {
+      if (item.type === 'file' && item.sha && SUPPORTED_FILENAMES.has(item.name)) {
+        toFetch.push({ path: item.path, type: 'blob', sha: item.sha, size: item.size });
+      } else if (
+        item.type === 'dir' &&
+        FALLBACK_SUBDIRS.includes(item.name.toLowerCase())
+      ) {
+        dirsToScan.push(item.path);
+      }
+    }
+
+    await Promise.all(
+      dirsToScan.map(async (dir) => {
+        const subItems = await this.listContentsDir(owner, repo, dir, branch, token);
+        for (const sub of subItems) {
+          if (sub.type === 'file' && sub.sha && SUPPORTED_FILENAMES.has(sub.name)) {
+            toFetch.push({ path: sub.path, type: 'blob', sha: sub.sha, size: sub.size });
+          } else if (sub.type === 'dir') {
+            const nested = await this.listContentsDir(
+              owner,
+              repo,
+              sub.path,
+              branch,
+              token,
+            );
+            for (const leaf of nested) {
+              if (
+                leaf.type === 'file' &&
+                leaf.sha &&
+                SUPPORTED_FILENAMES.has(leaf.name)
+              ) {
+                toFetch.push({
+                  path: leaf.path,
+                  type: 'blob',
+                  sha: leaf.sha,
+                  size: leaf.size,
+                });
+              }
+            }
+          }
+        }
+      }),
+    );
+
+    return this.loadBlobs(owner, repo, toFetch, token);
+  }
+
+  private async listContentsDir(
+    owner: string,
+    repo: string,
+    dirPath: string,
+    branch: string,
+    token: string | null,
+  ): Promise<GitHubContentItem[]> {
+    const encodedPath = dirPath
+      ? `/${dirPath.split('/').map(encodeURIComponent).join('/')}`
+      : '';
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents${encodedPath}?ref=${encodeURIComponent(branch)}`,
+        {
+          headers: this.headers(token),
+          signal: AbortSignal.timeout(8_000),
+        },
+      );
+      if (!res.ok) return [];
+      const data = (await res.json()) as unknown;
+      return Array.isArray(data) ? (data as GitHubContentItem[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private formatActionableError(
+    owner: string,
+    repo: string,
+    branch: string,
+    failure: HttpFailureInfo,
+    ownerIsOrg: boolean,
+  ): string {
+    if (failure.status === 401) {
+      return `Sessão GitHub expirada ou revogada ao acessar "${owner}/${repo}" (HTTP 401). Clique em Sair no menu superior e conecte novamente.`;
+    }
+
+    if (failure.ssoHeader) {
+      return `A organização "${owner}" exige autorização SAML SSO para o OAuth App ler "${owner}/${repo}" (HTTP ${failure.status}). Autorize o aplicativo nas configurações de SAML SSO da organização no GitHub.`;
+    }
+
+    if (failure.status === 403) {
+      return `Acesso negado pela GitHub API ao ler "${owner}/${repo}" (HTTP 403: ${failure.message}). Se o repositório pertence a uma organização ou conta com restrição de OAuth App, conceda acesso (Grant) ao Brynja em GitHub → Settings → Applications → Authorized OAuth Apps.`;
+    }
+
+    if (failure.status === 404) {
+      const scopeHint =
+        failure.oauthScopes && !failure.oauthScopes.split(/[\s,]+/).includes('repo')
+          ? ` Escopos atuais do token: "${failure.oauthScopes}" (falta o escopo "repo" — saia e entre novamente).`
+          : '';
+      const orgHint = ownerIsOrg
+        ? ` Como "${owner}" é uma organização, confirme que o Brynja recebeu permissão (Grant) em GitHub → Settings → Applications → Authorized OAuth Apps.`
+        : ` Verifique se a conta GitHub conectada tem permissão no repositório (ou se uma organização exige aprovação "Grant" no OAuth App) e se a branch "${branch}" existe.`;
+      return `Não foi possível ler "${owner}/${repo}" na branch "${branch}" via GitHub API (HTTP 404).${orgHint}${scopeHint}`;
+    }
+
+    return `Não foi possível ler o repositório "${owner}/${repo}" via GitHub API (HTTP ${failure.status}: ${failure.message}).`;
   }
 
   private parseGitHubCoordinates(
@@ -157,28 +416,56 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
     return { owner: segments[0], repo: segments[1] };
   }
 
+  private async extractFailure(res: Response): Promise<HttpFailureInfo> {
+    let message = res.statusText || 'Erro desconhecido';
+    try {
+      const body = (await res.json()) as { message?: string };
+      if (body?.message) message = body.message;
+    } catch {
+      // ignore non-json body
+    }
+    return {
+      status: res.status,
+      message,
+      ssoHeader: res.headers.get('x-github-sso'),
+      oauthScopes: res.headers.get('x-oauth-scopes'),
+    };
+  }
+
   private async fetchTree(
     owner: string,
     repo: string,
-    branch: string,
+    refOrSha: string,
     token: string | null,
-  ): Promise<GitHubTreeResponse | null> {
+  ): Promise<
+    | { ok: true; data: GitHubTreeResponse }
+    | { ok: false; failure: HttpFailureInfo }
+  > {
+    const encodedRef = refOrSha
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/');
     const res = await fetch(
-      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodedRef}?recursive=1`,
       {
         headers: this.headers(token),
         signal: AbortSignal.timeout(12_000),
       },
     );
-    if (!res.ok) return null;
-    return (await res.json()) as GitHubTreeResponse;
+    if (!res.ok) {
+      return { ok: false, failure: await this.extractFailure(res) };
+    }
+    return { ok: true, data: (await res.json()) as GitHubTreeResponse };
   }
 
-  private async fetchDefaultBranch(
+  private async fetchRepoMeta(
     owner: string,
     repo: string,
     token: string | null,
-  ): Promise<string | null> {
+  ): Promise<
+    | { ok: true; data: GitHubRepoMetaResponse }
+    | { ok: false; failure: HttpFailureInfo }
+  > {
     const res = await fetch(
       `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
       {
@@ -186,9 +473,36 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
         signal: AbortSignal.timeout(8_000),
       },
     );
-    if (!res.ok) return null;
-    const data = (await res.json()) as GitHubRepoMetaResponse;
-    return data.default_branch ?? null;
+    if (!res.ok) {
+      return { ok: false, failure: await this.extractFailure(res) };
+    }
+    return { ok: true, data: (await res.json()) as GitHubRepoMetaResponse };
+  }
+
+  private async fetchBranchTreeSha(
+    owner: string,
+    repo: string,
+    branch: string,
+    token: string | null,
+  ): Promise<string | null> {
+    const encodedBranch = branch
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/');
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodedBranch}`,
+        {
+          headers: this.headers(token),
+          signal: AbortSignal.timeout(8_000),
+        },
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as GitHubBranchResponse;
+      return data.commit?.commit?.tree?.sha ?? data.commit?.sha ?? null;
+    } catch {
+      return null;
+    }
   }
 
   private async fetchBlobContent(

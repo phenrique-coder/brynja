@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
       avatarUrl: user.avatarUrl,
       profileUrl: user.profileUrl ?? `https://github.com/${user.login}`,
       accessToken: tokenRes.accessToken,
+      scopes: tokenRes.scope || undefined,
       issuedAt: now,
       expiresAt: now + SESSION_MAX_LIFETIME_MS,
     });

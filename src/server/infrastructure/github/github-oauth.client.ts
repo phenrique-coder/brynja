@@ -29,7 +29,18 @@ interface GitHubRepoApiItem {
   private: boolean;
   default_branch: string;
   updated_at: string;
+  owner?: {
+    login?: string;
+    type?: string;
+  };
 }
+
+interface GitHubOrgApiItem {
+  login: string;
+}
+
+const DEFAULT_OAUTH_SCOPES = 'repo read:user read:org';
+const MAX_REPO_PAGES = 5;
 
 export class GitHubOAuthClient implements IGitHubOAuthClient {
   isConfigured(): boolean {
@@ -37,10 +48,14 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
   }
 
   getConfigSummary(requestOrigin?: string): GitHubOAuthConfigSummary {
+    const clientId = this.getClientId();
     return {
       configured: this.isConfigured(),
       callbackUrl: this.getCallbackUrl(requestOrigin),
       scopes: this.getScopes(),
+      oauthAppSettingsUrl: clientId
+        ? `https://github.com/settings/connections/applications/${encodeURIComponent(clientId)}`
+        : null,
     };
   }
 
@@ -115,22 +130,87 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
   }
 
   async listRepositories(accessToken: string): Promise<GitHubRepoSummary[]> {
-    const res = await fetch(
-      'https://api.github.com/user/repos?sort=updated&per_page=100&affiliation=owner,collaborator,organization_member',
-      {
-        headers: this.apiHeaders(accessToken),
-        signal: AbortSignal.timeout(10_000),
-      },
-    );
+    const byId = new Map<number, GitHubRepoSummary>();
 
-    if (!res.ok) {
-      throw new Error(
-        `Falha ao listar repositórios do GitHub (HTTP ${res.status}).`,
+    const collect = (items: GitHubRepoApiItem[]) => {
+      for (const repo of items) {
+        if (!byId.has(repo.id)) {
+          byId.set(repo.id, this.mapRepoItem(repo));
+        }
+      }
+    };
+
+    // 1. Paginated /user/repos (owner, collaborator, organization_member)
+    for (let page = 1; page <= MAX_REPO_PAGES; page += 1) {
+      const res = await fetch(
+        `https://api.github.com/user/repos?sort=updated&per_page=100&page=${page}&affiliation=owner,collaborator,organization_member`,
+        {
+          headers: this.apiHeaders(accessToken),
+          signal: AbortSignal.timeout(10_000),
+        },
       );
+
+      if (!res.ok) {
+        if (page === 1) {
+          throw new Error(
+            `Falha ao listar repositórios do GitHub (HTTP ${res.status}).`,
+          );
+        }
+        break;
+      }
+
+      const items = (await res.json()) as GitHubRepoApiItem[];
+      collect(items);
+      if (items.length < 100) break;
     }
 
-    const items = (await res.json()) as GitHubRepoApiItem[];
-    return items.map((repo) => ({
+    // 2. Explicitly enumerate user's GitHub Organizations and fetch their repos
+    //    (covers org repos omitted from /user/repos pagination or visibility filters)
+    try {
+      const orgsRes = await fetch(
+        'https://api.github.com/user/orgs?per_page=100',
+        {
+          headers: this.apiHeaders(accessToken),
+          signal: AbortSignal.timeout(8_000),
+        },
+      );
+
+      if (orgsRes.ok) {
+        const orgs = (await orgsRes.json()) as GitHubOrgApiItem[];
+        const orgBatches = orgs.slice(0, 15);
+        await Promise.all(
+          orgBatches.map(async (org) => {
+            try {
+              const orgReposRes = await fetch(
+                `https://api.github.com/orgs/${encodeURIComponent(org.login)}/repos?sort=updated&per_page=100&type=all`,
+                {
+                  headers: this.apiHeaders(accessToken),
+                  signal: AbortSignal.timeout(8_000),
+                },
+              );
+              if (!orgReposRes.ok) return;
+              const orgRepos = (await orgReposRes.json()) as GitHubRepoApiItem[];
+              collect(orgRepos);
+            } catch {
+              // Ignore single-org fetch errors so other repos still load
+            }
+          }),
+        );
+      }
+    } catch {
+      // Non-fatal: user repos already collected above
+    }
+
+    return Array.from(byId.values()).sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+  }
+
+  private mapRepoItem(repo: GitHubRepoApiItem): GitHubRepoSummary {
+    const ownerType =
+      repo.owner?.type === 'Organization' ? 'Organization' : 'User';
+    return {
       id: repo.id,
       name: repo.name,
       fullName: repo.full_name,
@@ -138,7 +218,9 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
       private: repo.private,
       defaultBranch: repo.default_branch,
       updatedAt: repo.updated_at,
-    }));
+      ownerLogin: repo.owner?.login,
+      ownerType,
+    };
   }
 
   private apiHeaders(accessToken: string): Record<string, string> {
@@ -173,6 +255,12 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
   }
 
   private getScopes(): string {
-    return process.env.GITHUB_OAUTH_SCOPES?.trim() ?? 'repo read:user';
+    const raw = process.env.GITHUB_OAUTH_SCOPES?.trim();
+    if (!raw) return DEFAULT_OAUTH_SCOPES;
+    const parts = raw.split(/[\s,]+/).filter(Boolean);
+    if (parts.includes('repo') && !parts.includes('read:org')) {
+      parts.push('read:org');
+    }
+    return parts.join(' ');
   }
 }

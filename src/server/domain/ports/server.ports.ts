@@ -132,6 +132,8 @@ export interface GitHubRepoSummary {
   private: boolean;
   defaultBranch: string;
   updatedAt: string;
+  ownerLogin?: string;
+  ownerType?: 'User' | 'Organization';
 }
 
 export interface EphemeralGitHubSession {
@@ -141,6 +143,7 @@ export interface EphemeralGitHubSession {
   avatarUrl: string | null;
   profileUrl?: string | null;
   accessToken: string;
+  scopes?: string;
   issuedAt: number;
   expiresAt: number;
 }
@@ -154,6 +157,7 @@ export interface GitHubOAuthConfigSummary {
   configured: boolean;
   callbackUrl: string;
   scopes: string;
+  oauthAppSettingsUrl?: string | null;
 }
 
 export interface GitHubTokenExchangeResult {

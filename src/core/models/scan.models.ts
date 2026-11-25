@@ -157,6 +157,7 @@ export interface GitHubIntegrationStatus {
   sessionExpiresAt?: number | null;
   callbackUrl: string;
   scopes: string;
+  oauthAppSettingsUrl?: string | null;
 }
 
 export interface GitHubRepoSummary {
@@ -167,4 +168,6 @@ export interface GitHubRepoSummary {
   private: boolean;
   defaultBranch: string;
   updatedAt: string;
+  ownerLogin?: string;
+  ownerType?: 'User' | 'Organization';
 }

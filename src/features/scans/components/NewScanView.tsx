@@ -4,7 +4,9 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  Building2,
   CheckCircle2,
+  ExternalLink,
   FileCode2,
   GitBranch,
   Github,
@@ -12,6 +14,7 @@ import {
   Lock,
   LockKeyhole,
   Play,
+  RefreshCw,
   ShieldAlert,
   Sparkles,
 } from 'lucide-react';
@@ -51,6 +54,7 @@ export function NewScanView() {
     loading: ghLoading,
     error: ghError,
     connectUrl,
+    refresh: refreshGitHubRepos,
   } = useGitHubRepositories();
 
   const verifiedTargets = authorizations.filter((a) => a.status === 'VERIFIED');
@@ -257,14 +261,24 @@ export function NewScanView() {
               ) : ghStatus && ghStatus.connected ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
-                      Selecionar Repositório ({filteredRepos.length})
-                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
+                        Selecionar Repositório ({filteredRepos.length})
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => void refreshGitHubRepos()}
+                        className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-subtle px-2 py-1 text-[11px] font-medium text-fg-secondary transition hover:border-cyan-500/40 hover:text-cyan-700 dark:hover:text-cyan-300"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        Atualizar lista
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={repoSearch}
                       onChange={(e) => setRepoSearch(e.target.value)}
-                      placeholder="Filtrar repositórios por nome..."
+                      placeholder="Filtrar repositórios pessoais ou de organizações..."
                       className="mt-1.5 w-full rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2 text-xs text-fg placeholder-fg-muted focus:border-cyan-500 focus:outline-none"
                     />
 
@@ -296,6 +310,12 @@ export function NewScanView() {
                                 {repo.fullName}
                               </span>
                               <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-fg-muted">
+                                {repo.ownerType === 'Organization' ? (
+                                  <span className="inline-flex items-center gap-1 rounded-md border border-indigo-300/70 bg-indigo-50 px-2 py-0.5 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-200">
+                                    <Building2 className="h-3 w-3" />
+                                    Org
+                                  </span>
+                                ) : null}
                                 {repo.private ? (
                                   <span className="inline-flex items-center gap-1 rounded-md border border-amber-300/70 bg-amber-50 px-2 py-0.5 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300">
                                     <Lock className="h-3 w-3" />
@@ -315,6 +335,41 @@ export function NewScanView() {
                           );
                         })
                       )}
+                    </div>
+
+                    <div className="mt-2.5 flex flex-col gap-2 rounded-xl border border-subtle bg-surface-subtle/70 p-3 text-[11px] leading-relaxed text-fg-secondary sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-2">
+                        <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-300" />
+                        <span>
+                          <strong>Faltou alguma Organização?</strong> No GitHub,
+                          organizações bloqueiam OAuth Apps por padrão até você
+                          clicar em <strong>Grant</strong> (ou pedir aprovação do
+                          admin) nas permissões do app.
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {ghStatus.oauthAppSettingsUrl ? (
+                          <a
+                            href={ghStatus.oauthAppSettingsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-50 px-2.5 py-1 font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
+                          >
+                            <span>Liberar Orgs no GitHub</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : null}
+                        {!ghStatus.scopes
+                          ?.split(/[\s,]+/)
+                          .includes('read:org') ? (
+                          <a
+                            href={connectUrl}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 transition hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-200"
+                          >
+                            Atualizar escopo read:org
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
