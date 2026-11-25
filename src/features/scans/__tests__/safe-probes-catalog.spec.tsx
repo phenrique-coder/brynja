@@ -69,11 +69,17 @@ describe('Safe Probes Catalog Single Source of Truth & /scans/new UI', () => {
       expect(screen.getByText(probe.id)).toBeTruthy();
     }
 
-    // Filter to Exposure category only (Exposed Artifacts + Exposed Docs & Metrics)
+    // Filter to Exposure category only
     fireEvent.click(screen.getByRole('tab', { name: /Exposição/i }));
+    const expectedExposureCount = SAFE_PROBES_CATALOG.filter(
+      (p) => p.category === 'exposure',
+    ).length;
     const filteredCards = container.querySelectorAll('article[data-probe-id]');
-    expect(filteredCards).toHaveLength(2);
+    expect(filteredCards).toHaveLength(expectedExposureCount);
     expect(screen.getByText('Artefatos Sensíveis Expostos')).toBeTruthy();
+    expect(
+      screen.getByText('Backups, Configs de Ambiente & Diagnósticos'),
+    ).toBeTruthy();
     expect(screen.queryByText('Política HSTS em HTTPS')).toBeNull();
   });
 

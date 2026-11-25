@@ -6,6 +6,21 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-11-25
+
+### Added
+- Expanded the non-destructive Safe Probes suite from **8 to 14 probes** (`GET`/`HEAD` read-only), synchronized across `/scans/new`, PT-BR/EN/ES dictionaries, and Executive PDF / AI Fix JSON remediation plans.
+- `safe-probe:csp-permissions`: audits CSP directive strength (`'unsafe-eval'`, `*`/`http:`/`data:`, `'unsafe-inline'` without nonce/hash, `frame-ancestors *`, `Report-Only` without active CSP), `Permissions-Policy`, and active Mixed Content on HTTPS targets.
+- `safe-probe:cache-security`: detects `Set-Cookie` on publicly cacheable responses (`public`/`s-maxage`), session cookies missing `private`/`no-store`, and dynamic `Access-Control-Allow-Origin` responses missing `Vary: Origin`.
+- `safe-probe:open-redirect`: checks `/?next=`, `/?redirect=`, and `/login?next=` with manual redirect handling against synthetic `untrusted.brynja.test` for `3xx` open redirects (CWE-601).
+- `safe-probe:backup-config-exposure`: `HEAD`-first + 512-byte structural checks (with SPA HTML filtering and zero secret persistence) for `/.env.local`, `/.env.production`, `/docker-compose.yml`, `/backup.sql`, and `/phpinfo.php`.
+- `safe-probe:debug-error-leakage`: checks root `/` for open directory listing (`Index of /`) and a synthetic 404 route for verbose stack traces and debug modes (Django `DEBUG=True`, Werkzeug, Node/Express, Laravel Ignition/Whoops, PHP, Java/Spring, ASP.NET).
+- `safe-probe:sri-integrity`: validates Subresource Integrity (`integrity="sha256|384|512-..."`) on `<script>` and `<link rel="stylesheet">` tags loaded from static third-party library CDNs (`cdnjs`, `jsDelivr`, `unpkg`, jQuery/Bootstrap CDNs).
+
+### Changed
+- Updated `/changelog` (`ChangelogView`) to render only the latest release expanded by default and collapse older versions into an accessible accordion for a more concise history view.
+- Raised default `SAFE_PROBE_MAX_REQUESTS_PER_SCAN` from `40` to `60` (preserving `SAFE_PROBE_MAX_RPS=2`, SSRF guard, and circuit breaker) to accommodate all 14 Safe Probes smoothly including on SPA catch-all targets.
+
 ## [1.7.1] - 2026-11-25
 
 ### Fixed

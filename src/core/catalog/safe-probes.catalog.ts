@@ -17,12 +17,18 @@ import type { SeverityLevel } from '../models/scan.models';
 export const SAFE_PROBE_IDS = [
   'safe-probe:security-headers',
   'safe-probe:hsts-tls',
+  'safe-probe:csp-permissions',
   'safe-probe:cookie-security',
   'safe-probe:cors-policy',
+  'safe-probe:cache-security',
+  'safe-probe:open-redirect',
   'safe-probe:exposed-artifacts',
   'safe-probe:exposed-docs-metrics',
+  'safe-probe:backup-config-exposure',
   'safe-probe:runtime-fingerprint',
   'safe-probe:source-maps',
+  'safe-probe:debug-error-leakage',
+  'safe-probe:sri-integrity',
 ] as const;
 
 export type SafeProbeId = (typeof SAFE_PROBE_IDS)[number];
@@ -65,6 +71,12 @@ export const SAFE_PROBES_CATALOG_MAP: Record<SafeProbeId, SafeProbeCatalogMeta> 
     targets: ['/', 'Strict-Transport-Security'],
     maxSeverity: 'MEDIUM',
   },
+  'safe-probe:csp-permissions': {
+    category: 'headers-tls',
+    methods: ['GET'],
+    targets: ['/', 'CSP directives', 'Permissions-Policy', 'Mixed Content'],
+    maxSeverity: 'MEDIUM',
+  },
   'safe-probe:cookie-security': {
     category: 'cookies-cors',
     methods: ['GET'],
@@ -75,6 +87,18 @@ export const SAFE_PROBES_CATALOG_MAP: Record<SafeProbeId, SafeProbeCatalogMeta> 
     category: 'cookies-cors',
     methods: ['GET'],
     targets: ['/', 'Origin', 'ACAO', 'ACAC'],
+    maxSeverity: 'HIGH',
+  },
+  'safe-probe:cache-security': {
+    category: 'cookies-cors',
+    methods: ['GET'],
+    targets: ['/', 'Cache-Control', 'Set-Cookie', 'Vary: Origin'],
+    maxSeverity: 'HIGH',
+  },
+  'safe-probe:open-redirect': {
+    category: 'cookies-cors',
+    methods: ['GET'],
+    targets: ['/?next=', '/?redirect=', '/login?next=', 'Location (3xx)'],
     maxSeverity: 'HIGH',
   },
   'safe-probe:exposed-artifacts': {
@@ -97,6 +121,18 @@ export const SAFE_PROBES_CATALOG_MAP: Record<SafeProbeId, SafeProbeCatalogMeta> 
     ],
     maxSeverity: 'MEDIUM',
   },
+  'safe-probe:backup-config-exposure': {
+    category: 'exposure',
+    methods: ['HEAD', 'GET'],
+    targets: [
+      '/.env.local',
+      '/.env.production',
+      '/docker-compose.yml',
+      '/backup.sql',
+      '/phpinfo.php',
+    ],
+    maxSeverity: 'CRITICAL',
+  },
   'safe-probe:runtime-fingerprint': {
     category: 'runtime',
     methods: ['GET'],
@@ -108,6 +144,18 @@ export const SAFE_PROBES_CATALOG_MAP: Record<SafeProbeId, SafeProbeCatalogMeta> 
     methods: ['GET', 'HEAD'],
     targets: ['/', '*.js.map'],
     maxSeverity: 'LOW',
+  },
+  'safe-probe:debug-error-leakage': {
+    category: 'runtime',
+    methods: ['GET'],
+    targets: ['/', '/__brynja_probe_nonexistent_404__', 'Stack Traces', 'Autoindex'],
+    maxSeverity: 'HIGH',
+  },
+  'safe-probe:sri-integrity': {
+    category: 'runtime',
+    methods: ['GET'],
+    targets: ['/', 'CDN <script>', 'CDN <link>', 'integrity='],
+    maxSeverity: 'MEDIUM',
   },
 };
 

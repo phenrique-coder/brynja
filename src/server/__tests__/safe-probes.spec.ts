@@ -9,12 +9,18 @@ import {
   SafeHttpRequest,
   SafeHttpResponse,
 } from '../domain/ports/server.ports';
+import { BackupConfigExposureProbe } from '../infrastructure/pentest/probes/backup-config-exposure.probe';
+import { CacheSecurityProbe } from '../infrastructure/pentest/probes/cache-security.probe';
 import { CookieSecurityProbe } from '../infrastructure/pentest/probes/cookie-security.probe';
 import { CorsMisconfigProbe } from '../infrastructure/pentest/probes/cors-misconfig.probe';
+import { CspPermissionsProbe } from '../infrastructure/pentest/probes/csp-permissions.probe';
+import { DebugErrorLeakageProbe } from '../infrastructure/pentest/probes/debug-error-leakage.probe';
 import { ExposedDocsAndMetricsProbe } from '../infrastructure/pentest/probes/exposed-docs-metrics.probe';
 import { HstsTlsProbe } from '../infrastructure/pentest/probes/hsts-tls.probe';
+import { OpenRedirectProbe } from '../infrastructure/pentest/probes/open-redirect.probe';
 import { RuntimeFingerprintProbe } from '../infrastructure/pentest/probes/runtime-fingerprint.probe';
 import { SecurityHeadersProbe } from '../infrastructure/pentest/probes/security-headers.probe';
+import { SriIntegrityProbe } from '../infrastructure/pentest/probes/sri-integrity.probe';
 
 function makeContext(
   overrides: Partial<ProbeExecutionContext> = {},
@@ -77,7 +83,7 @@ function makeHttpClient(
   };
 }
 
-describe('Safe Probes Suite (8 Non-Destructive Probes)', () => {
+describe('Safe Probes Suite (14 Non-Destructive Probes)', () => {
   describe('RuntimeFingerprintProbe', () => {
     const probe = new RuntimeFingerprintProbe();
 
@@ -335,6 +341,329 @@ describe('Safe Probes Suite (8 Non-Destructive Probes)', () => {
       );
       expect(spaRes).toHaveLength(1);
       expect(spaRes[0].status).toBe('PASSED');
+    });
+  });
+
+  describe('CspPermissionsProbe', () => {
+    const probe = new CspPermissionsProbe();
+
+    it('flags unsafe-eval CSP, missing Permissions-Policy, and HTTPS mixed content', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: {
+            'content-type': 'text/html',
+            'content-security-policy':
+              "default-src 'self'; script-src 'self' 'unsafe-eval' *; frame-ancestors *",
+          },
+          setCookies: [],
+          bodySnippet:
+            '<html><head><script src="http://cdn.legacy.example/app.js?token=secret"></script></head></html>',
+          durationMs: 7,
+        })),
+      );
+
+      expect(results.filter((r) => r.status === 'FINDING')).toHaveLength(3);
+      const cspFinding = results.find((r) =>
+        r.probeId.endsWith(':csp-directives'),
+      );
+      expect(cspFinding?.severity).toBe('MEDIUM');
+      const mixedFinding = results.find((r) =>
+        r.probeId.endsWith(':mixed-content'),
+      );
+      expect(mixedFinding?.severity).toBe('MEDIUM');
+      expect(mixedFinding?.evidence).toContain('http://cdn.legacy.example/app.js');
+      expect(mixedFinding?.evidence).not.toContain('token=secret');
+    });
+
+    it('passes nonce-based CSP (ignoring unsafe-inline fallback) with Permissions-Policy and HTTPS assets', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: {
+            'content-type': 'text/html',
+            'content-security-policy':
+              "default-src 'self'; script-src 'self' 'nonce-abc123' 'unsafe-inline'; frame-ancestors 'none'",
+            'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+          },
+          setCookies: [],
+          bodySnippet:
+            '<html><head><script src="https://app.example.com/main.js"></script></head></html>',
+          durationMs: 6,
+        })),
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].status).toBe('PASSED');
+    });
+  });
+
+  describe('CacheSecurityProbe', () => {
+    const probe = new CacheSecurityProbe();
+
+    it('flags Set-Cookie on publicly cacheable responses (HIGH) and dynamic CORS without Vary: Origin (MEDIUM)', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: {
+            'cache-control': 'public, max-age=3600',
+            'access-control-allow-origin': 'https://partner.example.com',
+          },
+          setCookies: ['session_id=top-secret-cookie; Path=/; HttpOnly; Secure'],
+          bodySnippet: '',
+          durationMs: 6,
+        })),
+      );
+
+      const cookieCache = results.find((r) =>
+        r.probeId.endsWith(':cookie-public-cache'),
+      );
+      const corsVary = results.find((r) =>
+        r.probeId.endsWith(':cors-vary-origin'),
+      );
+      expect(cookieCache?.severity).toBe('HIGH');
+      expect(cookieCache?.evidence).not.toContain('top-secret-cookie');
+      expect(corsVary?.severity).toBe('MEDIUM');
+    });
+
+    it('passes when Set-Cookie uses private, no-store and dynamic CORS includes Vary: Origin', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: {
+            'cache-control': 'private, no-store',
+            'access-control-allow-origin': 'https://partner.example.com',
+            vary: 'Accept-Encoding, Origin',
+          },
+          setCookies: ['session_id=secret; Path=/; HttpOnly; Secure'],
+          bodySnippet: '',
+          durationMs: 5,
+        })),
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].status).toBe('PASSED');
+    });
+  });
+
+  describe('OpenRedirectProbe', () => {
+    const probe = new OpenRedirectProbe();
+
+    it('flags 302 Location redirecting to synthetic untrusted.brynja.test as HIGH', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient((req): SafeHttpResponse => {
+          if (req.path.startsWith('/login?next=')) {
+            return {
+              statusCode: 302,
+              headers: { location: 'https://untrusted.brynja.test/' },
+              setCookies: [],
+              bodySnippet: '',
+              durationMs: 6,
+            };
+          }
+          return {
+            statusCode: 200,
+            headers: {},
+            setCookies: [],
+            bodySnippet: '',
+            durationMs: 5,
+          };
+        }),
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].status).toBe('FINDING');
+      expect(results[0].severity).toBe('HIGH');
+    });
+
+    it('passes when redirects remain same-origin or return 200/404', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 302,
+          headers: { location: '/dashboard' },
+          setCookies: [],
+          bodySnippet: '',
+          durationMs: 4,
+        })),
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].status).toBe('PASSED');
+    });
+  });
+
+  describe('BackupConfigExposureProbe', () => {
+    const probe = new BackupConfigExposureProbe();
+
+    it('flags exposed /.env.production and /backup.sql without leaking raw secrets and ignores SPA HTML catch-all', async () => {
+      const exposedRes = await probe.run(
+        makeContext(),
+        makeHttpClient((req): SafeHttpResponse => {
+          if (req.path === '/.env.production') {
+            return {
+              statusCode: 200,
+              headers: { 'content-type': 'text/plain' },
+              setCookies: [],
+              bodySnippet: 'DATABASE_URL=postgres://user:supersecret@db:5432/app\n',
+              durationMs: 5,
+            };
+          }
+          if (req.path === '/backup.sql') {
+            return {
+              statusCode: 200,
+              headers: { 'content-type': 'application/sql' },
+              setCookies: [],
+              bodySnippet: '-- PostgreSQL database dump\nCREATE TABLE users (id int);\n',
+              durationMs: 5,
+            };
+          }
+          return {
+            statusCode: 404,
+            headers: {},
+            setCookies: [],
+            bodySnippet: '',
+            durationMs: 4,
+          };
+        }),
+      );
+
+      expect(exposedRes.filter((r) => r.status === 'FINDING')).toHaveLength(2);
+      expect(exposedRes.every((r) => r.severity === 'CRITICAL')).toBe(true);
+      expect(
+        exposedRes.every((r) => !r.evidence.includes('supersecret')),
+      ).toBe(true);
+
+      const spaRes = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+          setCookies: [],
+          bodySnippet: '<!doctype html><html><body>App</body></html>',
+          durationMs: 4,
+        })),
+      );
+      expect(spaRes).toHaveLength(1);
+      expect(spaRes[0].status).toBe('PASSED');
+    });
+  });
+
+  describe('DebugErrorLeakageProbe', () => {
+    const probe = new DebugErrorLeakageProbe();
+
+    it('detects directory listing on root and Django DEBUG=True on synthetic 404 route', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient((req) => {
+          if (req.path === '/') {
+            return {
+              statusCode: 200,
+              headers: { 'content-type': 'text/html' },
+              setCookies: [],
+              bodySnippet: '<html><head><title>Index of /</title></head><body><h1>Index of /</h1></body></html>',
+              durationMs: 5,
+            };
+          }
+          return {
+            statusCode: 404,
+            headers: { 'content-type': 'text/html' },
+            setCookies: [],
+            bodySnippet:
+              "<h1>Page not found</h1><p>You're seeing this error because you have <code>DEBUG = True</code> in your Django settings file.</p>",
+            durationMs: 6,
+          };
+        }),
+      );
+
+      expect(results.filter((r) => r.status === 'FINDING')).toHaveLength(2);
+      expect(
+        results.find((r) => r.probeId.endsWith(':dir-listing'))?.severity,
+      ).toBe('MEDIUM');
+      expect(
+        results.find((r) => r.probeId.endsWith(':stack-trace'))?.severity,
+      ).toBe('HIGH');
+    });
+
+    it('passes on normal homepage and generic 404 page', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient((req) => ({
+          statusCode: req.path === '/' ? 200 : 404,
+          headers: { 'content-type': 'text/html' },
+          setCookies: [],
+          bodySnippet:
+            req.path === '/'
+              ? '<html><body>Welcome</body></html>'
+              : '<html><body>404 - Page Not Found</body></html>',
+          durationMs: 5,
+        })),
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].status).toBe('PASSED');
+    });
+  });
+
+  describe('SriIntegrityProbe', () => {
+    const probe = new SriIntegrityProbe();
+
+    it('flags static third-party CDN scripts without SRI while ignoring dynamic SaaS scripts', async () => {
+      const results = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: { 'content-type': 'text/html' },
+          setCookies: [],
+          bodySnippet: `
+            <html>
+              <head>
+                <script src="https://www.googletagmanager.com/gtag/js?id=G-123"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+              </head>
+            </html>
+          `,
+          durationMs: 5,
+        })),
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].status).toBe('FINDING');
+      expect(results[0].severity).toBe('MEDIUM');
+      expect(results[0].evidence).toContain('cdnjs.cloudflare.com');
+      expect(results[0].evidence).not.toContain('googletagmanager.com');
+    });
+
+    it('passes when all static CDN assets include valid SRI hashes and skips when none are used', async () => {
+      const validHash = `sha384-${'A'.repeat(64)}`;
+      const passRes = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: { 'content-type': 'text/html' },
+          setCookies: [],
+          bodySnippet: `<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js" integrity="${validHash}" crossorigin="anonymous"></script>`,
+          durationMs: 5,
+        })),
+      );
+      expect(passRes[0].status).toBe('PASSED');
+
+      const skipRes = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: { 'content-type': 'text/html' },
+          setCookies: [],
+          bodySnippet: '<script src="/_next/static/chunks/main.js"></script>',
+          durationMs: 5,
+        })),
+      );
+      expect(skipRes[0].status).toBe('SKIPPED');
     });
   });
 });

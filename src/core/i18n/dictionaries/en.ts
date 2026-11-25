@@ -19,6 +19,13 @@ const SAFE_PROBE_ITEMS_EN: Record<SafeProbeId, SafeProbeCopy> = {
     checks:
       'Runs HEAD / and validates Strict-Transport-Security with max-age ≥ 15,552,000s (180 days). Automatically skipped for plain HTTP targets.',
   },
+  'safe-probe:csp-permissions': {
+    name: 'CSP Directive Strength, Permissions-Policy & Mixed Content',
+    summary:
+      'Evaluates actual Content-Security-Policy directive hardening, browser feature restrictions, and insecure active HTTP resources on HTTPS pages.',
+    checks:
+      "Inspects 'unsafe-eval', '*' wildcards, 'unsafe-inline' without nonces/hashes, frame-ancestors '*', Report-Only without active CSP, missing Permissions-Policy, and http:// scripts/iframes/CSS on HTTPS.",
+  },
   'safe-probe:cookie-security': {
     name: 'Cookie Security Flags (Set-Cookie)',
     summary:
@@ -32,6 +39,20 @@ const SAFE_PROBE_ITEMS_EN: Record<SafeProbeId, SafeProbeCopy> = {
       'Detects overly permissive cross-origin policies that could allow untrusted websites to read authenticated application data.',
     checks:
       'Sends GET / with an untrusted test Origin and checks for arbitrary Access-Control-Allow-Origin reflection, wildcard "*" with credentials, or "null" origin trust.',
+  },
+  'safe-probe:cache-security': {
+    name: 'HTTP Cache Security (Cookies & Vary: Origin)',
+    summary:
+      'Prevents authenticated session leakage across shared CDNs/proxies and cache poisoning on dynamic CORS responses.',
+    checks:
+      'Audits GET / for Set-Cookie paired with public/s-maxage Cache-Control (or session cookies missing private/no-store) and specific Access-Control-Allow-Origin headers missing Vary: Origin.',
+  },
+  'safe-probe:open-redirect': {
+    name: 'Open Redirect Verification',
+    summary:
+      'Detects unvalidated return URL parameters that redirect visitors to arbitrary external domains for phishing or token theft.',
+    checks:
+      'Sends manual-redirect GET requests to /?next=, /?redirect=, and /login?next= targeting synthetic untrusted.brynja.test and checks whether 3xx Location headers redirect externally.',
   },
   'safe-probe:exposed-artifacts': {
     name: 'Exposed Sensitive Artifacts',
@@ -47,6 +68,13 @@ const SAFE_PROBE_ITEMS_EN: Record<SafeProbeId, SafeProbeCopy> = {
     checks:
       'Checks /openapi.json, /swagger, /swagger-ui, /api/docs, /metrics, /actuator/health, and /graphql (ignoring SPA HTML catch-alls), plus /.well-known/security.txt.',
   },
+  'safe-probe:backup-config-exposure': {
+    name: 'Backups, Env Configs & Diagnostics Exposure',
+    summary:
+      'Detects publicly exposed environment overrides, SQL database dumps, Docker Compose manifests, or phpinfo diagnostics.',
+    checks:
+      'Runs HEAD-first checks and 512-byte structural signature verification (ignoring SPA HTML, never storing secrets) for /.env.local, /.env.production, /docker-compose.yml, /backup.sql, and /phpinfo.php.',
+  },
   'safe-probe:runtime-fingerprint': {
     name: 'Runtime Library & CVE Correlation',
     summary:
@@ -60,6 +88,20 @@ const SAFE_PROBE_ITEMS_EN: Record<SafeProbeId, SafeProbeCopy> = {
       'Detects publicly accessible JavaScript source maps that expose original unobfuscated client code in staging or production.',
     checks:
       'Extracts up to 3 same-origin JS bundles from "/" and verifies via HEAD whether their corresponding .js.map files return HTTP 200.',
+  },
+  'safe-probe:debug-error-leakage': {
+    name: 'Debug Mode, Stack Traces & Directory Listing',
+    summary:
+      'Detects open web directory autoindexing and verbose error pages that expose internal server paths, frameworks, or interactive debuggers.',
+    checks:
+      'Inspects GET / for directory listings ("Index of /") and GET /__brynja_probe_nonexistent_404__ for Django DEBUG, Werkzeug, Node/Express, Laravel Ignition, PHP, Java/Spring, and ASP.NET traces.',
+  },
+  'safe-probe:sri-integrity': {
+    name: 'Subresource Integrity (SRI) on External CDNs',
+    summary:
+      'Verifies whether scripts and stylesheets loaded from static public library CDNs enforce cryptographic hashes against supply-chain tampering.',
+    checks:
+      'Parses root HTML <script src> and <link rel="stylesheet"> tags targeting static CDNs (cdnjs, jsDelivr, unpkg, jQuery/Bootstrap) and validates sha256/384/512 integrity attributes.',
   },
 };
 
@@ -166,7 +208,7 @@ export const EN_MESSAGES: Messages = {
   },
   footer: {
     versionTooltip: 'View changelog and release notes for every version',
-    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 8 Safe Probes',
+    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 14 Safe Probes',
     linksAria: 'Project links',
     changelog: 'Changelog',
     repository: 'Repository',

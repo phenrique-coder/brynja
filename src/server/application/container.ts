@@ -8,14 +8,20 @@ import { GitHubOAuthClient } from '../infrastructure/github/github-oauth.client'
 import { NpmManifestParser } from '../infrastructure/parsers/npm-manifest.parser';
 import { PythonManifestParser } from '../infrastructure/parsers/python-manifest.parser';
 import { DomainOwnershipVerifierAdapter } from '../infrastructure/pentest/domain-ownership-verifier.adapter';
+import { BackupConfigExposureProbe } from '../infrastructure/pentest/probes/backup-config-exposure.probe';
+import { CacheSecurityProbe } from '../infrastructure/pentest/probes/cache-security.probe';
 import { CookieSecurityProbe } from '../infrastructure/pentest/probes/cookie-security.probe';
 import { CorsMisconfigProbe } from '../infrastructure/pentest/probes/cors-misconfig.probe';
+import { CspPermissionsProbe } from '../infrastructure/pentest/probes/csp-permissions.probe';
+import { DebugErrorLeakageProbe } from '../infrastructure/pentest/probes/debug-error-leakage.probe';
 import { ExposedArtifactsProbe } from '../infrastructure/pentest/probes/exposed-artifacts.probe';
 import { ExposedDocsAndMetricsProbe } from '../infrastructure/pentest/probes/exposed-docs-metrics.probe';
 import { HstsTlsProbe } from '../infrastructure/pentest/probes/hsts-tls.probe';
+import { OpenRedirectProbe } from '../infrastructure/pentest/probes/open-redirect.probe';
 import { RuntimeFingerprintProbe } from '../infrastructure/pentest/probes/runtime-fingerprint.probe';
 import { SecurityHeadersProbe } from '../infrastructure/pentest/probes/security-headers.probe';
 import { SourceMapExposureProbe } from '../infrastructure/pentest/probes/source-map-exposure.probe';
+import { SriIntegrityProbe } from '../infrastructure/pentest/probes/sri-integrity.probe';
 import { SsrfDnsGuardService } from '../infrastructure/pentest/ssrf-dns-guard.service';
 import { CisaKevEnricher } from '../infrastructure/vuln-intel/cisa-kev-enricher.adapter';
 import { EpssVulnerabilityEnricher } from '../infrastructure/vuln-intel/epss-enricher.adapter';
@@ -35,12 +41,18 @@ export function createRegisteredSafeProbes(): IControlledProbe[] {
   return [
     new SecurityHeadersProbe(),
     new HstsTlsProbe(),
+    new CspPermissionsProbe(),
     new CookieSecurityProbe(),
     new CorsMisconfigProbe(),
+    new CacheSecurityProbe(),
+    new OpenRedirectProbe(),
     new ExposedArtifactsProbe(),
     new ExposedDocsAndMetricsProbe(),
+    new BackupConfigExposureProbe(),
     new RuntimeFingerprintProbe(),
     new SourceMapExposureProbe(),
+    new DebugErrorLeakageProbe(),
+    new SriIntegrityProbe(),
   ];
 }
 

@@ -158,6 +158,54 @@ const PROBE_REMEDIATION_REGISTRY: Record<string, ProbeRemediationMeta> = {
     verifyExecutive:
       'Após atualizar a biblioteca e republicar o frontend, executar nova varredura confirmando ausência da versão vulnerável em runtime.',
   },
+  'safe-probe:csp-permissions': {
+    businessImpact:
+      'Diretivas CSP permissivas (unsafe-eval/wildcards), ausência de Permissions-Policy ou recursos ativos em HTTP puro (Mixed Content) reduzem a defesa em profundidade contra XSS e interceptação no navegador.',
+    verifyAi:
+      'Inspect GET / headers and HTML to confirm CSP has no unsafe-eval/wildcards, Permissions-Policy is set, and HTTPS pages load no active http:// resources.',
+    verifyExecutive:
+      'Validar em nova varredura que a CSP está endurecida sem diretivas permissivas, o cabeçalho Permissions-Policy está ativo e não há recursos carregados em HTTP puro.',
+  },
+  'safe-probe:cache-security': {
+    businessImpact:
+      'Respostas com Set-Cookie armazenadas em cache compartilhado (CDN/proxy) podem entregar a sessão de um usuário a outro; CORS dinâmico sem Vary: Origin pode envenenar caches intermediários.',
+    verifyAi:
+      'Inspect GET / headers to confirm Set-Cookie responses set Cache-Control: private, no-store and dynamic Access-Control-Allow-Origin responses include Vary: Origin.',
+    verifyExecutive:
+      'Confirmar que respostas com cookies de sessão usam Cache-Control: private, no-store e respostas CORS dinâmicas retornam Vary: Origin.',
+  },
+  'safe-probe:open-redirect': {
+    businessImpact:
+      'Redirecionamentos abertos (CWE-601) permitem que invasores usem o domínio confiável da empresa em campanhas de phishing e roubo de tokens OAuth/sessão.',
+    verifyAi:
+      'Send GET /?next=https://untrusted.brynja.test and /login?next=https://untrusted.brynja.test with redirect: manual and confirm no 3xx Location points to the external domain.',
+    verifyExecutive:
+      'Confirmar que parâmetros de redirecionamento aceitam apenas rotas internas ou domínios confiáveis e não redirecionam para domínios externos arbitrários.',
+  },
+  'safe-probe:backup-config-exposure': {
+    businessImpact:
+      'Arquivos .env adicionais, dumps SQL, docker-compose.yml ou phpinfo.php acessíveis publicamente podem expor credenciais de banco de dados, chaves de API e toda a base de clientes.',
+    verifyAi:
+      'Request the exposed backup/config path via HEAD/GET and confirm HTTP 403 or 404 (never HTTP 200), then rotate any exposed credentials.',
+    verifyExecutive:
+      'Confirmar bloqueio (HTTP 403/404) do arquivo exposto, remoção definitiva da raiz pública e rotação preventiva de segredos.',
+  },
+  'safe-probe:debug-error-leakage': {
+    businessImpact:
+      'Modo debug ativo, stack traces detalhados ou listagem de diretórios revelam caminhos internos do servidor, versões e trechos de código que aceleram ataques direcionados.',
+    verifyAi:
+      'Request / and a non-existent route and confirm generic error handling without stack traces, framework debuggers, or directory listing.',
+    verifyExecutive:
+      'Validar que o modo debug está desabilitado em produção, o autoindex foi desativado e páginas de erro retornam mensagens genéricas.',
+  },
+  'safe-probe:sri-integrity': {
+    businessImpact:
+      'Scripts e folhas de estilo carregados de CDNs públicas sem Subresource Integrity (SRI) podem executar código malicioso nos clientes caso a CDN ou o pacote externo seja comprometido.',
+    verifyAi:
+      'Inspect third-party CDN <script> and <link rel="stylesheet"> tags in root HTML and confirm valid integrity="sha384-..." and crossorigin="anonymous" attributes.',
+    verifyExecutive:
+      'Confirmar que bibliotecas carregadas de CDNs públicas possuem hashes integrity (SRI) válidos ou foram migradas para hospedagem na mesma origem.',
+  },
 };
 
 const DEFAULT_PROBE_META: ProbeRemediationMeta = {

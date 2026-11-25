@@ -19,6 +19,13 @@ const SAFE_PROBE_ITEMS_ES: Record<SafeProbeId, SafeProbeCopy> = {
     checks:
       'Ejecuta HEAD / y valida Strict-Transport-Security con max-age ≥ 15.552.000s (180 días). Se omite automáticamente en objetivos HTTP.',
   },
+  'safe-probe:csp-permissions': {
+    name: 'Directivas CSP, Permissions-Policy y Contenido Mixto',
+    summary:
+      'Evalúa la fortaleza real de Content-Security-Policy, las restricciones de APIs del navegador y la carga de recursos activos HTTP en páginas HTTPS.',
+    checks:
+      "Analiza 'unsafe-eval', comodines '*', 'unsafe-inline' sin nonce/hash, frame-ancestors '*', Report-Only sin CSP activa, ausencia de Permissions-Policy y scripts/iframes/CSS http:// en HTTPS.",
+  },
   'safe-probe:cookie-security': {
     name: 'Atributos de Seguridad en Cookies (Set-Cookie)',
     summary:
@@ -32,6 +39,20 @@ const SAFE_PROBE_ITEMS_ES: Record<SafeProbeId, SafeProbeCopy> = {
       'Detecta configuraciones cross-origin demasiado permisivas que podrían permitir a sitios no confiables leer datos autenticados de la aplicación.',
     checks:
       'Envía GET / con un Origin de prueba no confiable y comprueba reflexión arbitraria de Access-Control-Allow-Origin, comodín "*" con credenciales u origen "null".',
+  },
+  'safe-probe:cache-security': {
+    name: 'Seguridad de Caché HTTP (Cookies y Vary: Origin)',
+    summary:
+      'Previene fugas de sesiones en CDNs/proxies compartidos y envenenamiento de caché en respuestas CORS dinámicas.',
+    checks:
+      'Inspecciona GET / buscando Set-Cookie con Cache-Control público/s-maxage (o cookies de sesión sin private/no-store) y Access-Control-Allow-Origin específico sin Vary: Origin.',
+  },
+  'safe-probe:open-redirect': {
+    name: 'Redirección Abierta (Open Redirect)',
+    summary:
+      'Detecta parámetros de retorno sin validar que redirigen usuarios a dominios externos arbitrarios en campañas de phishing o robo de tokens.',
+    checks:
+      'Envía GET con redirección manual a /?next=, /?redirect= y /login?next= apuntando al dominio sintético untrusted.brynja.test y verifica respuestas 3xx con Location externo.',
   },
   'safe-probe:exposed-artifacts': {
     name: 'Artefactos Sensibles Expuestos',
@@ -47,6 +68,13 @@ const SAFE_PROBE_ITEMS_ES: Record<SafeProbeId, SafeProbeCopy> = {
     checks:
       'Comprueba /openapi.json, /swagger, /swagger-ui, /api/docs, /metrics, /actuator/health y /graphql (ignorando HTML catch-all de SPAs), además de /.well-known/security.txt.',
   },
+  'safe-probe:backup-config-exposure': {
+    name: 'Backups, Configs de Entorno y Diagnósticos',
+    summary:
+      'Identifica archivos de entorno adicionales, volcados SQL, manifiestos Docker Compose o páginas phpinfo expuestas públicamente.',
+    checks:
+      'Ejecuta HEAD y valida firmas en los primeros 512 bytes (ignorando HTML de SPAs, sin guardar secretos) para /.env.local, /.env.production, /docker-compose.yml, /backup.sql y /phpinfo.php.',
+  },
   'safe-probe:runtime-fingerprint': {
     name: 'Correlación de Bibliotecas en Runtime con CVEs',
     summary:
@@ -60,6 +88,20 @@ const SAFE_PROBE_ITEMS_ES: Record<SafeProbeId, SafeProbeCopy> = {
       'Detecta mapas de código fuente accesibles públicamente que exponen el código original del cliente en staging o producción.',
     checks:
       'Extrae hasta 3 scripts JS del mismo origen en "/" y comprueba mediante HEAD si sus archivos .js.map devuelven HTTP 200.',
+  },
+  'safe-probe:debug-error-leakage': {
+    name: 'Modo Debug, Stack Traces y Directory Listing',
+    summary:
+      'Detecta listados automáticos de directorios y páginas de error detalladas que exponen rutas internas, frameworks o depuradores interactivos.',
+    checks:
+      'Inspecciona GET / para autoindex ("Index of /") y GET /__brynja_probe_nonexistent_404__ para firmas de Django DEBUG, Werkzeug, Node/Express, Laravel Ignition, PHP, Java/Spring y ASP.NET.',
+  },
+  'safe-probe:sri-integrity': {
+    name: 'Subresource Integrity (SRI) en CDNs Externas',
+    summary:
+      'Verifica si los scripts y hojas de estilo cargados desde CDNs públicas estáticas exigen hashes criptográficos contra alteraciones en la cadena de suministro.',
+    checks:
+      'Analiza etiquetas <script src> y <link rel="stylesheet"> en el HTML raíz hacia CDNs estáticas (cdnjs, jsDelivr, unpkg, jQuery/Bootstrap) validando el atributo integrity (sha256/384/512).',
   },
 };
 
@@ -166,7 +208,7 @@ export const ES_MESSAGES: Messages = {
   },
   footer: {
     versionTooltip: 'Ver changelog y novedades de cada versión',
-    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 8 Safe Probes',
+    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 14 Safe Probes',
     linksAria: 'Enlaces del proyecto',
     changelog: 'Changelog',
     repository: 'Repositorio',
