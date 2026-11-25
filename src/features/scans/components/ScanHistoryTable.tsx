@@ -14,6 +14,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ScanSummary } from '@/core/models/scan.models';
+import { useI18n } from '@/core/providers/i18n-provider';
 import {
   formatRepositoryDisplay,
   formatTargetHost,
@@ -27,6 +28,7 @@ interface ScanHistoryTableProps {
 }
 
 export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
+  const { messages, intlLocale, t } = useI18n();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleDelete(scanId: string) {
@@ -38,18 +40,29 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
       setDeletingId(null);
     }
   }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left text-sm">
         <thead className="border-b border-subtle bg-surface-subtle/80 text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
           <tr>
-            <th className="py-3 pl-5 pr-3 sm:pl-6">Repositório</th>
-            <th className="whitespace-nowrap px-3 py-3">Status</th>
-            <th className="whitespace-nowrap px-3 py-3">Dependências</th>
-            <th className="whitespace-nowrap px-3 py-3">Severidade</th>
-            <th className="whitespace-nowrap px-3 py-3">Alvo Staging</th>
+            <th className="py-3 pl-5 pr-3 sm:pl-6">
+              {messages.historyTable.colRepository}
+            </th>
+            <th className="whitespace-nowrap px-3 py-3">
+              {messages.historyTable.colStatus}
+            </th>
+            <th className="whitespace-nowrap px-3 py-3">
+              {messages.historyTable.colDependencies}
+            </th>
+            <th className="whitespace-nowrap px-3 py-3">
+              {messages.historyTable.colSeverity}
+            </th>
+            <th className="whitespace-nowrap px-3 py-3">
+              {messages.historyTable.colStagingTarget}
+            </th>
             <th className="whitespace-nowrap py-3 pl-3 pr-5 text-right sm:pr-6">
-              Ação
+              {messages.historyTable.colAction}
             </th>
           </tr>
         </thead>
@@ -99,7 +112,7 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                         </span>
                         <span className="inline-flex items-center gap-1 whitespace-nowrap">
                           <Clock className="h-3 w-3" />
-                          {new Date(scan.createdAt).toLocaleString('pt-BR', {
+                          {new Date(scan.createdAt).toLocaleString(intlLocale, {
                             dateStyle: 'short',
                             timeStyle: 'short',
                           })}
@@ -111,7 +124,10 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
 
                 {/* Status */}
                 <td className="whitespace-nowrap px-3 py-3.5 align-middle">
-                  <StatusPill meta={SCAN_STATUS_REGISTRY[scan.status]} />
+                  <StatusPill
+                    meta={SCAN_STATUS_REGISTRY[scan.status]}
+                    label={messages.enums.scanStatus[scan.status]}
+                  />
                 </td>
 
                 {/* Dependencies */}
@@ -134,29 +150,37 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                   <div className="inline-flex flex-col gap-1.5">
                     <div className="flex items-center gap-1 font-mono text-[11px] font-semibold">
                       <span
-                        title={`${scan.criticalCount} Crítica(s)`}
+                        title={t(messages.historyTable.critTitle, {
+                          count: scan.criticalCount,
+                        })}
                         className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300"
                       >
-                        C:{scan.criticalCount}
+                        {messages.historyTable.critShort}:{scan.criticalCount}
                       </span>
                       <span
-                        title={`${scan.highCount} Alta(s)`}
+                        title={t(messages.historyTable.highTitle, {
+                          count: scan.highCount,
+                        })}
                         className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300"
                       >
-                        A:{scan.highCount}
+                        {messages.historyTable.highShort}:{scan.highCount}
                       </span>
                       <span
-                        title={`${scan.mediumCount} Média(s)`}
+                        title={t(messages.historyTable.medTitle, {
+                          count: scan.mediumCount,
+                        })}
                         className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
                       >
-                        M:{scan.mediumCount}
+                        {messages.historyTable.medShort}:{scan.mediumCount}
                       </span>
                       {scan.lowCount > 0 ? (
                         <span
-                          title={`${scan.lowCount} Baixa(s)`}
+                          title={t(messages.historyTable.lowTitle, {
+                            count: scan.lowCount,
+                          })}
                           className="inline-flex items-center rounded-md border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300"
                         >
-                          B:{scan.lowCount}
+                          {messages.historyTable.lowShort}:{scan.lowCount}
                         </span>
                       ) : null}
                     </div>
@@ -207,7 +231,7 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] font-medium text-fg-muted">
                       <Globe className="h-3 w-3 shrink-0 opacity-70" />
-                      Somente SCA
+                      {messages.common.scaOnly}
                     </span>
                   )}
                 </td>
@@ -219,7 +243,7 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                       href={`/scans/${scan.id}`}
                       className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-cyan-500/30 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
                     >
-                      <span>Ver Relatório</span>
+                      <span>{messages.historyTable.viewReport}</span>
                       <ArrowRight className="h-3.5 w-3.5 shrink-0" />
                     </Link>
                     {onDelete ? (
@@ -227,8 +251,10 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                         type="button"
                         disabled={deletingId === scan.id}
                         onClick={() => void handleDelete(scan.id)}
-                        aria-label={`Excluir varredura ${repo.displayName}`}
-                        title="Remover do histórico"
+                        aria-label={t(messages.historyTable.deleteAria, {
+                          name: repo.displayName,
+                        })}
+                        title={messages.historyTable.deleteTitle}
                         className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-subtle bg-surface-subtle text-fg-muted transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:hover:border-rose-500/40 dark:hover:bg-rose-500/15 dark:hover:text-rose-300"
                       >
                         {deletingId === scan.id ? (

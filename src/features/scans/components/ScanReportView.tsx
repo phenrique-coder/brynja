@@ -26,6 +26,7 @@ import {
   SeverityLevel,
 } from '@/core/models/scan.models';
 import { IReportExporter } from '@/core/ports/scan-gateway.port';
+import { useI18n } from '@/core/providers/i18n-provider';
 import { downloadScanReportPdf } from '../exporters/scan-pdf.exporter';
 import { useScanReport } from '../hooks/use-scans';
 import {
@@ -44,12 +45,17 @@ import {
 } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
 import { StatusPill } from './StatusPill';
-import { KpiStatCard, SurfaceCard } from './ui/PagePrimitives';
+import {
+  KpiStatCard,
+  PageLoadingState,
+  SurfaceCard,
+} from './ui/PagePrimitives';
 
 type ReportTab = 'findings' | 'dependencies' | 'probes' | 'audit';
 
 export function ScanReportView({ scanId }: { scanId: string }) {
   const { report, loading, authRequired, error } = useScanReport(scanId);
+  const { messages, intlLocale, t } = useI18n();
   const [tab, setTab] = useState<ReportTab>('findings');
   const [severityFilter, setSeverityFilter] = useState<SeverityLevel | 'ALL'>(
     'ALL',
@@ -92,33 +98,28 @@ export function ScanReportView({ scanId }: { scanId: string }) {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-sm text-fg-secondary">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin text-cyan-500" />
-        Carregando relatório...
-      </div>
-    );
-  }
-
   if (authRequired) {
     return (
       <AuthRequiredCard
         returnTo={`/scans/${scanId}`}
-        title="Conecte seu GitHub para abrir este relatório"
+        title={messages.authCard.reportTitle}
       />
     );
+  }
+
+  if (loading) {
+    return <PageLoadingState label={messages.scanReport.loading} />;
   }
 
   if (error || !report) {
     return (
       <SurfaceCard className="border-rose-300 bg-rose-50 p-6 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
-        <p>{error ?? 'Relatório não encontrado.'}</p>
+        <p>{error ?? messages.scanReport.notFound}</p>
         <Link
           href="/"
           className="mt-3 inline-block font-semibold text-cyan-700 underline dark:text-cyan-300"
         >
-          Voltar ao painel
+          {messages.common.backToDashboard}
         </Link>
       </SurfaceCard>
     );
@@ -153,15 +154,18 @@ export function ScanReportView({ scanId }: { scanId: string }) {
               className="inline-flex items-center gap-1.5 text-xs font-medium text-fg-muted transition hover:text-fg"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Voltar ao Histórico
+              {messages.common.backToHistory}
             </Link>
 
             <div className="flex flex-wrap items-center gap-2">
-              <StatusPill meta={SCAN_STATUS_REGISTRY[report.status]} />
+              <StatusPill
+                meta={SCAN_STATUS_REGISTRY[report.status]}
+                label={messages.enums.scanStatus[report.status]}
+              />
               <button
                 type="button"
                 onClick={() => void handleCopyScanId(report.id)}
-                title={`Copiar ID completo: ${report.id}`}
+                title={t(messages.scanReport.copyIdTitle, { id: report.id })}
                 className="inline-flex items-center gap-1.5 rounded-full border border-subtle bg-surface-subtle px-2.5 py-0.5 font-mono text-[11px] text-fg-secondary transition hover:border-cyan-500/40 hover:text-fg"
               >
                 <span>ID {report.id.slice(0, 8)}</span>
@@ -217,13 +221,17 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-medium text-emerald-800 transition hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
                   >
                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                    <span>Alvo: {targetHost}</span>
+                    <span>
+                      {t(messages.scanReport.targetPrefix, {
+                        host: targetHost,
+                      })}
+                    </span>
                     <ExternalLink className="h-3 w-3 opacity-70" />
                   </a>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] font-medium text-fg-muted">
                     <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                    Somente SCA (sem alvo staging)
+                    {messages.scanReport.scaOnlyBadge}
                   </span>
                 )}
 
@@ -238,7 +246,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                   <Clock className="h-3.5 w-3.5" />
                   {new Date(
                     report.completedAt ?? report.createdAt,
-                  ).toLocaleString('pt-BR', {
+                  ).toLocaleString(intlLocale, {
                     dateStyle: 'short',
                     timeStyle: 'short',
                   })}
@@ -251,7 +259,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
         {/* Dedicated Export Toolbar */}
         <div className="flex flex-col gap-2.5 border-t border-subtle bg-surface-subtle/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
-            Exportar Relatório
+            {messages.scanReport.exportReportLabel}
           </span>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -266,7 +274,9 @@ export function ScanReportView({ scanId }: { scanId: string }) {
               ) : (
                 <FileDown className="h-3.5 w-3.5" />
               )}
-              {exportingPdf ? 'Gerando PDF...' : 'PDF Executivo'}
+              {exportingPdf
+                ? messages.scanReport.generatingPdf
+                : messages.scanReport.executivePdf}
             </button>
 
             <span
@@ -301,6 +311,10 @@ export function ScanReportView({ scanId }: { scanId: string }) {
               (currentStageIdx > -1 && idx < currentStageIdx);
             const isCurrent =
               report.status === 'RUNNING' && stage.key === report.currentStage;
+            const stageLabel =
+              messages.enums.pipelineStage[
+                stage.key as keyof typeof messages.enums.pipelineStage
+              ] ?? stage.label;
             return (
               <div
                 key={stage.key}
@@ -318,7 +332,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                   ) : isCurrent ? (
                     <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
                   ) : null}
-                  <span className="truncate">{stage.label}</span>
+                  <span className="truncate">{stageLabel}</span>
                 </div>
               </div>
             );
@@ -327,7 +341,9 @@ export function ScanReportView({ scanId }: { scanId: string }) {
 
         {report.errorMessage ? (
           <div className="mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
-            Erro na execução: {report.errorMessage}
+            {t(messages.scanReport.executionError, {
+              message: report.errorMessage,
+            })}
           </div>
         ) : null}
 
@@ -345,24 +361,27 @@ export function ScanReportView({ scanId }: { scanId: string }) {
 
       {/* Summary KPI Grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        <KpiStatCard label="Dependências" value={report.totalDependencies} />
         <KpiStatCard
-          label="Críticas"
+          label={messages.scanReport.kpiDependencies}
+          value={report.totalDependencies}
+        />
+        <KpiStatCard
+          label={messages.scanReport.kpiCritical}
           value={report.criticalCount}
           accentClass="text-rose-600 dark:text-rose-300"
         />
         <KpiStatCard
-          label="Altas"
+          label={messages.scanReport.kpiHigh}
           value={report.highCount}
           accentClass="text-orange-600 dark:text-orange-300"
         />
         <KpiStatCard
-          label="Médias"
+          label={messages.scanReport.kpiMedium}
           value={report.mediumCount}
           accentClass="text-amber-600 dark:text-amber-300"
         />
         <KpiStatCard
-          label="Confirmadas / Sondas"
+          label={messages.scanReport.kpiConfirmed}
           value={report.confirmedActiveCount}
           accentClass="text-cyan-600 dark:text-cyan-300"
         />
@@ -372,10 +391,30 @@ export function ScanReportView({ scanId }: { scanId: string }) {
       <div className="flex flex-wrap gap-1.5 rounded-xl border border-subtle bg-surface-subtle p-1">
         {(
           [
-            ['findings', `Vulnerabilidades (${report.findings.length})`],
-            ['dependencies', `Inventário SBOM (${report.dependencies.length})`],
-            ['probes', `Safe Probes (${report.probeResults.length})`],
-            ['audit', `Auditoria (${report.auditLogs.length})`],
+            [
+              'findings',
+              t(messages.scanReport.tabFindings, {
+                count: report.findings.length,
+              }),
+            ],
+            [
+              'dependencies',
+              t(messages.scanReport.tabDependencies, {
+                count: report.dependencies.length,
+              }),
+            ],
+            [
+              'probes',
+              t(messages.scanReport.tabProbes, {
+                count: report.probeResults.length,
+              }),
+            ],
+            [
+              'audit',
+              t(messages.scanReport.tabAudit, {
+                count: report.auditLogs.length,
+              }),
+            ],
           ] as Array<[ReportTab, string]>
         ).map(([key, label]) => (
           <button
@@ -398,7 +437,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
           <SurfaceCard className="flex flex-wrap items-center gap-3 p-3.5">
             <input
               type="text"
-              placeholder="Buscar pacote, CVE ou título..."
+              placeholder={messages.scanReport.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="min-w-[220px] flex-1 rounded-xl border border-subtle bg-surface-subtle px-3 py-2 text-xs text-fg placeholder-fg-muted focus:border-cyan-500 focus:outline-none"
@@ -410,11 +449,13 @@ export function ScanReportView({ scanId }: { scanId: string }) {
               }
               className="rounded-xl border border-subtle bg-surface-subtle px-3 py-2 text-xs text-fg"
             >
-              <option value="ALL">Todas Severidades</option>
-              <option value="CRITICAL">Crítica</option>
-              <option value="HIGH">Alta</option>
-              <option value="MEDIUM">Média</option>
-              <option value="LOW">Baixa</option>
+              <option value="ALL">{messages.scanReport.allSeverities}</option>
+              <option value="CRITICAL">
+                {messages.enums.severity.CRITICAL}
+              </option>
+              <option value="HIGH">{messages.enums.severity.HIGH}</option>
+              <option value="MEDIUM">{messages.enums.severity.MEDIUM}</option>
+              <option value="LOW">{messages.enums.severity.LOW}</option>
             </select>
             <select
               value={verdictFilter}
@@ -423,10 +464,16 @@ export function ScanReportView({ scanId }: { scanId: string }) {
               }
               className="rounded-xl border border-subtle bg-surface-subtle px-3 py-2 text-xs text-fg"
             >
-              <option value="ALL">Todos Vereditos</option>
-              <option value="CONFIRMED_ACTIVE">Confirmada em Runtime</option>
-              <option value="POTENTIALLY_EXPOSED">Potencial / KEV Ativa</option>
-              <option value="DEPENDENCY_ONLY">Apenas no Manifesto</option>
+              <option value="ALL">{messages.scanReport.allVerdicts}</option>
+              <option value="CONFIRMED_ACTIVE">
+                {messages.enums.verdict.CONFIRMED_ACTIVE}
+              </option>
+              <option value="POTENTIALLY_EXPOSED">
+                {messages.enums.verdict.POTENTIALLY_EXPOSED}
+              </option>
+              <option value="DEPENDENCY_ONLY">
+                {messages.enums.verdict.DEPENDENCY_ONLY}
+              </option>
             </select>
             <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-fg-secondary">
               <input
@@ -435,13 +482,13 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                 onChange={(e) => setOnlyKev(e.target.checked)}
                 className="rounded border-strong"
               />
-              Apenas CISA KEV
+              {messages.scanReport.onlyKev}
             </label>
           </SurfaceCard>
 
           {filteredFindings.length === 0 ? (
             <SurfaceCard className="p-8 text-center text-sm text-fg-secondary">
-              Nenhuma vulnerabilidade encontrada para os filtros aplicados.
+              {messages.scanReport.noFindingsFiltered}
             </SurfaceCard>
           ) : (
             <div className="space-y-3">
@@ -450,12 +497,18 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <StatusPill meta={SEVERITY_REGISTRY[f.severity]} />
-                        <StatusPill meta={VERDICT_REGISTRY[f.verdict]} />
+                        <StatusPill
+                          meta={SEVERITY_REGISTRY[f.severity]}
+                          label={messages.enums.severity[f.severity]}
+                        />
+                        <StatusPill
+                          meta={VERDICT_REGISTRY[f.verdict]}
+                          label={messages.enums.verdict[f.verdict]}
+                        />
                         {f.isKnownExploited ? (
                           <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800 dark:border-rose-500/50 dark:bg-rose-500/20 dark:text-rose-200">
                             <Flame className="h-3 w-3" />
-                            CISA KEV (Exploração Ativa)
+                            {messages.scanReport.kevBadge}
                           </span>
                         ) : null}
                         <span className="font-mono text-xs font-semibold text-cyan-700 dark:text-cyan-300">
@@ -469,7 +522,9 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                         {f.ecosystem}: {f.packageName}@{f.packageVersion}
                         {f.fixedVersion ? (
                           <span className="ml-2 font-semibold text-emerald-700 dark:text-emerald-300">
-                            → Atualizar para ≥ {f.fixedVersion}
+                            {t(messages.scanReport.upgradeTo, {
+                              version: f.fixedVersion,
+                            })}
                           </span>
                         ) : null}
                       </p>
@@ -532,11 +587,21 @@ export function ScanReportView({ scanId }: { scanId: string }) {
             <table className="w-full text-left text-xs sm:text-sm">
               <thead className="border-b border-subtle bg-surface-subtle/80 text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
                 <tr>
-                  <th className="px-5 py-3">Biblioteca</th>
-                  <th className="px-4 py-3">Versão</th>
-                  <th className="px-4 py-3">Ecossistema</th>
-                  <th className="px-4 py-3">Origem</th>
-                  <th className="px-5 py-3">PURL</th>
+                  <th className="px-5 py-3">
+                    {messages.scanReport.sbomColLibrary}
+                  </th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.sbomColVersion}
+                  </th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.sbomColEcosystem}
+                  </th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.sbomColSource}
+                  </th>
+                  <th className="px-5 py-3">
+                    {messages.scanReport.sbomColPurl}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-subtle">
@@ -569,15 +634,21 @@ export function ScanReportView({ scanId }: { scanId: string }) {
         <div className="space-y-3">
           {report.probeResults.length === 0 ? (
             <SurfaceCard className="p-8 text-center text-sm text-fg-secondary">
-              Nenhuma sonda ativa foi executada nesta varredura.
+              {messages.scanReport.noProbesExecuted}
             </SurfaceCard>
           ) : (
             report.probeResults.map((p) => (
               <SurfaceCard key={p.id} className="p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <StatusPill meta={PROBE_OUTCOME_REGISTRY[p.status]} />
-                    <StatusPill meta={SEVERITY_REGISTRY[p.severity]} />
+                    <StatusPill
+                      meta={PROBE_OUTCOME_REGISTRY[p.status]}
+                      label={messages.enums.probeOutcome[p.status]}
+                    />
+                    <StatusPill
+                      meta={SEVERITY_REGISTRY[p.severity]}
+                      label={messages.enums.severity[p.severity]}
+                    />
                     <h3 className="text-sm font-semibold text-fg">{p.title}</h3>
                   </div>
                   <span className="font-mono text-xs text-fg-muted">
@@ -585,10 +656,14 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-fg-secondary">
-                  <strong className="text-fg">Evidência:</strong> {p.evidence}
+                  <strong className="text-fg">
+                    {messages.scanReport.evidenceLabel}
+                  </strong>{' '}
+                  {p.evidence}
                 </p>
                 <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
-                  <strong>Recomendação:</strong> {p.recommendation}
+                  <strong>{messages.scanReport.recommendationLabel}</strong>{' '}
+                  {p.recommendation}
                 </p>
               </SurfaceCard>
             ))
@@ -602,11 +677,21 @@ export function ScanReportView({ scanId }: { scanId: string }) {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-subtle bg-surface-subtle/80 text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
                 <tr>
-                  <th className="px-4 py-3">Timestamp</th>
-                  <th className="px-4 py-3">Desfecho</th>
-                  <th className="px-4 py-3">Método / Path</th>
-                  <th className="px-4 py-3">HTTP</th>
-                  <th className="px-4 py-3">Detalhes</th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.auditColTimestamp}
+                  </th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.auditColOutcome}
+                  </th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.auditColMethodPath}
+                  </th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.auditColHttp}
+                  </th>
+                  <th className="px-4 py-3">
+                    {messages.scanReport.auditColDetails}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-subtle">
@@ -616,14 +701,14 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                       colSpan={5}
                       className="px-4 py-6 text-center text-fg-secondary"
                     >
-                      Nenhum evento de sonda registrado para este scan.
+                      {messages.scanReport.noAuditEvents}
                     </td>
                   </tr>
                 ) : (
                   report.auditLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-surface-hover/50">
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-fg-muted">
-                        {new Date(log.createdAt).toLocaleString('pt-BR')}
+                        {new Date(log.createdAt).toLocaleString(intlLocale)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono font-semibold text-cyan-700 dark:text-cyan-300">
                         {log.outcome}

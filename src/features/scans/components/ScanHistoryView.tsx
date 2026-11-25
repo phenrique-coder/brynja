@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { ScanStatus } from '@/core/models/scan.models';
+import { useI18n } from '@/core/providers/i18n-provider';
 import { useScanList } from '../hooks/use-scans';
 import { filterScanHistory } from '../presenters/scan.presenter';
 import { AuthRequiredCard } from './AuthRequiredCard';
@@ -26,6 +27,7 @@ import {
 export function ScanHistoryView() {
   const { scans, loading, authRequired, error, refresh, removeScan } =
     useScanList(100);
+  const { messages, t } = useI18n();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ScanStatus | 'ALL'>('ALL');
   const [scopeFilter, setScopeFilter] = useState<
@@ -59,13 +61,13 @@ export function ScanHistoryView() {
     return (
       <AuthRequiredCard
         returnTo="/history"
-        title="Conecte seu GitHub para acessar o histórico completo de varreduras"
+        title={messages.authCard.historyTitle}
       />
     );
   }
 
   if (loading && scans.length === 0) {
-    return <PageLoadingState label="Carregando histórico de varreduras..." />;
+    return <PageLoadingState label={messages.history.loading} />;
   }
 
   return (
@@ -74,11 +76,11 @@ export function ScanHistoryView() {
         badge={
           <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-50 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-800 dark:bg-cyan-500/10 dark:text-cyan-200">
             <History className="h-3.5 w-3.5" />
-            Histórico Local (IndexedDB) · Isolado por Conta GitHub
+            {messages.history.badge}
           </span>
         }
-        title="Histórico de Varreduras"
-        description="Consulte todas as análises anteriores de dependências (SBOM/CVEs) e execuções de Safe Probes, filtre por status ou escopo e exporte relatórios em PDF, JSON, Markdown ou CycloneDX."
+        title={messages.history.title}
+        description={messages.history.description}
         actions={
           <>
             <button
@@ -87,13 +89,13 @@ export function ScanHistoryView() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2.5 text-xs font-semibold text-fg-secondary transition hover:border-strong hover:text-fg sm:text-sm"
             >
               <RefreshCw className="h-4 w-4" />
-              Atualizar
+              {messages.common.refresh}
             </button>
             <Link
               href="/scans/new"
               className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400 sm:text-sm"
             >
-              Nova Varredura
+              {messages.dashboard.newScan}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </>
@@ -102,12 +104,12 @@ export function ScanHistoryView() {
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiStatCard
-          label="Total de Avaliações"
+          label={messages.history.kpiTotal}
           value={scans.length}
           icon={<History className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />}
         />
         <KpiStatCard
-          label="Concluídas"
+          label={messages.history.kpiCompleted}
           value={completedCount}
           accentClass="text-emerald-700 dark:text-emerald-300"
           icon={
@@ -115,7 +117,7 @@ export function ScanHistoryView() {
           }
         />
         <KpiStatCard
-          label="Com Safe Probes"
+          label={messages.history.kpiWithProbes}
           value={withProbesCount}
           accentClass="text-cyan-700 dark:text-cyan-300"
           icon={
@@ -123,7 +125,7 @@ export function ScanHistoryView() {
           }
         />
         <KpiStatCard
-          label="Com Críticas / Altas"
+          label={messages.history.kpiCritHigh}
           value={withCriticalOrHighCount}
           accentClass="text-orange-600 dark:text-orange-300"
           icon={
@@ -140,33 +142,37 @@ export function ScanHistoryView() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filtrar por repositório, branch, ecossistema ou alvo staging..."
+              placeholder={messages.history.searchPlaceholder}
               className="w-full rounded-xl border border-subtle bg-surface-subtle py-2 pl-9 pr-3 text-xs text-fg placeholder-fg-muted focus:border-cyan-500 focus:outline-none sm:text-sm"
             />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <select
-              aria-label="Filtrar por status"
+              aria-label={messages.history.filterStatusAria}
               value={statusFilter}
               onChange={(e) =>
                 setStatusFilter(e.target.value as ScanStatus | 'ALL')
               }
               className="rounded-xl border border-subtle bg-surface-subtle px-3 py-2 text-xs font-medium text-fg focus:border-cyan-500 focus:outline-none"
             >
-              <option value="ALL">Todos os status</option>
-              <option value="COMPLETED">Concluído</option>
-              <option value="RUNNING">Em Execução</option>
-              <option value="QUEUED">Na Fila</option>
-              <option value="FAILED">Falhou</option>
+              <option value="ALL">{messages.history.allStatuses}</option>
+              <option value="COMPLETED">
+                {messages.enums.scanStatus.COMPLETED}
+              </option>
+              <option value="RUNNING">
+                {messages.enums.scanStatus.RUNNING}
+              </option>
+              <option value="QUEUED">{messages.enums.scanStatus.QUEUED}</option>
+              <option value="FAILED">{messages.enums.scanStatus.FAILED}</option>
             </select>
 
             <div className="inline-flex rounded-xl border border-subtle bg-surface-subtle p-0.5 text-xs font-semibold">
               {(
                 [
-                  ['ALL', 'Todas'],
-                  ['WITH_PROBES', 'Safe Probes'],
-                  ['SCA_ONLY', 'Somente SCA'],
+                  ['ALL', messages.history.scopeAll],
+                  ['WITH_PROBES', messages.history.scopeWithProbes],
+                  ['SCA_ONLY', messages.history.scopeScaOnly],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -191,10 +197,10 @@ export function ScanHistoryView() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-base font-semibold text-fg">
-              Avaliações Encontradas ({filteredScans.length})
+              {t(messages.history.foundTitle, { count: filteredScans.length })}
             </h2>
             <p className="text-xs text-fg-secondary">
-              Clique em qualquer avaliação para abrir o relatório interativo ou baixar o PDF executivo.
+              {messages.history.foundSubtitle}
             </p>
           </div>
         </div>
@@ -205,19 +211,19 @@ export function ScanHistoryView() {
           </div>
         ) : loading ? (
           <div className="p-10 text-center text-sm text-fg-secondary">
-            Carregando histórico de varreduras...
+            {messages.history.loading}
           </div>
         ) : filteredScans.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-sm font-medium text-fg">
               {scans.length === 0
-                ? 'Nenhuma varredura executada nesta conta ainda.'
-                : 'Nenhuma varredura corresponde aos filtros aplicados.'}
+                ? messages.history.emptyAccountTitle
+                : messages.history.emptyFilterTitle}
             </p>
             <p className="mt-1 text-xs text-fg-secondary">
               {scans.length === 0
-                ? 'Inicie sua primeira avaliação para visualizar o histórico aqui.'
-                : 'Ajuste a busca ou os filtros de status/escopo acima.'}
+                ? messages.history.emptyAccountSubtitle
+                : messages.history.emptyFilterSubtitle}
             </p>
           </div>
         ) : (

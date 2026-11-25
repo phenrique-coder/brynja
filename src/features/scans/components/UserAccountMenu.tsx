@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { GitHubIntegrationStatus } from '@/core/models/scan.models';
+import { useI18n } from '@/core/providers/i18n-provider';
 
 export interface UserAccountMenuProps {
   status: GitHubIntegrationStatus;
@@ -18,6 +19,7 @@ export interface UserAccountMenuProps {
 }
 
 export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
+  const { messages, intlLocale, t } = useI18n();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -61,7 +63,7 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
     status.profileUrl ??
     (status.login ? `https://github.com/${status.login}` : 'https://github.com');
   const expiresTime = status.sessionExpiresAt
-    ? new Date(status.sessionExpiresAt).toLocaleTimeString('pt-BR', {
+    ? new Date(status.sessionExpiresAt).toLocaleTimeString(intlLocale, {
         hour: '2-digit',
         minute: '2-digit',
       })
@@ -131,7 +133,7 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
               rel="noreferrer"
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-subtle bg-surface-subtle/80 px-3 py-1.5 text-xs font-medium text-cyan-700 transition hover:border-cyan-500/40 hover:bg-surface-hover dark:text-cyan-300"
             >
-              <span>Ver perfil no GitHub</span>
+              <span>{messages.accountMenu.viewProfile}</span>
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
@@ -140,7 +142,7 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
             <div className="flex items-center justify-between text-fg-secondary">
               <span className="inline-flex items-center gap-1.5">
                 <KeyRound className="h-3.5 w-3.5 text-fg-muted" />
-                GitHub ID
+                {messages.accountMenu.githubId}
               </span>
               <span className="font-mono font-medium text-fg">
                 #{status.githubUserId ?? '-'}
@@ -148,7 +150,7 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
             </div>
 
             <div className="flex items-center justify-between text-fg-secondary">
-              <span>Escopos</span>
+              <span>{messages.accountMenu.scopes}</span>
               <span className="font-mono text-[11px] font-medium text-fg">
                 {status.scopes || 'app'}
               </span>
@@ -157,16 +159,18 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
             <div className="flex items-center justify-between text-fg-secondary">
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-fg-muted" />
-                Sessão efêmera
+                {messages.accountMenu.ephemeralSession}
               </span>
               <span className="font-medium text-fg">
-                {expiresTime ? `Expira às ${expiresTime}` : 'Ativa na aba'}
+                {expiresTime
+                  ? t(messages.accountMenu.expiresAt, { time: expiresTime })
+                  : messages.accountMenu.activeInTab}
               </span>
             </div>
 
             <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-50 px-2.5 py-1.5 text-[11px] text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200">
               <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-300" />
-              <span>Token OAuth cifrado só nesta sessão (sem gravação no banco)</span>
+              <span>{messages.accountMenu.securityBadge}</span>
             </div>
           </div>
 
@@ -179,7 +183,11 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-50/60 px-3 py-2 text-center text-xs font-semibold text-rose-600 transition hover:border-rose-500/40 hover:bg-rose-50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4 shrink-0" />
-              <span>{busy ? 'Encerrando...' : 'Sair (Descartar token)'}</span>
+              <span>
+                {busy
+                  ? messages.accountMenu.signingOut
+                  : messages.accountMenu.signOut}
+              </span>
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import React from 'react';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
+import { I18nProvider } from '@/core/providers/i18n-provider';
 import { ThemeProvider } from '@/core/providers/theme-provider';
 import { Footer } from '@/features/scans/components/Footer';
 import { Navbar } from '@/features/scans/components/Navbar';
@@ -36,15 +37,17 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-canvas font-sans text-fg antialiased">
         <ThemeProvider>
-          <GatewayProvider>
-            <div className="flex min-h-screen flex-col">
-              <Navbar />
-              <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-                {children}
-              </main>
-              <Footer />
-            </div>
-          </GatewayProvider>
+          <I18nProvider>
+            <GatewayProvider>
+              <div className="flex min-h-screen flex-col">
+                <Navbar />
+                <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                  {children}
+                </main>
+                <Footer />
+              </div>
+            </GatewayProvider>
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
+import { useI18n } from '@/core/providers/i18n-provider';
 import { useTheme } from '@/core/providers/theme-provider';
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
+  const { messages } = useI18n();
   const isDark = theme === 'dark';
 
   return (
@@ -12,8 +14,10 @@ export function ThemeToggle() {
       type="button"
       role="switch"
       aria-checked={isDark}
-      aria-label={isDark ? 'Alternar para tema claro' : 'Alternar para tema escuro'}
-      title={isDark ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
+      aria-label={
+        isDark ? messages.theme.switchToLight : messages.theme.switchToDark
+      }
+      title={isDark ? messages.theme.tooltipLight : messages.theme.tooltipDark}
       onClick={toggleTheme}
       className={`group relative inline-flex h-8 w-[62px] shrink-0 cursor-pointer items-center overflow-hidden rounded-full border p-[3px] transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${
         isDark

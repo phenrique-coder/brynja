@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import {
@@ -9,36 +11,43 @@ import {
   Scale,
   ShieldCheck,
 } from 'lucide-react';
+import { useI18n } from '@/core/providers/i18n-provider';
 import packageJson from '../../../../package.json';
 import { BrynjaLogo } from './BrynjaLogo';
 
 const REPO_URL = 'https://github.com/phenrique-coder/brynja';
 
-const EXTERNAL_FOOTER_LINKS = [
-  {
-    label: 'Repositório',
-    href: REPO_URL,
-    icon: Github,
-  },
-  {
-    label: 'Segurança',
-    href: `${REPO_URL}/blob/main/docs/pt-BR/SECURITY.md`,
-    icon: ShieldCheck,
-  },
-  {
-    label: 'Contribuir',
-    href: `${REPO_URL}/blob/main/docs/pt-BR/CONTRIBUTING.md`,
-    icon: BookOpen,
-  },
-  {
-    label: 'Licença MIT',
-    href: `${REPO_URL}/blob/main/LICENSE`,
-    icon: Scale,
-  },
-] as const;
-
 export function Footer() {
+  const { locale, messages, t } = useI18n();
   const version = packageJson.version;
+  const isPt = locale === 'pt-BR';
+
+  const externalLinks = [
+    {
+      label: messages.footer.repository,
+      href: REPO_URL,
+      icon: Github,
+    },
+    {
+      label: messages.footer.security,
+      href: isPt
+        ? `${REPO_URL}/blob/main/docs/pt-BR/SECURITY.md`
+        : `${REPO_URL}/blob/main/SECURITY.md`,
+      icon: ShieldCheck,
+    },
+    {
+      label: messages.footer.contributing,
+      href: isPt
+        ? `${REPO_URL}/blob/main/docs/pt-BR/CONTRIBUTING.md`
+        : `${REPO_URL}/blob/main/CONTRIBUTING.md`,
+      icon: BookOpen,
+    },
+    {
+      label: messages.footer.license,
+      href: `${REPO_URL}/blob/main/LICENSE`,
+      icon: Scale,
+    },
+  ];
 
   return (
     <footer className="mt-10 border-t border-subtle bg-header/80 transition-colors">
@@ -54,7 +63,7 @@ export function Footer() {
                 </span>
                 <Link
                   href="/changelog"
-                  title="Ver changelog e novidades de cada versão"
+                  title={messages.footer.versionTooltip}
                   className="inline-flex items-center rounded-md border border-cyan-500/30 bg-cyan-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-cyan-800 transition hover:border-cyan-500/60 hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-300 dark:hover:bg-cyan-500/20"
                 >
                   v{version}
@@ -68,12 +77,12 @@ export function Footer() {
             />
 
             <p className="text-xs text-fg-secondary">
-              SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 8 Safe Probes
+              {messages.footer.stackSummary}
             </p>
           </div>
 
           <nav
-            aria-label="Links do projeto"
+            aria-label={messages.footer.linksAria}
             className="flex flex-wrap items-center gap-2"
           >
             <Link
@@ -81,10 +90,10 @@ export function Footer() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-50/70 px-2.5 py-1.5 text-xs font-semibold text-cyan-800 transition hover:border-cyan-500/50 hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
             >
               <History className="h-3.5 w-3.5 shrink-0" />
-              <span>Changelog</span>
+              <span>{messages.footer.changelog}</span>
             </Link>
 
-            {EXTERNAL_FOOTER_LINKS.map((item) => {
+            {externalLinks.map((item) => {
               const Icon = item.icon;
               return (
                 <a
@@ -108,19 +117,19 @@ export function Footer() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="inline-flex items-center gap-1.5">
               <Database className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-              Local-First (IndexedDB) · Zero banco na nuvem
+              {messages.footer.localFirst}
             </span>
             <span aria-hidden="true" className="hidden sm:inline">
               ·
             </span>
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
-              Uso estritamente defensivo e autorizado (GET/HEAD)
+              {messages.footer.defensiveUse}
             </span>
           </div>
 
           <div className="font-mono text-[11px] text-fg-muted">
-            © {new Date().getFullYear()} Brynja Contributors · Open-Source (MIT)
+            {t(messages.footer.copyright, { year: new Date().getFullYear() })}
           </div>
         </div>
       </div>

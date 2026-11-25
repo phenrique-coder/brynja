@@ -13,18 +13,12 @@ import {
   PlusCircle,
   X,
 } from 'lucide-react';
+import { useI18n } from '@/core/providers/i18n-provider';
 import { useGitHubSession } from '../hooks/use-scans';
 import { BrynjaLogo } from './BrynjaLogo';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { UserAccountMenu } from './UserAccountMenu';
-
-const NAV_ITEMS = [
-  { href: '/', label: 'Painel', icon: Activity },
-  { href: '/history', label: 'Histórico', icon: History },
-  { href: '/scans/new', label: 'Nova Varredura', icon: PlusCircle },
-  { href: '/authorizations', label: 'Alvos & Guardrails', icon: LockKeyhole },
-  { href: '/audit', label: 'Auditoria', icon: FileSearch },
-];
 
 function isNavItemActive(href: string, pathname: string): boolean {
   if (href === '/') return pathname === '/';
@@ -41,6 +35,19 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { status, connectUrl, disconnect } = useGitHubSession(pathname || '/');
+  const { messages } = useI18n();
+
+  const navItems = [
+    { href: '/', label: messages.nav.dashboard, icon: Activity },
+    { href: '/history', label: messages.nav.history, icon: History },
+    { href: '/scans/new', label: messages.nav.newScan, icon: PlusCircle },
+    {
+      href: '/authorizations',
+      label: messages.nav.authorizations,
+      icon: LockKeyhole,
+    },
+    { href: '/audit', label: messages.nav.audit, icon: FileSearch },
+  ];
 
   async function handleLogout() {
     await disconnect();
@@ -62,17 +69,17 @@ export function Navbar() {
               Brynja
             </span>
             <span className="hidden text-[11px] text-fg-muted sm:block">
-              SCA · CVEs · Safe Probes
+              {messages.nav.tagline}
             </span>
           </div>
         </Link>
 
         {/* Center: Desktop Segmented Navigation */}
         <nav
-          aria-label="Navegação principal"
+          aria-label={messages.nav.mainNavLabel}
           className="hidden items-center gap-1 rounded-xl border border-subtle bg-surface-subtle p-1 md:flex"
         >
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isNavItemActive(item.href, pathname);
 
@@ -93,8 +100,9 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Right: Theme toggle + User menu + Mobile burger */}
-        <div className="flex shrink-0 items-center gap-2.5">
+        {/* Right: Language switcher + Theme toggle + User menu + Mobile burger */}
+        <div className="flex shrink-0 items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
 
           <span
@@ -110,14 +118,18 @@ export function Navbar() {
               className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
             >
               <Github className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Entrar com GitHub</span>
-              <span className="sm:hidden">Entrar</span>
+              <span className="hidden sm:inline">
+                {messages.common.signInWithGitHub}
+              </span>
+              <span className="sm:hidden">{messages.common.signInShort}</span>
             </a>
           )}
 
           <button
             type="button"
-            aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-label={
+              mobileOpen ? messages.common.closeMenu : messages.common.openMenu
+            }
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((prev) => !prev)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-subtle bg-surface-subtle text-fg-secondary transition hover:text-fg md:hidden"
@@ -134,11 +146,11 @@ export function Navbar() {
       {/* Mobile Navigation Drawer */}
       {mobileOpen ? (
         <nav
-          aria-label="Navegação mobile"
+          aria-label={messages.nav.mobileNavLabel}
           className="border-t border-subtle bg-surface px-4 py-3 md:hidden"
         >
           <div className="mx-auto grid max-w-7xl gap-1">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const active = isNavItemActive(item.href, pathname);
 

@@ -6,6 +6,15 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] - 2026-11-25
+
+### Adicionado
+- Suporte completo a múltiplos idiomas em toda a aplicação: **Português (`pt-BR`)**, **Inglês (`en`)** e **Espanhol (`es`)**.
+- Seletor de idioma com bandeiras SVG nítidas (`LanguageSwitcher`) posicionado ao lado do seletor de tema Claro/Escuro na barra superior, com menu acessível (`role="menu"` / `menuitemradio`), fechamento por tecla `Escape` e bandeiras do Brasil, Estados Unidos e Espanha.
+- `I18nProvider` com persistência em `localStorage` (`brynja-locale`), detecção automática do idioma do navegador, sincronização dinâmica de `<html lang>` e formatação localizada de datas e horários.
+- Página `/changelog` responsiva ao idioma selecionado (alternando entre as notas em Português e Inglês) e links de Segurança e Contribuição no rodapé adaptados ao idioma ativo.
+- Suíte de testes unitários (`i18n-switcher.spec.tsx`) cobrindo alternância PT/EN/ES em tempo real, persistência em `localStorage`, detecção de idioma do navegador e interpolação de templates.
+
 ## [1.1.0] - 2026-11-25
 
 ### Adicionado

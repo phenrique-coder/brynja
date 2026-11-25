@@ -6,6 +6,15 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-25
+
+### Added
+- Full multi-language UI support across the entire application in **Portuguese (`pt-BR`)**, **English (`en`)**, and **Spanish (`es`)**.
+- Inline SVG flag language selector (`LanguageSwitcher`) placed right beside the Light/Dark theme toggle in the top navigation bar, with accessible dropdown menu (`role="menu"` / `menuitemradio`), keyboard Escape dismissal, and crisp cross-platform flags for Brazil, United States, and Spain.
+- `I18nProvider` with `localStorage` persistence (`brynja-locale`), browser language auto-detection, dynamic `<html lang>` synchronization, and locale-aware date/time formatting (`Intl`).
+- Locale-aware `/changelog` page switching dynamically between English and Portuguese release notes, plus language-aware Security and Contributing documentation links in the global footer.
+- Unit test suite (`i18n-switcher.spec.tsx`) verifying live PT/EN/ES switching, `localStorage` persistence, browser locale detection, and placeholder interpolation.
+
 ## [1.1.0] - 2026-11-25
 
 ### Added
