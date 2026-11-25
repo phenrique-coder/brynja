@@ -16,7 +16,12 @@ import { useScanList } from '../hooks/use-scans';
 import { filterScanHistory } from '../presenters/scan.presenter';
 import { AuthRequiredCard } from './AuthRequiredCard';
 import { ScanHistoryTable } from './ScanHistoryTable';
-import { KpiStatCard, PageHeader, SurfaceCard } from './ui/PagePrimitives';
+import {
+  KpiStatCard,
+  PageHeader,
+  PageLoadingState,
+  SurfaceCard,
+} from './ui/PagePrimitives';
 
 export function ScanHistoryView() {
   const { scans, loading, authRequired, error, refresh, removeScan } =
@@ -57,6 +62,10 @@ export function ScanHistoryView() {
         title="Conecte seu GitHub para acessar o histórico completo de varreduras"
       />
     );
+  }
+
+  if (loading && scans.length === 0) {
+    return <PageLoadingState label="Carregando histórico de varreduras..." />;
   }
 
   return (

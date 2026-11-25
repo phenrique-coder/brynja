@@ -20,7 +20,11 @@ import { AUTH_STATUS_REGISTRY } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
 import { OwnershipSetupGuide } from './OwnershipSetupGuide';
 import { StatusPill } from './StatusPill';
-import { PageHeader, SurfaceCard } from './ui/PagePrimitives';
+import {
+  PageHeader,
+  PageLoadingState,
+  SurfaceCard,
+} from './ui/PagePrimitives';
 
 export function AuthorizationsView() {
   const authorizer = useTargetAuthorizer();
@@ -46,6 +50,10 @@ export function AuthorizationsView() {
         title="Conecte seu GitHub para gerenciar seus alvos autorizados"
       />
     );
+  }
+
+  if (loading && items.length === 0) {
+    return <PageLoadingState label="Carregando alvos autorizados..." />;
   }
 
   const activeGuideTarget: TargetAuthorization | null =

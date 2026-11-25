@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { GatewayHttpError } from '@/core/gateways/http-scan.gateway';
 import { IBrynjaGateway } from '@/core/ports/scan-gateway.port';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
+import { AuthorizationsView } from '../components/AuthorizationsView';
 import { DashboardView } from '../components/DashboardView';
 
 vi.mock('next/link', () => ({
@@ -105,5 +106,41 @@ describe('DashboardView (DIP injection test)', () => {
     await waitFor(() => {
       expect(screen.getByText('Entrar com GitHub')).toBeTruthy();
     });
+  });
+
+  it('does not flash authenticated page content while initial auth check is pending', () => {
+    const pendingGateway: IBrynjaGateway = {
+      listScans: vi.fn(() => new Promise<never>(() => {})),
+      getScanReport: vi.fn(),
+      deleteScan: vi.fn(),
+      createScan: vi.fn(),
+      listAuthorizations: vi.fn(() => new Promise<never>(() => {})),
+      createAuthorization: vi.fn(),
+      verifyAuthorization: vi.fn(),
+      revokeAuthorization: vi.fn(),
+      listAuditLogs: vi.fn(),
+      getGitHubStatus: vi.fn(() => new Promise<never>(() => {})),
+      listGitHubRepos: vi.fn(),
+      disconnectGitHub: vi.fn(),
+      getGitHubConnectUrl: vi.fn().mockReturnValue('/api/integrations/github/connect'),
+    };
+
+    const { rerender } = render(
+      <GatewayProvider gateway={pendingGateway}>
+        <DashboardView />
+      </GatewayProvider>,
+    );
+
+    expect(
+      screen.queryByText('Painel de Vulnerabilidades & Verificação Ativa'),
+    ).toBeNull();
+
+    rerender(
+      <GatewayProvider gateway={pendingGateway}>
+        <AuthorizationsView />
+      </GatewayProvider>,
+    );
+
+    expect(screen.queryByText('Registrar Novo Alvo de Staging')).toBeNull();
   });
 });

@@ -17,7 +17,12 @@ import { useScanList } from '../hooks/use-scans';
 import { computeDashboardMetrics } from '../presenters/scan.presenter';
 import { AuthRequiredCard } from './AuthRequiredCard';
 import { ScanHistoryTable } from './ScanHistoryTable';
-import { KpiStatCard, PageHeader, SurfaceCard } from './ui/PagePrimitives';
+import {
+  KpiStatCard,
+  PageHeader,
+  PageLoadingState,
+  SurfaceCard,
+} from './ui/PagePrimitives';
 
 export function DashboardView() {
   const { scans, loading, authRequired, error, refresh, removeScan } =
@@ -31,6 +36,10 @@ export function DashboardView() {
         title="Conecte seu GitHub para acessar seu painel e histórico"
       />
     );
+  }
+
+  if (loading && scans.length === 0) {
+    return <PageLoadingState label="Verificando sessão e carregando painel..." />;
   }
 
   return (

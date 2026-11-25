@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 
 export interface PageHeaderProps {
   badge?: React.ReactNode;
@@ -93,6 +94,21 @@ export function KpiStatCard({
         {sublabel ? (
           <span className="text-xs text-fg-muted">{sublabel}</span>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function PageLoadingState({
+  label = 'Carregando...',
+}: {
+  label?: string;
+}) {
+  return (
+    <div className="flex min-h-[42vh] items-center justify-center py-16">
+      <div className="inline-flex items-center gap-2.5 rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm text-fg-secondary shadow-sm">
+        <Loader2 className="h-4 w-4 animate-spin text-cyan-500" />
+        <span>{label}</span>
       </div>
     </div>
   );

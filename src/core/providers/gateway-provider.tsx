@@ -1,7 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { HttpScanGateway } from '../gateways/http-scan.gateway';
+import { GitHubIntegrationStatus } from '../models/scan.models';
 import {
   IAuditLogReader,
   IBrynjaGateway,
@@ -11,7 +19,16 @@ import {
   ITargetAuthorizer,
 } from '../ports/scan-gateway.port';
 
+export interface SharedSessionState {
+  status: GitHubIntegrationStatus | null;
+  loading: boolean;
+  knownUnauthenticated: boolean;
+  refresh: () => Promise<GitHubIntegrationStatus | null>;
+  disconnect: () => Promise<void>;
+}
+
 const GatewayContext = createContext<IBrynjaGateway | null>(null);
+const SessionContext = createContext<SharedSessionState | null>(null);
 
 export interface GatewayProviderProps {
   children: React.ReactNode;
@@ -19,14 +36,74 @@ export interface GatewayProviderProps {
 }
 
 export function GatewayProvider({ children, gateway }: GatewayProviderProps) {
+  const isCustomGateway = Boolean(gateway);
   const instance = useMemo(
     () => gateway ?? new HttpScanGateway(),
     [gateway],
   );
 
+  const [status, setStatus] = useState<GitHubIntegrationStatus | null>(null);
+  const [loading, setLoading] = useState(!isCustomGateway);
+
+  const refresh = useCallback(async (): Promise<GitHubIntegrationStatus | null> => {
+    try {
+      setLoading(true);
+      const data = await instance.getGitHubStatus();
+      const resolved = data ?? null;
+      setStatus(resolved);
+      return resolved;
+    } catch {
+      setStatus(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [instance]);
+
+  const disconnect = useCallback(async () => {
+    await instance.disconnectGitHub();
+    setStatus((prev) =>
+      prev
+        ? {
+            ...prev,
+            connected: false,
+            githubUserId: null,
+            login: null,
+            name: null,
+            avatarUrl: null,
+            profileUrl: null,
+            sessionExpiresAt: null,
+          }
+        : null,
+    );
+    await refresh();
+  }, [instance, refresh]);
+
+  useEffect(() => {
+    if (isCustomGateway) return;
+    void refresh();
+  }, [isCustomGateway, refresh]);
+
+  const knownUnauthenticated = Boolean(
+    status && status.configured && !status.connected,
+  );
+
+  const sessionValue = useMemo<SharedSessionState>(
+    () => ({
+      status,
+      loading,
+      knownUnauthenticated,
+      refresh,
+      disconnect,
+    }),
+    [status, loading, knownUnauthenticated, refresh, disconnect],
+  );
+
   return (
     <GatewayContext.Provider value={instance}>
-      {children}
+      <SessionContext.Provider value={sessionValue}>
+        {children}
+      </SessionContext.Provider>
     </GatewayContext.Provider>
   );
 }
@@ -35,6 +112,14 @@ function useGateway(): IBrynjaGateway {
   const ctx = useContext(GatewayContext);
   if (!ctx) {
     throw new Error('useGateway precisa estar dentro de GatewayProvider.');
+  }
+  return ctx;
+}
+
+export function useSharedSession(): SharedSessionState {
+  const ctx = useContext(SessionContext);
+  if (!ctx) {
+    throw new Error('useSharedSession precisa estar dentro de GatewayProvider.');
   }
   return ctx;
 }

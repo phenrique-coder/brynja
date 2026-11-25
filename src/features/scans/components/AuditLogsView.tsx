@@ -9,7 +9,12 @@ import {
 } from 'lucide-react';
 import { useAuditLogs } from '../hooks/use-scans';
 import { AuthRequiredCard } from './AuthRequiredCard';
-import { KpiStatCard, PageHeader, SurfaceCard } from './ui/PagePrimitives';
+import {
+  KpiStatCard,
+  PageHeader,
+  PageLoadingState,
+  SurfaceCard,
+} from './ui/PagePrimitives';
 
 export function AuditLogsView() {
   const { logs, loading, authRequired, error, refresh } = useAuditLogs();
@@ -21,6 +26,10 @@ export function AuditLogsView() {
         title="Conecte seu GitHub para visualizar sua trilha de auditoria"
       />
     );
+  }
+
+  if (loading && logs.length === 0) {
+    return <PageLoadingState label="Carregando trilha de auditoria..." />;
   }
 
   const allowedOrExecuted = logs.filter(
@@ -35,7 +44,7 @@ export function AuditLogsView() {
     <div className="space-y-6">
       <PageHeader
         title="Trilha Imutável de Auditoria"
-        description="Todos os eventos de verificação de posse, bloqueios anti-SSRF, rate limiting e execução de safe probes da sua conta ficam registrados em PostgreSQL."
+        description="Todos os eventos de verificação de posse, bloqueios anti-SSRF, rate limiting e execução de safe probes da sua conta ficam registrados localmente no navegador (IndexedDB)."
         actions={
           <button
             type="button"

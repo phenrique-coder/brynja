@@ -14,6 +14,7 @@ import {
   useAuditLogReader,
   useGitHubIntegration,
   useScanReader,
+  useSharedSession,
   useTargetAuthorizer,
 } from '@/core/providers/gateway-provider';
 
@@ -23,45 +24,34 @@ function isAuthError(err: unknown): boolean {
 
 export function useGitHubSession(returnTo = '/') {
   const github = useGitHubIntegration();
-  const [status, setStatus] = useState<GitHubIntegrationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const refresh = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await github.getGitHubStatus();
-      setStatus(data);
-    } catch {
-      setStatus(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [github]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const shared = useSharedSession();
 
   return {
-    status,
-    loading,
-    refresh,
+    status: shared.status,
+    loading: shared.loading,
+    refresh: shared.refresh,
     connectUrl: github.getGitHubConnectUrl(returnTo),
-    disconnect: async () => {
-      await github.disconnectGitHub();
-      await refresh();
-    },
+    disconnect: shared.disconnect,
   };
 }
 
 export function useScanList(limit = 25) {
   const reader = useScanReader();
+  const session = useSharedSession();
   const [scans, setScans] = useState<ScanSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [authRequired, setAuthRequired] = useState(false);
+  const [loading, setLoading] = useState(!session.knownUnauthenticated);
+  const [authRequired, setAuthRequired] = useState(
+    session.knownUnauthenticated,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (session.loading) return;
+    if (session.knownUnauthenticated) {
+      setAuthRequired(true);
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       setAuthRequired(false);
@@ -76,7 +66,7 @@ export function useScanList(limit = 25) {
     } finally {
       setLoading(false);
     }
-  }, [reader, limit]);
+  }, [reader, limit, session.loading, session.knownUnauthenticated]);
 
   const removeScan = useCallback(
     async (scanId: string) => {
@@ -103,17 +93,33 @@ export function useScanList(limit = 25) {
     void refresh();
   }, [refresh]);
 
-  return { scans, loading, authRequired, error, refresh, removeScan };
+  return {
+    scans,
+    loading: session.loading || loading,
+    authRequired: session.knownUnauthenticated || authRequired,
+    error,
+    refresh,
+    removeScan,
+  };
 }
 
 export function useScanReport(scanId: string) {
   const reader = useScanReader();
+  const session = useSharedSession();
   const [report, setReport] = useState<ScanReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authRequired, setAuthRequired] = useState(false);
+  const [loading, setLoading] = useState(!session.knownUnauthenticated);
+  const [authRequired, setAuthRequired] = useState(
+    session.knownUnauthenticated,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (session.loading) return;
+    if (session.knownUnauthenticated) {
+      setAuthRequired(true);
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       setAuthRequired(false);
@@ -130,7 +136,7 @@ export function useScanReport(scanId: string) {
     } finally {
       setLoading(false);
     }
-  }, [reader, scanId]);
+  }, [reader, scanId, session.loading, session.knownUnauthenticated]);
 
   useEffect(() => {
     void refresh();
@@ -146,17 +152,32 @@ export function useScanReport(scanId: string) {
     return () => clearInterval(timer);
   }, [report, refresh]);
 
-  return { report, loading, authRequired, error, refresh };
+  return {
+    report,
+    loading: session.loading || loading,
+    authRequired: session.knownUnauthenticated || authRequired,
+    error,
+    refresh,
+  };
 }
 
 export function useTargetAuthorizations() {
   const authorizer = useTargetAuthorizer();
+  const session = useSharedSession();
   const [items, setItems] = useState<TargetAuthorization[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [authRequired, setAuthRequired] = useState(false);
+  const [loading, setLoading] = useState(!session.knownUnauthenticated);
+  const [authRequired, setAuthRequired] = useState(
+    session.knownUnauthenticated,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (session.loading) return;
+    if (session.knownUnauthenticated) {
+      setAuthRequired(true);
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       setAuthRequired(false);
@@ -173,23 +194,38 @@ export function useTargetAuthorizations() {
     } finally {
       setLoading(false);
     }
-  }, [authorizer]);
+  }, [authorizer, session.loading, session.knownUnauthenticated]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  return { items, loading, authRequired, error, refresh };
+  return {
+    items,
+    loading: session.loading || loading,
+    authRequired: session.knownUnauthenticated || authRequired,
+    error,
+    refresh,
+  };
 }
 
 export function useAuditLogs(scanId?: string) {
   const reader = useAuditLogReader();
+  const session = useSharedSession();
   const [logs, setLogs] = useState<ProbeAuditEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [authRequired, setAuthRequired] = useState(false);
+  const [loading, setLoading] = useState(!session.knownUnauthenticated);
+  const [authRequired, setAuthRequired] = useState(
+    session.knownUnauthenticated,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (session.loading) return;
+    if (session.knownUnauthenticated) {
+      setAuthRequired(true);
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       setAuthRequired(false);
@@ -208,29 +244,46 @@ export function useAuditLogs(scanId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [reader, scanId]);
+  }, [reader, scanId, session.loading, session.knownUnauthenticated]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  return { logs, loading, authRequired, error, refresh };
+  return {
+    logs,
+    loading: session.loading || loading,
+    authRequired: session.knownUnauthenticated || authRequired,
+    error,
+    refresh,
+  };
 }
 
 export function useGitHubRepositories(returnTo = '/scans/new') {
   const github = useGitHubIntegration();
-  const [status, setStatus] = useState<GitHubIntegrationStatus | null>(null);
+  const session = useSharedSession();
+  const [status, setStatus] = useState<GitHubIntegrationStatus | null>(
+    session.status,
+  );
   const [repos, setRepos] = useState<GitHubRepoSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!session.knownUnauthenticated);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (session.loading) return;
+    if (session.knownUnauthenticated) {
+      setStatus(session.status);
+      setRepos([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-      const currentStatus = await github.getGitHubStatus();
+      const currentStatus =
+        session.status ?? (await github.getGitHubStatus());
       setStatus(currentStatus);
-      if (currentStatus.connected) {
+      if (currentStatus?.connected) {
         const repoList = await github.listGitHubRepos();
         setRepos(repoList);
       } else {
@@ -245,22 +298,25 @@ export function useGitHubRepositories(returnTo = '/scans/new') {
     } finally {
       setLoading(false);
     }
-  }, [github]);
+  }, [github, session.loading, session.knownUnauthenticated, session.status]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   return {
-    status,
+    status: session.status ?? status,
     repos,
-    loading,
+    loading: session.loading || loading,
+    authRequired:
+      session.knownUnauthenticated ||
+      Boolean(
+        (session.status ?? status)?.configured &&
+          !(session.status ?? status)?.connected,
+      ),
     error,
     refresh,
     connectUrl: github.getGitHubConnectUrl(returnTo),
-    disconnect: async () => {
-      await github.disconnectGitHub();
-      await refresh();
-    },
+    disconnect: session.disconnect,
   };
 }

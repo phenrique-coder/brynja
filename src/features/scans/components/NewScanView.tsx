@@ -24,7 +24,11 @@ import {
   useTargetAuthorizations,
 } from '../hooks/use-scans';
 import { AuthRequiredCard } from './AuthRequiredCard';
-import { PageHeader, SurfaceCard } from './ui/PagePrimitives';
+import {
+  PageHeader,
+  PageLoadingState,
+  SurfaceCard,
+} from './ui/PagePrimitives';
 
 const DEMO_PACKAGE_JSON = JSON.stringify(
   {
@@ -52,6 +56,7 @@ export function NewScanView() {
     status: ghStatus,
     repos: ghRepos,
     loading: ghLoading,
+    authRequired: ghAuthRequired,
     error: ghError,
     connectUrl,
     refresh: refreshGitHubRepos,
@@ -78,13 +83,17 @@ export function NewScanView() {
     return ghRepos.filter((r) => r.fullName.toLowerCase().includes(q));
   }, [ghRepos, repoSearch]);
 
-  if (!ghLoading && ghStatus && ghStatus.configured && !ghStatus.connected) {
+  if (ghAuthRequired) {
     return (
       <AuthRequiredCard
         returnTo="/scans/new"
         title="Conecte seu GitHub para iniciar uma nova varredura"
       />
     );
+  }
+
+  if (ghLoading && !ghStatus) {
+    return <PageLoadingState label="Verificando sessão GitHub..." />;
   }
 
   function loadVulnerableSample() {
