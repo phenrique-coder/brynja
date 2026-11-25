@@ -11,10 +11,10 @@ import {
   LockKeyhole,
   Menu,
   PlusCircle,
-  ShieldCheck,
   X,
 } from 'lucide-react';
 import { useGitHubSession } from '../hooks/use-scans';
+import { BrynjaLogo } from './BrynjaLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { UserAccountMenu } from './UserAccountMenu';
 
@@ -56,12 +56,10 @@ export function Navbar() {
           onClick={() => setMobileOpen(false)}
           className="flex shrink-0 items-center gap-2.5"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
+          <BrynjaLogo className="h-9 w-9 shrink-0 drop-shadow-sm" />
           <div className="leading-tight">
             <span className="block text-sm font-bold tracking-tight text-fg">
-              VereditoSec
+              Brynja
             </span>
             <span className="hidden text-[11px] text-fg-muted sm:block">
               SCA · CVEs · Safe Probes

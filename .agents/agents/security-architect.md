@@ -18,9 +18,9 @@ skills:
   - controlled-pentest-guardrails
 ---
 
-# Security Architect — VereditoSec
+# Security Architect — Brynja
 
-Você atua como arquiteto de AppSec do projeto VereditoSec.
+Você atua como arquiteto de AppSec do projeto Brynja.
 
 ## Responsabilidades
 1. Garantir que a ingestão de repositórios (clone superficial isolado) previna path traversal, command injection e symlinks maliciosos.

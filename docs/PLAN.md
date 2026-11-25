@@ -1,4 +1,4 @@
-# Plano Inicial — VereditoSec (`veredito-sec`)
+# Plano Arquitetural — Brynja (`brynja`)
 
 ## Visão do Produto
 
@@ -11,7 +11,7 @@ Plataforma Web (Painel) para análise automatizada de segurança em aplicações
    - **FIRST EPSS** (`https://api.first.org/data/v1/epss`) — probabilidade real de exploração.
    - **CISA KEV** (`https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json`) — confirmação de exploração ativa conhecida.
 3. **Testes de Penetração Controlados (*Safe Probes*):** Verificações estritamente não destrutivas (`GET`/`HEAD`) condicionadas a:
-   - Comprovação explícita de posse/autorização do domínio (`/.well-known/vereditosec-verify.txt`, DNS `TXT` ou sandbox loopback em desenvolvimento).
+   - Comprovação explícita de posse/autorização do domínio (`/.well-known/brynja-verify.txt`, DNS `TXT` `_brynja` ou sandbox loopback em desenvolvimento).
    - Proteção contra SSRF, *rate limiting*, *timeout* e *circuit breaker*.
    - Registro imutável em `probe_audit_logs` no PostgreSQL.
 4. **Feature Futura de Agentes de IA:** Porta arquitetural `IAgentAdvisorPort` preparada no backend para análise de alcançabilidade e recomendações assistidas por agentes.

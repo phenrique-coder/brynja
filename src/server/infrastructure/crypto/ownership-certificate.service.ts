@@ -41,7 +41,7 @@ export class OwnershipCertificateService {
       `${ownerGithubUserId}:${origin}`,
       32,
     );
-    return `vereditosec-verify-${digest}`;
+    return `brynja-verify-${digest}`;
   }
 
   sealChallenge(payload: SealedChallengePayload): string {

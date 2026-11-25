@@ -219,7 +219,7 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
     const hdrs: Record<string, string> = {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'VereditoSec/1.0',
+      'User-Agent': 'Brynja/1.0',
     };
     if (token) {
       hdrs.Authorization = `Bearer ${token}`;

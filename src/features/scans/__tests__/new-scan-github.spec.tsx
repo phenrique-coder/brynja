@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { IVereditoGateway } from '@/core/ports/scan-gateway.port';
+import { IBrynjaGateway } from '@/core/ports/scan-gateway.port';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
 import { NewScanView } from '../components/NewScanView';
 import { UserAccountMenu } from '../components/UserAccountMenu';
@@ -30,7 +30,7 @@ vi.mock('next/link', () => ({
 describe('NewScanView GitHub OAuth Repo Picker & UserAccountMenu', () => {
   it('renders private and public GitHub repositories without redundant disconnect banner and submits selected repo', async () => {
     const createScan = vi.fn().mockResolvedValue({ id: 'scan-gh-1' });
-    const mockGateway: IVereditoGateway = {
+    const mockGateway: IBrynjaGateway = {
       listScans: vi.fn(),
       getScanReport: vi.fn(),
       deleteScan: vi.fn(),

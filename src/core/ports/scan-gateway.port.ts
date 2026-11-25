@@ -53,7 +53,7 @@ export interface IReportExporter {
   export(report: ScanReport): ExportedReportFile;
 }
 
-export interface IVereditoGateway
+export interface IBrynjaGateway
   extends IScanReader,
     IScanCreator,
     ITargetAuthorizer,

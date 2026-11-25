@@ -4,18 +4,18 @@ import React, { createContext, useContext, useMemo } from 'react';
 import { HttpScanGateway } from '../gateways/http-scan.gateway';
 import {
   IAuditLogReader,
+  IBrynjaGateway,
   IGitHubIntegrationPort,
   IScanCreator,
   IScanReader,
   ITargetAuthorizer,
-  IVereditoGateway,
 } from '../ports/scan-gateway.port';
 
-const GatewayContext = createContext<IVereditoGateway | null>(null);
+const GatewayContext = createContext<IBrynjaGateway | null>(null);
 
 export interface GatewayProviderProps {
   children: React.ReactNode;
-  gateway?: IVereditoGateway;
+  gateway?: IBrynjaGateway;
 }
 
 export function GatewayProvider({ children, gateway }: GatewayProviderProps) {
@@ -31,7 +31,7 @@ export function GatewayProvider({ children, gateway }: GatewayProviderProps) {
   );
 }
 
-function useGateway(): IVereditoGateway {
+function useGateway(): IBrynjaGateway {
   const ctx = useContext(GatewayContext);
   if (!ctx) {
     throw new Error('useGateway precisa estar dentro de GatewayProvider.');

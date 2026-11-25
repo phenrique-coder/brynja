@@ -2,7 +2,7 @@
 
 ## 1. Deploy 100% Gratuito na Vercel
 
-1. Acesse [https://vercel.com/new](https://vercel.com/new) e importe o repositório `veredito-sec`.
+1. Acesse [https://vercel.com/new](https://vercel.com/new) e importe o repositório `brynja`.
 2. Deixe **Root Directory** na raiz (`.`) e Framework **Next.js** (auto-detectado).
 3. Em **Environment Variables**, configure:
    - `GITHUB_CLIENT_ID`: Client ID do seu GitHub OAuth App de produção
@@ -19,7 +19,7 @@
 
 ```bash
 chmod +x scripts/configure-branch-protection.sh
-./scripts/configure-branch-protection.sh <seu-usuario>/veredito-sec
+./scripts/configure-branch-protection.sh <seu-usuario>/brynja
 ```
 
 Checks obrigatórios configurados:

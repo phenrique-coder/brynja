@@ -106,7 +106,7 @@ export class RunSafeProbesUseCase {
           httpMethod: verifiedAuth.method === 'DNS_TXT' ? 'DNS_TXT' : 'GET',
           requestPath:
             verifiedAuth.method === 'WELL_KNOWN_FILE'
-              ? '/.well-known/vereditosec-verify.txt'
+              ? '/.well-known/brynja-verify.txt'
               : '/',
           statusCode: null,
           durationMs: renewMs,
@@ -154,7 +154,7 @@ export class RunSafeProbesUseCase {
         httpMethod: verifiedAuth.method === 'DNS_TXT' ? 'DNS_TXT' : 'GET',
         requestPath:
           verifiedAuth.method === 'WELL_KNOWN_FILE'
-            ? '/.well-known/vereditosec-verify.txt'
+            ? '/.well-known/brynja-verify.txt'
             : '/',
         statusCode: 200,
         durationMs: renewMs,

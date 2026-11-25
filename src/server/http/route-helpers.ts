@@ -7,8 +7,8 @@ import {
 } from '../domain/errors/domain.errors';
 import { EphemeralGitHubSession } from '../domain/ports/server.ports';
 
-export const GITHUB_SESSION_COOKIE = 'veredito_gh_session';
-export const OAUTH_STATE_COOKIE = 'veredito_gh_oauth_state';
+export const GITHUB_SESSION_COOKIE = 'brynja_gh_session';
+export const OAUTH_STATE_COOKIE = 'brynja_gh_oauth_state';
 
 export function getRequestOrigin(req: NextRequest): string {
   const forwardedHost = req.headers.get('x-forwarded-host');

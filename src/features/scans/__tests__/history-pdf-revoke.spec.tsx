@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ScanReport } from '@/core/models/scan.models';
-import { IVereditoGateway } from '@/core/ports/scan-gateway.port';
+import { IBrynjaGateway } from '@/core/ports/scan-gateway.port';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
 import { AuthorizationsView } from '../components/AuthorizationsView';
 import { ScanHistoryView } from '../components/ScanHistoryView';
@@ -27,8 +27,8 @@ vi.mock('next/link', () => ({
 }));
 
 function makeBaseGateway(
-  overrides: Partial<IVereditoGateway> = {},
-): IVereditoGateway {
+  overrides: Partial<IBrynjaGateway> = {},
+): IBrynjaGateway {
   return {
     listScans: vi.fn().mockResolvedValue([]),
     getScanReport: vi.fn(),

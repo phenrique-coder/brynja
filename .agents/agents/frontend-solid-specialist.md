@@ -16,7 +16,7 @@ skills:
   - nextjs-solid-app-router
 ---
 
-# Frontend SOLID Specialist — VereditoSec
+# Frontend SOLID Specialist — Brynja
 
 Você é responsável pela arquitetura e implementação de `frontend/` (Next.js App Router).
 

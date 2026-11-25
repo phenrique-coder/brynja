@@ -1,6 +1,23 @@
-# VereditoSec
+<p align="center">
+  <img src="./public/brynja-logo.svg" alt="Brynja — SCA, CVEs e Safe Probes" width="320" />
+</p>
 
-Plataforma Web open-source **100% Vercel Serverless + Local-First (IndexedDB)** de análise proativa de segurança para aplicações — **zero banco de dados na nuvem e zero servidor separado**, seguindo arquitetura **SOLID**.
+<p align="center">
+  <strong>Plataforma Web open-source 100% Vercel Serverless + Local-First (IndexedDB) para análise proativa de segurança de aplicações.</strong><br/>
+  Zero banco de dados na nuvem · Zero servidor separado · Arquitetura SOLID rigorosa.
+</p>
+
+---
+
+## Por que *Brynja*?
+
+**Brynja** (pronuncia-se *BRÍN-ia*) vem do **nórdico antigo e do islandês** e significa **cota de malha** — a armadura forjada por dezenas de anéis metálicos entrelaçados que distribuem a força de qualquer impacto sem depender de uma única placa rígida.
+
+Esse conceito traduz exatamente a filosofia de **defesa em profundidade (*defense-in-depth*)** da plataforma:
+
+- **Anéis que se protegem mutuamente:** em vez de depender de uma única verificação isolada, o Brynja entrelaça três camadas complementares — **inventário de dependências (SCA/SBOM)**, **inteligência pública de vulnerabilidades (OSV, NVD, EPSS, CISA KEV)** e **8 sondas ativas não destrutivas (*Safe Probes*)**.
+- **Flexibilidade com rigor:** assim como a cota de malha protege sem imobilizar quem a veste, os *guardrails* do Brynja (prova criptográfica de posse, bloqueio anti-SSRF, política estrita `GET`/`HEAD`, *rate limit* e armazenamento local no navegador) garantem segurança real sem exigir infraestrutura pesada ou exposição de segredos em banco na nuvem.
+- **O emblema:** o ícone do Brynja combina a silhueta de um escudo nórdico com uma trama geométrica de elos entrelaçados convergindo para um núcleo central, simbolizando as camadas integradas de proteção.
 
 ## Principais Recursos
 
@@ -9,7 +26,7 @@ Plataforma Web open-source **100% Vercel Serverless + Local-First (IndexedDB)** 
 3. **Verificação Ativa Controlada (*8 Safe Probes* Não Destrutivas):**
    - `SecurityHeadersProbe`, `HstsTlsProbe`, `CookieSecurityProbe`, `CorsMisconfigProbe`, `ExposedArtifactsProbe`, `ExposedDocsAndMetricsProbe`, `RuntimeFingerprintProbe` e `SourceMapExposureProbe`.
 4. **Guardrails Invioláveis & Posse Stateless Assinada:**
-   - Verificação criptográfica obrigatória de posse (`/.well-known/vereditosec-verify.txt`, registro `_vereditosec` DNS TXT ou `LOCAL_DEV_SANDBOX` em desenvolvimento).
+   - Verificação criptográfica obrigatória de posse com token determinístico HMAC-SHA256 por usuário e origem (`/.well-known/brynja-verify.txt`, registro `_brynja` DNS TXT ou `LOCAL_DEV_SANDBOX` em desenvolvimento).
    - Emite certificado assinado em **AES-256-GCM** válido por 7 dias com **renovação automática** caso a prova continue publicada no domínio (e bloqueio imediato se removida).
    - Proteção anti-SSRF via DNS, somente `GET`/`HEAD` com allowlist de cabeçalhos (`Origin`/`Accept`), *rate limiting* e *circuit breaker*.
 5. **Privacidade Local-First (Zero Banco na Nuvem):**
@@ -20,9 +37,11 @@ Plataforma Web open-source **100% Vercel Serverless + Local-First (IndexedDB)** 
 ## Estrutura do Projeto (SOLID)
 
 ```text
-veredito-sec/
+brynja/
+├── public/
+│   └── brynja-logo.svg         # Logotipo oficial (escudo nórdico + cota de malha)
 ├── src/
-│   ├── app/                    # Next.js 15 App Router (UI + Route Handlers /api/*)
+│   ├── app/                    # Next.js 15 App Router (UI, icon.svg + Route Handlers /api/*)
 │   ├── server/                 # Núcleo SOLID server-side (domain, application, infrastructure)
 │   ├── core/                   # Ports, modelos, IndexedDB store e local-first gateway
 │   └── features/scans/         # Hooks, presenters, registries OCP, exportador PDF e UI
@@ -46,7 +65,7 @@ pnpm dev
 
 ## Deploy em 1 Clique na Vercel (Plano Gratuito)
 
-1. Importe o repositório `veredito-sec` na [Vercel](https://vercel.com/new) (framework **Next.js** detectado automaticamente).
+1. Importe o repositório `brynja` na [Vercel](https://vercel.com/new) (framework **Next.js** detectado automaticamente).
 2. Configure as variáveis de ambiente na Vercel:
    - `GITHUB_CLIENT_ID` e `GITHUB_CLIENT_SECRET` (crie um GitHub OAuth App com callback `https://<seu-app>.vercel.app/api/integrations/github/callback`)
    - `TOKEN_ENCRYPTION_KEY` (gere com `openssl rand -hex 32`)

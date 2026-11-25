@@ -66,7 +66,7 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'VereditoSec/1.0',
+        'User-Agent': 'Brynja/1.0',
       },
       body: JSON.stringify({
         client_id: this.getClientId(),
@@ -146,7 +146,7 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${accessToken}`,
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'VereditoSec/1.0',
+      'User-Agent': 'Brynja/1.0',
     };
   }
 

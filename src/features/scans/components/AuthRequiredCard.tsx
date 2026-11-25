@@ -3,6 +3,7 @@
 import React from 'react';
 import { Github, History, Lock, ShieldCheck } from 'lucide-react';
 import { useGitHubIntegration } from '@/core/providers/gateway-provider';
+import { BrynjaLogo } from './BrynjaLogo';
 import { SurfaceCard } from './ui/PagePrimitives';
 
 export function AuthRequiredCard({
@@ -18,17 +19,15 @@ export function AuthRequiredCard({
   return (
     <div className="mx-auto max-w-2xl py-6">
       <SurfaceCard className="p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
-          <ShieldCheck className="h-6 w-6" />
-        </div>
+        <BrynjaLogo className="mx-auto h-14 w-14 drop-shadow-sm" />
         <h1 className="mt-4 text-xl font-bold tracking-tight text-fg sm:text-2xl">
           {title}
         </h1>
         <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-fg-secondary">
-          Para garantir isolamento multi-usuário, nenhum token OAuth fica salvo
-          no banco de dados entre sessões. Ao entrar com seu GitHub, um novo
-          token efêmero é gerado para esta sessão e seu histórico de avaliações é
-          carregado automaticamente.
+          Para garantir privacidade e isolamento multi-usuário, o Brynja não
+          salva tokens OAuth nem relatórios em banco na nuvem. Ao entrar com seu
+          GitHub, um token efêmero é selado na sessão do navegador e seu
+          histórico local (IndexedDB) é carregado automaticamente.
         </p>
 
         <div className="mt-6 grid gap-2.5 text-left sm:grid-cols-3">

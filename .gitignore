@@ -12,8 +12,8 @@ coverage/
 
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Temporary clone / scan workspaces
 tmp/

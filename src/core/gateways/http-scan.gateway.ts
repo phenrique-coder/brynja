@@ -13,11 +13,11 @@ import {
   VerificationMethod,
   VulnerabilityFinding,
 } from '../models/scan.models';
-import { IVereditoGateway } from '../ports/scan-gateway.port';
+import { IBrynjaGateway } from '../ports/scan-gateway.port';
 import {
-  ILocalVereditoStore,
-  IndexedDbVereditoStore,
-} from '../storage/veredito-indexeddb.store';
+  ILocalBrynjaStore,
+  IndexedDbBrynjaStore,
+} from '../storage/brynja-indexeddb.store';
 
 export class GatewayHttpError extends Error {
   constructor(
@@ -62,13 +62,13 @@ function summarizeReport(report: ScanReport): ScanSummary {
   return summary;
 }
 
-export class HttpScanGateway implements IVereditoGateway {
+export class HttpScanGateway implements IBrynjaGateway {
   private cachedOwner: { githubUserId: string; login: string | null } | null =
     null;
 
   constructor(
     private readonly baseUrl: string = '/api',
-    private readonly store: ILocalVereditoStore = new IndexedDbVereditoStore(),
+    private readonly store: ILocalBrynjaStore = new IndexedDbBrynjaStore(),
   ) {}
 
   async listScans(limit = 25): Promise<ScanSummary[]> {

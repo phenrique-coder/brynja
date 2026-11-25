@@ -135,10 +135,10 @@ export function AuthorizationsView() {
                   className="mt-1.5 w-full rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2.5 text-sm text-fg focus:border-cyan-500 focus:outline-none"
                 >
                   <option value="WELL_KNOWN_FILE">
-                    Arquivo /.well-known/vereditosec-verify.txt
+                    Arquivo /.well-known/brynja-verify.txt
                   </option>
                   <option value="DNS_TXT">
-                    Registro DNS TXT (_vereditosec)
+                    Registro DNS TXT (_brynja)
                   </option>
                   <option value="LOCAL_DEV_SANDBOX">
                     Sandbox Loopback Local (dev)

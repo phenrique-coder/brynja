@@ -1,4 +1,4 @@
-name: VereditoSec CI
+name: Brynja CI
 
 on:
   push:

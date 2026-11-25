@@ -244,11 +244,11 @@ describe('Safe Probes Suite (8 Non-Destructive Probes)', () => {
       const results = await probe.run(
         makeContext(),
         makeHttpClient((req) => {
-          expect(req.headers?.Origin).toBe('https://untrusted.vereditosec.test');
+          expect(req.headers?.Origin).toBe('https://untrusted.brynja.test');
           return {
             statusCode: 200,
             headers: {
-              'access-control-allow-origin': 'https://untrusted.vereditosec.test',
+              'access-control-allow-origin': 'https://untrusted.brynja.test',
               'access-control-allow-credentials': 'true',
             },
             setCookies: [],

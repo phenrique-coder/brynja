@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GatewayHttpError } from '@/core/gateways/http-scan.gateway';
-import { IVereditoGateway } from '@/core/ports/scan-gateway.port';
+import { IBrynjaGateway } from '@/core/ports/scan-gateway.port';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
 import { DashboardView } from '../components/DashboardView';
 
@@ -23,7 +23,7 @@ vi.mock('next/link', () => ({
 
 describe('DashboardView (DIP injection test)', () => {
   it('renders scan history from an injected mock gateway without real HTTP', async () => {
-    const mockGateway: IVereditoGateway = {
+    const mockGateway: IBrynjaGateway = {
       listScans: vi.fn().mockResolvedValue([
         {
           id: 'scan-abc',
@@ -74,7 +74,7 @@ describe('DashboardView (DIP injection test)', () => {
   });
 
   it('renders GitHub login prompt when session is unauthenticated (401)', async () => {
-    const unauthGateway: IVereditoGateway = {
+    const unauthGateway: IBrynjaGateway = {
       listScans: vi
         .fn()
         .mockRejectedValue(

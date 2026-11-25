@@ -135,7 +135,7 @@ export class TargetAuthorizationUseCase {
       httpMethod: candidate.method === 'DNS_TXT' ? 'DNS_TXT' : 'GET',
       requestPath:
         candidate.method === 'WELL_KNOWN_FILE'
-          ? '/.well-known/vereditosec-verify.txt'
+          ? '/.well-known/brynja-verify.txt'
           : '/',
       statusCode: outcome.verified ? 200 : null,
       durationMs,
@@ -184,9 +184,9 @@ export class TargetAuthorizationUseCase {
   private buildInstructions(auth: TargetAuthorizationEntity): string {
     switch (auth.method) {
       case 'WELL_KNOWN_FILE':
-        return `Publique um arquivo texto acessível via GET em "${auth.origin}/.well-known/vereditosec-verify.txt" contendo exatamente: ${auth.challengeToken}`;
+        return `Publique um arquivo texto acessível via GET em "${auth.origin}/.well-known/brynja-verify.txt" contendo exatamente: ${auth.challengeToken}`;
       case 'DNS_TXT':
-        return `Crie um registro DNS TXT em "_vereditosec.${auth.hostname}" com o valor: ${auth.challengeToken}`;
+        return `Crie um registro DNS TXT em "_brynja.${auth.hostname}" com o valor: ${auth.challengeToken}`;
       case 'LOCAL_DEV_SANDBOX':
         return `Alvo loopback local "${auth.origin}" pronto para confirmação imediata em ambiente de desenvolvimento.`;
     }

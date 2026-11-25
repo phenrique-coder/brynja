@@ -5,7 +5,7 @@ title: "[Bug]: "
 labels: bug
 ---
 
-> **Atenção:** Se o problema for uma vulnerabilidade de segurança no próprio VereditoSec, **não abra uma issue pública**. Siga as instruções em [SECURITY.md](../../SECURITY.md).
+> **Atenção:** Se o problema for uma vulnerabilidade de segurança no próprio Brynja, **não abra uma issue pública**. Siga as instruções em [SECURITY.md](../../SECURITY.md).
 
 ## Descrição do Problema
 

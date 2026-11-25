@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   return NextResponse.json({
-    service: 'veredito-sec',
+    service: 'brynja',
     mode: 'vercel-serverless-local-first',
     status: 'ok',
     database: 'browser-indexeddb',

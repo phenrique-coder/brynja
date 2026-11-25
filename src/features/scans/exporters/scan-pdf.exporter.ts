@@ -82,30 +82,49 @@ function truncateText(value: string, maxLen: number): string {
   return `${clean.slice(0, maxLen - 3)}...`;
 }
 
-function drawShieldEmblem(doc: jsPDF, x: number, y: number, size: number) {
-  doc.setFillColor(...PALETTE.cyan);
-  doc.roundedRect(x, y, size, size, 2.4, 2.4, 'F');
+function drawBrynjaEmblem(doc: jsPDF, x: number, y: number, size: number) {
+  // Deep Nordic slate tile with cyan border
+  doc.setFillColor(...PALETTE.navySoft);
+  doc.setDrawColor(...PALETTE.cyan);
+  doc.setLineWidth(0.45);
+  doc.roundedRect(x, y, size, size, 2.4, 2.4, 'FD');
 
-  doc.setDrawColor(...PALETTE.navy);
-  doc.setLineWidth(0.7);
   const cx = x + size / 2;
-  const topY = y + size * 0.2;
+  const topY = y + size * 0.14;
+  const shoulderY = y + size * 0.28;
   const midY = y + size * 0.56;
-  const botY = y + size * 0.82;
-  const halfW = size * 0.28;
+  const botY = y + size * 0.86;
+  const halfW = size * 0.31;
 
-  // Minimalist shield outline
-  doc.line(cx, topY, cx + halfW, topY + 1.3);
-  doc.line(cx + halfW, topY + 1.3, cx + halfW, midY);
+  // Outer Nordic shield silhouette
+  doc.setDrawColor(...PALETTE.cyan);
+  doc.setLineWidth(0.55);
+  doc.line(cx, topY, cx + halfW, shoulderY);
+  doc.line(cx + halfW, shoulderY, cx + halfW, midY);
   doc.line(cx + halfW, midY, cx, botY);
   doc.line(cx, botY, cx - halfW, midY);
-  doc.line(cx - halfW, midY, cx - halfW, topY + 1.3);
-  doc.line(cx - halfW, topY + 1.3, cx, topY);
+  doc.line(cx - halfW, midY, cx - halfW, shoulderY);
+  doc.line(cx - halfW, shoulderY, cx, topY);
 
-  // Checkmark inside shield
-  doc.setLineWidth(0.65);
-  doc.line(cx - 1.5, y + size * 0.52, cx - 0.3, y + size * 0.64);
-  doc.line(cx - 0.3, y + size * 0.64, cx + 1.8, y + size * 0.41);
+  // Interlocking chainmail diamond weave (Brynja)
+  const d = size * 0.125;
+  const cy = y + size * 0.49;
+  doc.setDrawColor(165, 243, 252);
+  doc.setLineWidth(0.38);
+  const drawDiamond = (dx: number, dy: number, r: number) => {
+    doc.line(dx, dy - r, dx + r, dy);
+    doc.line(dx + r, dy, dx, dy + r);
+    doc.line(dx, dy + r, dx - r, dy);
+    doc.line(dx - r, dy, dx, dy - r);
+  };
+  drawDiamond(cx, cy - d * 0.85, d * 0.82);
+  drawDiamond(cx - d * 0.9, cy, d * 0.72);
+  drawDiamond(cx + d * 0.9, cy, d * 0.72);
+  drawDiamond(cx, cy + d * 0.85, d * 0.82);
+
+  // Center forged core point
+  doc.setFillColor(...PALETTE.white);
+  doc.circle(cx, cy, 0.42, 'F');
 }
 
 function drawSectionHeading(
@@ -182,12 +201,12 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   doc.setFillColor(...PALETTE.cyan);
   doc.rect(0, 0, pageWidth, 2.5, 'F');
 
-  drawShieldEmblem(doc, marginX, 11, 11);
+  drawBrynjaEmblem(doc, marginX, 11, 11);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(...PALETTE.white);
-  doc.text('VereditoSec', marginX + 14.5, 16.5);
+  doc.text('Brynja', marginX + 14.5, 16.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -747,7 +766,7 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(...PALETTE.white);
-      doc.text('VereditoSec', marginX, 8);
+      doc.text('Brynja', marginX, 8);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
@@ -772,7 +791,7 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
     doc.setTextColor(...PALETTE.subtleText);
     doc.text(
       sanitizePdfText(
-        `VereditoSec | Relatório Gerado em ${generatedAt} | Avaliação Defensiva Não Destrutiva`,
+        `Brynja | Relatório Gerado em ${generatedAt} | Avaliação Defensiva Não Destrutiva`,
       ),
       marginX,
       pageHeight - 7.5,
@@ -795,6 +814,6 @@ export async function downloadScanReportPdf(report: ScanReport): Promise<void> {
     .replace(/^-+|-+$/g, '')
     .toLowerCase()
     .slice(0, 32);
-  const filename = `vereditosec-relatorio-${slug || 'scan'}-${report.id.slice(0, 8)}.pdf`;
+  const filename = `brynja-relatorio-${slug || 'scan'}-${report.id.slice(0, 8)}.pdf`;
   doc.save(filename);
 }

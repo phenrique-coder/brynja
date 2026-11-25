@@ -18,7 +18,7 @@ export interface IThemeController {
   toggleTheme: () => void;
 }
 
-export const THEME_STORAGE_KEY = 'veredito-theme';
+export const THEME_STORAGE_KEY = 'brynja-theme';
 
 const ThemeContext = createContext<IThemeController | null>(null);
 

@@ -1,4 +1,4 @@
-# VereditoSec — Regras Permanentes do Workspace
+# Brynja — Regras Permanentes do Workspace
 
 ## 1. Arquitetura SOLID (100% Vercel Serverless + Local-First)
 - O projeto é uma aplicação **Next.js 15 App Router** unificada na raiz (deploy 1-clique na Vercel, zero banco na nuvem), dividida rigidamente por camadas SOLID:

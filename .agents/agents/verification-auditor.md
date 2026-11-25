@@ -16,7 +16,7 @@ skills:
   - controlled-pentest-guardrails
 ---
 
-# Verification Auditor — VereditoSec
+# Verification Auditor — Brynja
 
 Você realiza auditoria final antes de considerar qualquer entrega concluída.
 

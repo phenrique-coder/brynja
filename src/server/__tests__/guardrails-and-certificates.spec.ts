@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InMemoryVereditoStore } from '@/core/storage/veredito-indexeddb.store';
+import { InMemoryBrynjaStore } from '@/core/storage/brynja-indexeddb.store';
 import { RunSafeProbesUseCase } from '../application/run-safe-probes.use-case';
 import {
   TargetNotAuthorizedError,
@@ -66,7 +66,7 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
       'https://other.example.com',
     );
 
-    expect(tokenA1).toMatch(/^vereditosec-verify-[0-9a-f]{32}$/);
+    expect(tokenA1).toMatch(/^brynja-verify-[0-9a-f]{32}$/);
     expect(tokenA1).toBe(tokenA2);
     expect(tokenA1).not.toBe(tokenUserB);
     expect(tokenA1).not.toBe(tokenOtherOrigin);
@@ -94,7 +94,7 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
       origin: 'https://staging.example.com',
       hostname: 'staging.example.com',
       method: 'WELL_KNOWN_FILE',
-      challengeToken: 'vereditosec-verify-123',
+      challengeToken: 'brynja-verify-123',
       verifiedAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
       createdAt: new Date().toISOString(),
@@ -151,7 +151,7 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
       origin: 'https://staging.example.com',
       hostname: 'staging.example.com',
       method: 'WELL_KNOWN_FILE',
-      challengeToken: 'vereditosec-verify-renew',
+      challengeToken: 'brynja-verify-renew',
       verifiedAt: new Date(Date.now() - 10 * 86400_000).toISOString(),
       expiresAt: new Date(Date.now() - 3 * 86400_000).toISOString(),
       createdAt: new Date(Date.now() - 10 * 86400_000).toISOString(),
@@ -262,7 +262,7 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
         targetOrigin: 'http://127.0.0.1:3000',
         path: '/',
         method: 'GET',
-        headers: { Origin: 'https://untrusted.vereditosec.test' },
+        headers: { Origin: 'https://untrusted.brynja.test' },
       });
       expect(okRes.setCookies).toEqual([
         'a=1; HttpOnly; Secure; SameSite=Lax',
@@ -300,7 +300,7 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
   });
 
   it('isolates local browser store scans, authorizations and audit logs strictly per GitHub owner', async () => {
-    const store = new InMemoryVereditoStore();
+    const store = new InMemoryBrynjaStore();
     const now = new Date().toISOString();
 
     await store.putScan('user-a', {

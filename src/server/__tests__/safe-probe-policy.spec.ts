@@ -27,11 +27,11 @@ describe('SafeProbePolicy', () => {
     it('allows only Origin and Accept headers', () => {
       expect(
         SafeProbePolicy.sanitizeSafeRequestHeaders({
-          origin: 'https://untrusted.vereditosec.test',
+          origin: 'https://untrusted.brynja.test',
           Accept: 'application/json',
         }),
       ).toEqual({
-        Origin: 'https://untrusted.vereditosec.test',
+        Origin: 'https://untrusted.brynja.test',
         Accept: 'application/json',
       });
     });

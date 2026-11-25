@@ -162,7 +162,7 @@ class JsonReportExporter implements IReportExporter {
 
   export(report: ScanReport): ExportedReportFile {
     return {
-      filename: `vereditosec-scan-${report.id.slice(0, 8)}.json`,
+      filename: `brynja-scan-${report.id.slice(0, 8)}.json`,
       mimeType: 'application/json',
       content: JSON.stringify(report, null, 2),
     };
@@ -175,7 +175,7 @@ class MarkdownReportExporter implements IReportExporter {
 
   export(report: ScanReport): ExportedReportFile {
     const lines = [
-      `# Relatório VereditoSec — ${report.repositoryUrl}`,
+      `# Relatório Brynja — ${report.repositoryUrl}`,
       ``,
       `- **Scan ID:** ${report.id}`,
       `- **Branch:** ${report.branch}`,
@@ -196,7 +196,7 @@ class MarkdownReportExporter implements IReportExporter {
     ];
 
     return {
-      filename: `vereditosec-report-${report.id.slice(0, 8)}.md`,
+      filename: `brynja-report-${report.id.slice(0, 8)}.md`,
       mimeType: 'text/markdown',
       content: lines.join('\n'),
     };
@@ -215,7 +215,7 @@ class CycloneDxSbomExporter implements IReportExporter {
       version: 1,
       metadata: {
         timestamp: report.completedAt ?? report.createdAt,
-        tools: [{ vendor: 'VereditoSec', name: 'VereditoSec Scanner', version: '0.1.0' }],
+        tools: [{ vendor: 'Brynja', name: 'Brynja Scanner', version: '1.0.0' }],
         component: {
           type: 'application',
           name: report.repositoryUrl,
@@ -230,7 +230,7 @@ class CycloneDxSbomExporter implements IReportExporter {
     };
 
     return {
-      filename: `vereditosec-sbom-${report.id.slice(0, 8)}.cdx.json`,
+      filename: `brynja-sbom-${report.id.slice(0, 8)}.cdx.json`,
       mimeType: 'application/vnd.cyclonedx+json',
       content: JSON.stringify(sbom, null, 2),
     };

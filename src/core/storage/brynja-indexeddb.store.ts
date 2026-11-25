@@ -7,7 +7,7 @@ import {
 
 type OwnedRecord<T> = T & { ownerGithubUserId: string };
 
-export interface ILocalVereditoStore {
+export interface ILocalBrynjaStore {
   listScans(ownerId: string, limit?: number): Promise<ScanReport[]>;
   getScan(ownerId: string, scanId: string): Promise<ScanReport | null>;
   putScan(ownerId: string, report: ScanReport): Promise<void>;
@@ -28,7 +28,7 @@ export interface ILocalVereditoStore {
   importBackup(ownerId: string, bundle: LocalBackupBundle): Promise<void>;
 }
 
-const DB_NAME = 'vereditosec_local_v1';
+const DB_NAME = 'brynja_local_v1';
 const DB_VERSION = 1;
 const STORE_SCANS = 'scans';
 const STORE_AUTH = 'authorizations';
@@ -40,7 +40,7 @@ function stripOwner<T>(record: OwnedRecord<T>): T {
   return clone as T;
 }
 
-export class InMemoryVereditoStore implements ILocalVereditoStore {
+export class InMemoryBrynjaStore implements ILocalBrynjaStore {
   private readonly scans = new Map<string, OwnedRecord<ScanReport>>();
   private readonly authorizations = new Map<
     string,
@@ -174,8 +174,8 @@ export class InMemoryVereditoStore implements ILocalVereditoStore {
   }
 }
 
-export class IndexedDbVereditoStore implements ILocalVereditoStore {
-  private readonly fallback = new InMemoryVereditoStore();
+export class IndexedDbBrynjaStore implements ILocalBrynjaStore {
+  private readonly fallback = new InMemoryBrynjaStore();
   private dbPromise: Promise<IDBDatabase> | null = null;
 
   private isSupported(): boolean {

@@ -17,7 +17,7 @@ export class AesTokenCipherService implements ITokenCipher {
     const rawKey =
       rawKeyOverride?.trim() ||
       process.env.TOKEN_ENCRYPTION_KEY?.trim() ||
-      'veredito-sec-dev-fallback-key-change-in-prod';
+      'brynja-dev-fallback-key-change-in-prod';
 
     if (/^[0-9a-fA-F]{64}$/.test(rawKey)) {
       this.key = Buffer.from(rawKey, 'hex');

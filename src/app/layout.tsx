@@ -6,12 +6,12 @@ import { Navbar } from '@/features/scans/components/Navbar';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'VereditoSec — Análise SCA, CVEs e Safe Probes',
+  title: 'Brynja — Análise SCA, CVEs e Safe Probes',
   description:
     'Plataforma web de análise proativa de dependências, inteligência de CVEs e verificação ativa não destrutiva.',
 };
 
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('veredito-theme');var dark=t?t==='dark':!window.matchMedia('(prefers-color-scheme: light)').matches;document.documentElement.classList.toggle('dark',dark);}catch(e){document.documentElement.classList.add('dark');}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('brynja-theme');var dark=t?t==='dark':!window.matchMedia('(prefers-color-scheme: light)').matches;document.documentElement.classList.toggle('dark',dark);}catch(e){document.documentElement.classList.add('dark');}})();`;
 
 export default function RootLayout({
   children,

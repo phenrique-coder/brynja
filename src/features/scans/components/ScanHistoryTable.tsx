@@ -219,7 +219,7 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                       href={`/scans/${scan.id}`}
                       className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-cyan-500/30 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
                     >
-                      <span>Ver Veredito</span>
+                      <span>Ver Relatório</span>
                       <ArrowRight className="h-3.5 w-3.5 shrink-0" />
                     </Link>
                     {onDelete ? (

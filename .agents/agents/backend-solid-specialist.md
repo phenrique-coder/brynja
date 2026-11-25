@@ -18,7 +18,7 @@ skills:
   - controlled-pentest-guardrails
 ---
 
-# Backend SOLID Specialist — VereditoSec
+# Backend SOLID Specialist — Brynja
 
 Você é responsável pela arquitetura e implementação de `backend/` (NestJS + Prisma/PostgreSQL).
 

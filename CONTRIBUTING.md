@@ -1,12 +1,12 @@
-# Contribuindo com o VereditoSec
+# Contribuindo com o Brynja
 
-Obrigado pelo interesse em contribuir com o **VereditoSec**! Este projeto é um aplicativo **Next.js 15 (100% Vercel Serverless + IndexedDB Local-First)** organizado com rigor em **SOLID** e **segurança defensiva**.
+Obrigado pelo interesse em contribuir com o **Brynja**! Este projeto é um aplicativo **Next.js 15 (100% Vercel Serverless + IndexedDB Local-First)** organizado com rigor em **SOLID** e **segurança defensiva**.
 
 ## Diretrizes de Arquitetura
 
 - **`src/server/` (Núcleo Server-Side SOLID):** `domain/` (entidades, erros, políticas e *ports*), `application/` (*use cases* SRP e `container.ts`), `infrastructure/` (*adapters* criptográficos, parsers, APIs de CVEs e 8 *Safe Probes*) e `http/` (*helpers* para Route Handlers).
 - **`src/app/api/`:** Route Handlers *stateless* finos que validam entrada com Zod, autenticam sessão OAuth e delegam aos *use cases*.
-- **`src/core/` e `src/features/` (Frontend SOLID):** `core/` (modelos, *ports*, `IndexedDbVereditoStore` e `HttpScanGateway`), `features/` (*hooks*, *presenters* puros, *registries* OCP, exportador PDF e UI).
+- **`src/core/` e `src/features/` (Frontend SOLID):** `core/` (modelos, *ports*, `IndexedDbBrynjaStore` e `HttpScanGateway`), `features/` (*hooks*, *presenters* puros, *registries* OCP, exportador PDF e UI).
 
 ### Como estender via Open/Closed Principle (OCP)
 
