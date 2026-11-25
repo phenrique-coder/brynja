@@ -472,24 +472,37 @@ export const PT_BR_MESSAGES = {
     sshStep3BodyBefore:
       'Se o seu site roda em Node.js, Next.js, Docker ou Python atrás do Nginx (',
     sshStep3BodyMiddle:
-      '), o Nginx pode enviar a rota para a aplicação e devolver 404. Adicione este bloco dentro de',
-    sshStep3BodyAfter: 'no arquivo do site em',
-    sshStep3Label: 'Trecho Nginx (/etc/nginx/sites-available/...)',
+      '), o Nginx pode enviar a rota para a aplicação/container e devolver 404. Primeiro localize o arquivo realmente ativo e adicione este bloco dentro de',
+    sshStep3BodyAfter: 'no arquivo ativo em',
+    sshStep3NginxFindActiveLabel:
+      'Localizar o arquivo Nginx realmente ativo para o domínio',
+    sshStep3NginxFindActiveCaption:
+      'Atenção: se em /etc/nginx/sites-enabled/ o arquivo aparecer SEM seta (->), ele é uma cópia física (não um symlink de sites-available). Edite esse arquivo em sites-enabled/ diretamente — sempre no bloco "listen 443 ssl" quando usar HTTPS.',
+    sshStep3Label: 'Trecho Nginx (bloco server 443 do arquivo ativo)',
+    sshStep3NginxSnippetCaption:
+      'Usa "location = /.well-known/brynja-verify.txt" (match exato): vence o proxy_pass de containers Docker (ex.: 127.0.0.1:3000) sem conflitar com o Certbot (/.well-known/acme-challenge/).',
     sshStep3ReloadLabel: 'Validar sintaxe e recarregar o Nginx sem downtime',
     sshStep3ApacheBodyBefore:
       'Se o seu site roda em Node.js, Next.js, Docker ou Python atrás do Apache (',
     sshStep3ApacheBodyMiddle:
-      '), o Apache pode enviar a rota para a aplicação e devolver 404. Adicione este bloco dentro de',
-    sshStep3ApacheBodyAfter: 'no arquivo do site em',
+      '), o Apache pode enviar a rota para a aplicação/container e devolver 404. Primeiro localize o arquivo ativo e adicione este bloco dentro de',
+    sshStep3ApacheBodyAfter: 'no arquivo ativo em',
     sshStep3ApacheBodyOr: 'ou',
+    sshStep3ApacheFindActiveLabel:
+      'Localizar o arquivo Apache realmente ativo para o domínio',
+    sshStep3ApacheFindActiveCaption:
+      'Atenção: se em /etc/apache2/sites-enabled/ o arquivo aparecer SEM seta (->), ele é uma cópia física (não um symlink de sites-available). Edite esse arquivo ativo diretamente dentro do <VirtualHost *:443>.',
     sshStep3ApacheLabel:
-      'Trecho Apache (/etc/apache2/sites-available/... ou /etc/httpd/conf.d/...)',
+      'Trecho Apache (/etc/apache2/sites-enabled/... ou /etc/httpd/conf.d/...)',
     sshStep3ApacheCaption:
       'Importante: coloque "ProxyPass /.well-known/ !" ANTES de "ProxyPass / ...". Se o proxy usar <Location />, adicione "<Location /.well-known/> ProxyPass ! </Location>" depois dele; se usar mod_rewrite ([P]), inclua "RewriteCond %{REQUEST_URI} !^/\\.well-known/".',
     sshStep3ApacheReloadLabel:
       'Validar sintaxe e recarregar o Apache sem downtime',
     sshStep3ApacheReloadCaption:
       'No RHEL, Rocky, Alma, CentOS ou Fedora, use: sudo httpd -t && sudo systemctl reload httpd',
+    sshStep3ContainerNoteLead: 'Servidor rodando em containers Docker?',
+    sshStep3ContainerNoteBody:
+      'Se apenas a aplicação roda em Docker (ex.: Next.js/Node em 127.0.0.1:3000) atrás do Nginx/Apache no host, grave o arquivo em /var/www/html/.well-known/ no host e edite o arquivo ativo do proxy do host. Se o próprio proxy reverso rodar dentro de um container (Traefik, Caddy, Nginx Proxy Manager), publique o arquivo no proxy do container ou use a aba "Registro DNS TXT" sem alterar containers.',
     sshStep4Title: 'Passo 4 — Testar pelo terminal se o arquivo ficou público',
     sshStep4Body:
       'Rode o comando abaixo (no servidor ou no seu computador). Ele deve imprimir exatamente o seu token na tela:',
@@ -575,6 +588,9 @@ export const PT_BR_MESSAGES = {
     tip3Lead: 'Quer revogar o acesso?',
     tip3Body:
       'basta apagar o arquivo no servidor (ou o registro DNS TXT) e clicar no botão Revogar na lista de alvos acima.',
+    tip4Lead: 'Editou sites-available mas continua 404 (ex.: Next.js/Docker)?',
+    tip4Body:
+      'verifique se sites-enabled/ tem uma cópia física em vez de symlink, se o bloco foi inserido no virtual host HTTPS (porta 443) e aguarde ~1s após o reload antes de testar com curl.',
     placeholderOrigin: 'https://seusite.com.br',
     placeholderHost: 'seusite.com.br',
     placeholderToken: 'brynja-verify-SEU_TOKEN_GERADO_ACIMA',

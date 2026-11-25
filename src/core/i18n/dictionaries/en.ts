@@ -472,24 +472,37 @@ export const EN_MESSAGES: Messages = {
     sshStep3BodyBefore:
       'If your site runs Node.js, Next.js, Docker, or Python behind Nginx (',
     sshStep3BodyMiddle:
-      '), Nginx may forward the route to your app and return 404. Add this block inside',
-    sshStep3BodyAfter: 'in your site config under',
-    sshStep3Label: 'Nginx snippet (/etc/nginx/sites-available/...)',
+      '), Nginx may forward the route to your app/container and return 404. First locate the active config file and add this block inside',
+    sshStep3BodyAfter: 'in the active site file under',
+    sshStep3NginxFindActiveLabel:
+      'Locate the active Nginx config file for this domain',
+    sshStep3NginxFindActiveCaption:
+      'Important: if the file in /etc/nginx/sites-enabled/ has NO arrow (->), it is a standalone copy (not a symlink to sites-available). Edit that file in sites-enabled/ directly — always inside the "listen 443 ssl" block when using HTTPS.',
+    sshStep3Label: 'Nginx snippet (port 443 server block in active config)',
+    sshStep3NginxSnippetCaption:
+      'Uses "location = /.well-known/brynja-verify.txt" (exact match): takes precedence over Docker container proxy_pass (e.g., 127.0.0.1:3000) without conflicting with Certbot (/.well-known/acme-challenge/).',
     sshStep3ReloadLabel: 'Validate syntax and reload Nginx with zero downtime',
     sshStep3ApacheBodyBefore:
       'If your site runs Node.js, Next.js, Docker, or Python behind Apache (',
     sshStep3ApacheBodyMiddle:
-      '), Apache may forward the route to your app and return 404. Add this block inside',
-    sshStep3ApacheBodyAfter: 'in your site config under',
+      '), Apache may forward the route to your app/container and return 404. First locate the active config file and add this block inside',
+    sshStep3ApacheBodyAfter: 'in the active site file under',
     sshStep3ApacheBodyOr: 'or',
+    sshStep3ApacheFindActiveLabel:
+      'Locate the active Apache config file for this domain',
+    sshStep3ApacheFindActiveCaption:
+      'Important: if the file in /etc/apache2/sites-enabled/ has NO arrow (->), it is a standalone copy (not a symlink to sites-available). Edit that active file directly inside <VirtualHost *:443>.',
     sshStep3ApacheLabel:
-      'Apache snippet (/etc/apache2/sites-available/... or /etc/httpd/conf.d/...)',
+      'Apache snippet (/etc/apache2/sites-enabled/... or /etc/httpd/conf.d/...)',
     sshStep3ApacheCaption:
       'Important: place "ProxyPass /.well-known/ !" BEFORE "ProxyPass / ...". If your proxy uses <Location />, add "<Location /.well-known/> ProxyPass ! </Location>" after it; if using mod_rewrite ([P]), add "RewriteCond %{REQUEST_URI} !^/\\.well-known/".',
     sshStep3ApacheReloadLabel:
       'Validate syntax and reload Apache with zero downtime',
     sshStep3ApacheReloadCaption:
       'On RHEL, Rocky, Alma, CentOS, or Fedora, run: sudo httpd -t && sudo systemctl reload httpd',
+    sshStep3ContainerNoteLead: 'Running apps in Docker containers?',
+    sshStep3ContainerNoteBody:
+      'If your app runs in Docker (e.g., Next.js/Node on 127.0.0.1:3000) behind host Nginx/Apache, keep the file at /var/www/html/.well-known/ on the host and update the host active proxy config. If the reverse proxy itself runs inside a container (Traefik, Caddy, Nginx Proxy Manager), serve the file from that proxy container or use the "DNS TXT Record" tab with zero container changes.',
     sshStep4Title: 'Step 4 — Test from the terminal that the file is public',
     sshStep4Body:
       'Run the command below (on the server or locally). It should print your exact token:',
@@ -575,6 +588,9 @@ export const EN_MESSAGES: Messages = {
     tip3Lead: 'Need to revoke access?',
     tip3Body:
       'simply delete the verification file (or DNS TXT record) and click the Revoke button in the target list above.',
+    tip4Lead: 'Edited sites-available but still getting 404 (e.g. Next.js/Docker)?',
+    tip4Body:
+      'check whether sites-enabled/ contains a regular copy instead of a symlink, confirm the block is inside the HTTPS (port 443) virtual host, and wait ~1s after reload before testing with curl.',
     placeholderOrigin: 'https://yoursite.com',
     placeholderHost: 'yoursite.com',
     placeholderToken: 'brynja-verify-YOUR_GENERATED_TOKEN',

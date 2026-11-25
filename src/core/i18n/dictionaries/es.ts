@@ -473,23 +473,36 @@ export const ES_MESSAGES: Messages = {
     sshStep3BodyBefore:
       'Si tu sitio corre en Node.js, Next.js, Docker o Python detrás de Nginx (',
     sshStep3BodyMiddle:
-      '), Nginx puede reenviar la ruta a tu app y devolver 404. Agrega este bloque dentro de',
-    sshStep3BodyAfter: 'en el archivo de tu sitio bajo',
-    sshStep3Label: 'Bloque Nginx (/etc/nginx/sites-available/...)',
+      '), Nginx puede reenviar la ruta a tu app/contenedor y devolver 404. Primero localiza el archivo activo y agrega este bloque dentro de',
+    sshStep3BodyAfter: 'en el archivo activo bajo',
+    sshStep3NginxFindActiveLabel:
+      'Localizar el archivo Nginx realmente activo para el dominio',
+    sshStep3NginxFindActiveCaption:
+      'Atención: si en /etc/nginx/sites-enabled/ el archivo aparece SIN flecha (->), es una copia física (no un enlace simbólico de sites-available). Edita ese archivo en sites-enabled/ directamente, siempre dentro del bloque "listen 443 ssl" para HTTPS.',
+    sshStep3Label: 'Bloque Nginx (bloque server 443 del archivo activo)',
+    sshStep3NginxSnippetCaption:
+      'Usa "location = /.well-known/brynja-verify.txt" (coincidencia exacta): prevalece sobre el proxy_pass a contenedores Docker (ej.: 127.0.0.1:3000) sin entrar en conflicto con Certbot (/.well-known/acme-challenge/).',
     sshStep3ReloadLabel: 'Validar sintaxis y recargar Nginx sin cortes',
     sshStep3ApacheBodyBefore:
       'Si tu sitio corre en Node.js, Next.js, Docker o Python detrás de Apache (',
     sshStep3ApacheBodyMiddle:
-      '), Apache puede reenviar la ruta a tu app y devolver 404. Agrega este bloque dentro de',
-    sshStep3ApacheBodyAfter: 'en el archivo de tu sitio bajo',
+      '), Apache puede reenviar la ruta a tu app/contenedor y devolver 404. Primero localiza el archivo activo y agrega este bloque dentro de',
+    sshStep3ApacheBodyAfter: 'en el archivo activo bajo',
     sshStep3ApacheBodyOr: 'o',
+    sshStep3ApacheFindActiveLabel:
+      'Localizar el archivo Apache realmente activo para el dominio',
+    sshStep3ApacheFindActiveCaption:
+      'Atención: si en /etc/apache2/sites-enabled/ el archivo aparece SIN flecha (->), es una copia física (no un enlace simbólico). Edita ese archivo activo directamente dentro de <VirtualHost *:443>.',
     sshStep3ApacheLabel:
-      'Bloque Apache (/etc/apache2/sites-available/... o /etc/httpd/conf.d/...)',
+      'Bloque Apache (/etc/apache2/sites-enabled/... o /etc/httpd/conf.d/...)',
     sshStep3ApacheCaption:
       'Importante: coloca "ProxyPass /.well-known/ !" ANTES de "ProxyPass / ...". Si tu proxy usa <Location />, agrega "<Location /.well-known/> ProxyPass ! </Location>" después; si usa mod_rewrite ([P]), añade "RewriteCond %{REQUEST_URI} !^/\\.well-known/".',
     sshStep3ApacheReloadLabel: 'Validar sintaxis y recargar Apache sin cortes',
     sshStep3ApacheReloadCaption:
       'En RHEL, Rocky, Alma, CentOS o Fedora, ejecuta: sudo httpd -t && sudo systemctl reload httpd',
+    sshStep3ContainerNoteLead: '¿Tu servidor corre en contenedores Docker?',
+    sshStep3ContainerNoteBody:
+      'Si la app corre en Docker (ej.: Next.js/Node en 127.0.0.1:3000) detrás de Nginx/Apache en el host, guarda el archivo en /var/www/html/.well-known/ en el host y edita el proxy activo del host. Si el propio proxy inverso corre en un contenedor (Traefik, Caddy, Nginx Proxy Manager), sirve el archivo desde ese contenedor o usa la pestaña "Registro DNS TXT" sin tocar contenedores.',
     sshStep4Title: 'Paso 4 — Comprobar desde la terminal que quedó público',
     sshStep4Body:
       'Ejecuta el comando debajo (en el servidor o en tu equipo). Debe mostrar exactamente tu token:',
@@ -575,6 +588,9 @@ export const ES_MESSAGES: Messages = {
     tip3Lead: '¿Quieres revocar el acceso?',
     tip3Body:
       'solo elimina el archivo en tu servidor (o el registro DNS TXT) y pulsa el botón Revocar en la lista de objetivos de arriba.',
+    tip4Lead: '¿Editaste sites-available pero sigue dando 404 (ej.: Next.js/Docker)?',
+    tip4Body:
+      'comprueba si sites-enabled/ tiene una copia física en lugar de enlace simbólico, confirma que el bloque esté en el virtual host HTTPS (puerto 443) y espera ~1s tras el reload antes de probar con curl.',
     placeholderOrigin: 'https://tusitio.com',
     placeholderHost: 'tusitio.com',
     placeholderToken: 'brynja-verify-TU_TOKEN_GENERADO',

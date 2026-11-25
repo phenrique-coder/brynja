@@ -117,7 +117,19 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     expect(snippets.sshCleanupFileCmd).toBe(
       'sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
     );
+    expect(snippets.nginxActiveConfigCmd).toContain(
+      'ls -la /etc/nginx/sites-enabled/',
+    );
+    expect(snippets.nginxActiveConfigCmd).toContain('"app.acme.io"');
+    expect(snippets.nginxSnippet).toContain(
+      'location = /.well-known/brynja-verify.txt {',
+    );
+    expect(snippets.nginxFindBlockCmd).toContain('/etc/nginx/sites-enabled/');
     expect(snippets.nginxFindBlockCmd).toContain('/etc/nginx/sites-available/');
+    expect(snippets.apacheActiveConfigCmd).toContain(
+      '/etc/apache2/sites-enabled/',
+    );
+    expect(snippets.apacheActiveConfigCmd).toContain('"app.acme.io"');
     expect(snippets.apacheSnippet).toContain('ProxyPass /.well-known/ !');
     expect(snippets.apacheSnippet).toContain(
       'Alias /.well-known/ /var/www/html/.well-known/',
@@ -127,15 +139,20 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
       'sudo apache2ctl configtest && sudo systemctl reload apache2',
     );
     expect(snippets.apacheFindBlockCmd).toContain(
+      '/etc/apache2/sites-enabled/',
+    );
+    expect(snippets.apacheFindBlockCmd).toContain(
       '/etc/apache2/sites-available/',
     );
     expect(snippets.apacheFindBlockCmd).toContain('/etc/httpd/conf.d/');
     expect(snippets.reverseProxy.nginx).toEqual({
+      activeConfigCmd: snippets.nginxActiveConfigCmd,
       snippet: snippets.nginxSnippet,
       reloadCmd: snippets.nginxReloadCmd,
       findBlockCmd: snippets.nginxFindBlockCmd,
     });
     expect(snippets.reverseProxy.apache).toEqual({
+      activeConfigCmd: snippets.apacheActiveConfigCmd,
       snippet: snippets.apacheSnippet,
       reloadCmd: snippets.apacheReloadCmd,
       findBlockCmd: snippets.apacheFindBlockCmd,
@@ -213,7 +230,7 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     ).toBeTruthy();
     expect(
       screen.getByText(
-        /sudo grep -rn "well-known" \/etc\/nginx\/sites-available\//i,
+        /sudo grep -rn "brynja-verify\\\|well-known" \/etc\/nginx\/sites-enabled\/ \/etc\/nginx\/sites-available\//i,
       ),
     ).toBeTruthy();
     expect(
@@ -401,7 +418,7 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     ).toHaveLength(2);
     expect(
       screen.getByText(
-        /sudo grep -rn "well-known" \/etc\/nginx\/sites-available\//i,
+        /sudo grep -rn "brynja-verify\\\|well-known" \/etc\/nginx\/sites-enabled\/ \/etc\/nginx\/sites-available\//i,
       ),
     ).toBeTruthy();
 
@@ -431,9 +448,15 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
       ),
     ).toHaveLength(2);
     expect(
+      screen.getByText(/ls -la \/etc\/apache2\/sites-enabled\//i),
+    ).toBeTruthy();
+    expect(
       screen.getByText(
-        /sudo grep -rn "well-known" \/etc\/apache2\/sites-available\/ \/etc\/apache2\/conf-available\/ \/etc\/httpd\/conf\.d\//i,
+        /sudo grep -rn "brynja-verify\\\|well-known" \/etc\/apache2\/sites-enabled\/ \/etc\/apache2\/sites-available\/ \/etc\/apache2\/conf-available\/ \/etc\/httpd\/conf\.d\//i,
       ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Servidor rodando em containers Docker\?/i),
     ).toBeTruthy();
     expect(
       screen.getAllByText(

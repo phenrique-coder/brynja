@@ -540,17 +540,25 @@ export function OwnershipSetupGuide({
                         </code>
                         {g.sshStep3BodyMiddle}{' '}
                         <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                          server &#123; ... &#125;
+                          server &#123; listen 443 ssl; ... &#125;
                         </code>{' '}
                         {g.sshStep3BodyAfter}{' '}
                         <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                          /etc/nginx/sites-available/
+                          /etc/nginx/sites-enabled/
                         </code>
                         :
                       </p>
                       <CopyableCodeBlock
+                        label={g.sshStep3NginxFindActiveLabel}
+                        code={snippets.reverseProxy.nginx.activeConfigCmd}
+                        caption={g.sshStep3NginxFindActiveCaption}
+                        copyLabel={messages.common.copy}
+                        copiedLabel={messages.common.copied}
+                      />
+                      <CopyableCodeBlock
                         label={g.sshStep3Label}
                         code={snippets.reverseProxy.nginx.snippet}
+                        caption={g.sshStep3NginxSnippetCaption}
                         copyLabel={messages.common.copy}
                         copiedLabel={messages.common.copied}
                       />
@@ -574,7 +582,7 @@ export function OwnershipSetupGuide({
                         </code>{' '}
                         {g.sshStep3ApacheBodyAfter}{' '}
                         <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                          /etc/apache2/sites-available/
+                          /etc/apache2/sites-enabled/
                         </code>{' '}
                         {g.sshStep3ApacheBodyOr}{' '}
                         <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
@@ -582,6 +590,13 @@ export function OwnershipSetupGuide({
                         </code>
                         :
                       </p>
+                      <CopyableCodeBlock
+                        label={g.sshStep3ApacheFindActiveLabel}
+                        code={snippets.reverseProxy.apache.activeConfigCmd}
+                        caption={g.sshStep3ApacheFindActiveCaption}
+                        copyLabel={messages.common.copy}
+                        copiedLabel={messages.common.copied}
+                      />
                       <CopyableCodeBlock
                         label={g.sshStep3ApacheLabel}
                         code={snippets.reverseProxy.apache.snippet}
@@ -598,6 +613,13 @@ export function OwnershipSetupGuide({
                       />
                     </>
                   )}
+
+                  <div className="rounded-xl border border-cyan-500/25 bg-cyan-50/50 px-3.5 py-2.5 text-xs leading-relaxed text-fg-secondary dark:bg-cyan-500/5">
+                    <strong className="text-fg">
+                      {g.sshStep3ContainerNoteLead}
+                    </strong>{' '}
+                    {g.sshStep3ContainerNoteBody}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -641,7 +663,7 @@ export function OwnershipSetupGuide({
                       <p className="flex-1 text-xs leading-relaxed text-fg-secondary">
                         {g.sshStep5NginxBodyBefore}{' '}
                         <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                          location ^~ /.well-known/ &#123; ... &#125;
+                          location = /.well-known/brynja-verify.txt &#123; ... &#125;
                         </code>{' '}
                         {g.sshStep5NginxBodyAfter}
                       </p>
@@ -881,6 +903,9 @@ export function OwnershipSetupGuide({
             </li>
             <li>
               • <strong>{g.tip3Lead}</strong> {g.tip3Body}
+            </li>
+            <li>
+              • <strong>{g.tip4Lead}</strong> {g.tip4Body}
             </li>
           </ul>
         </div>

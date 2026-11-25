@@ -6,6 +6,11 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-11-25
+
+### Fixed
+- Improved the `/authorizations` reverse-proxy setup guide (`OwnershipSetupGuide` + `ownership-guide.presenter.ts`) for real-world Linux + Docker + Certbot servers across PT-BR, EN, and ES: added a copyable command to identify the actual active config file in `/etc/nginx/sites-enabled/` or `/etc/apache2/sites-enabled/` (warning about standalone copies vs symlinks and HTTPS port 443 blocks), switched the Nginx snippet to exact-match `location = /.well-known/brynja-verify.txt` so it beats container `proxy_pass` without conflicting with Let's Encrypt `acme-challenge`, expanded Step 5 rollback search to include `sites-enabled/`, and added Docker container vs containerized reverse-proxy guidance and troubleshooting tips.
+
 ## [1.6.0] - 2026-11-25
 
 ### Added
