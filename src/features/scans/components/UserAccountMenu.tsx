@@ -170,15 +170,15 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
             </div>
           </div>
 
-          <div className="p-2">
+          <div className="p-2.5">
             <button
               type="button"
               role="menuitem"
               disabled={busy}
               onClick={() => void handleSignOut()}
-              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-rose-600 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/15 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-50/60 px-3 py-2 text-center text-xs font-semibold text-rose-600 transition hover:border-rose-500/40 hover:bg-rose-50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20 disabled:opacity-50"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 shrink-0" />
               <span>{busy ? 'Encerrando...' : 'Sair (Descartar token)'}</span>
             </button>
           </div>

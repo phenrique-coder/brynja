@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Github, History, Lock, ShieldCheck } from 'lucide-react';
+import { ExternalLink, Github, History, Lock, ShieldCheck } from 'lucide-react';
 import { useGitHubIntegration } from '@/core/providers/gateway-provider';
 import { BrynjaLogo } from './BrynjaLogo';
 import { SurfaceCard } from './ui/PagePrimitives';
@@ -67,6 +67,22 @@ export function AuthRequiredCard({
           <Github className="h-4 w-4" />
           Entrar com GitHub
         </a>
+
+        <div className="mt-6 border-t border-subtle pt-4">
+          <a
+            href="https://github.com/phenrique-coder/brynja"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex flex-wrap items-center justify-center gap-1.5 text-xs font-medium text-fg-secondary transition hover:text-cyan-700 dark:hover:text-cyan-300"
+          >
+            <Github className="h-3.5 w-3.5 shrink-0" />
+            <span>Código aberto no GitHub:</span>
+            <span className="font-mono text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300">
+              github.com/phenrique-coder/brynja
+            </span>
+            <ExternalLink className="h-3 w-3 shrink-0 opacity-70" />
+          </a>
+        </div>
       </SurfaceCard>
     </div>
   );

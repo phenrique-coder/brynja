@@ -6,6 +6,8 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  ExternalLink,
+  Github,
   Package,
   RefreshCw,
   ShieldAlert,
@@ -142,6 +144,22 @@ export function DashboardView() {
           <ScanHistoryTable scans={scans.slice(0, 10)} onDelete={removeScan} />
         )}
       </SurfaceCard>
+
+      <footer className="flex justify-center pt-2">
+        <a
+          href="https://github.com/phenrique-coder/brynja"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-subtle bg-surface px-3.5 py-1.5 text-xs font-medium text-fg-secondary shadow-sm transition hover:border-cyan-500/40 hover:text-cyan-700 dark:hover:text-cyan-300"
+        >
+          <Github className="h-3.5 w-3.5 shrink-0" />
+          <span>Brynja Open-Source ·</span>
+          <span className="font-mono text-cyan-700 dark:text-cyan-300">
+            github.com/phenrique-coder/brynja
+          </span>
+          <ExternalLink className="h-3 w-3 shrink-0 opacity-70" />
+        </a>
+      </footer>
     </div>
   );
 }
