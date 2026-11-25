@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import { MemoryVulnerabilityCacheService } from '../infrastructure/cache/memory-vuln-cache.service';
 import { GitHubApiRepositoryFetcher } from '../infrastructure/github/github-api-repository.fetcher';
 import { NpmManifestParser } from '../infrastructure/parsers/npm-manifest.parser';
 import { PythonManifestParser } from '../infrastructure/parsers/python-manifest.parser';
+import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enricher.adapter';
 import { resolveFixedVersionForInstalled } from '../infrastructure/vuln-intel/osv-version.resolver';
 
 describe('Manifest Parsers, OSV SemVer Resolver & GitHub API Fetcher', () => {
@@ -118,6 +120,77 @@ describe('Manifest Parsers, OSV SemVer Resolver & GitHub API Fetcher', () => {
       });
       expect(files).toHaveLength(1);
       expect(files[0].path).toBe('package.json');
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('retries transient NVD network failures once and extracts CVSS v4.0 metrics', async () => {
+    const enricher = new NvdVulnerabilityEnricher(
+      new MemoryVulnerabilityCacheService(),
+    );
+    const fetchSpy = vi
+      .spyOn(global, 'fetch')
+      .mockRejectedValueOnce(new Error('transient timeout'))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            vulnerabilities: [
+              {
+                cve: {
+                  id: 'CVE-2026-100701',
+                  metrics: {
+                    cvssMetricV40: [
+                      {
+                        cvssData: {
+                          baseScore: 8.7,
+                          vectorString: 'CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N',
+                          baseSeverity: 'HIGH',
+                        },
+                      },
+                    ],
+                  },
+                  weaknesses: [
+                    { description: [{ value: 'CWE-79' }] },
+                  ],
+                },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    try {
+      const res = await enricher.enrich([
+        {
+          advisoryId: 'GHSA-test-1',
+          cveId: 'CVE-2026-100701',
+          packageName: 'demo',
+          packageVersion: '1.0.0',
+          ecosystem: 'npm',
+          title: 'Demo',
+          description: 'Demo',
+          severity: 'MEDIUM',
+          cvssScore: null,
+          cvssVector: null,
+          cweIds: [],
+          epssScore: null,
+          epssPercentile: null,
+          isKnownExploited: false,
+          fixedVersion: '1.0.1',
+          references: [],
+          verdict: 'DEPENDENCY_ONLY',
+          source: 'OSV.dev',
+        },
+      ]);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(res.warnings).toHaveLength(0);
+      expect(res.advisories[0].cvssScore).toBe(8.7);
+      expect(res.advisories[0].severity).toBe('HIGH');
+      expect(res.advisories[0].cweIds).toEqual(['CWE-79']);
+      expect(res.advisories[0].source).toBe('OSV.dev + NVD');
     } finally {
       fetchSpy.mockRestore();
     }

@@ -5,12 +5,20 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowLeft,
+  Check,
   CheckCircle2,
+  Clock,
+  Copy,
   Download,
   ExternalLink,
   FileDown,
   Flame,
+  FolderGit2,
+  GitBranch,
+  Globe,
+  Layers,
   Loader2,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   FindingVerdict,
@@ -20,7 +28,11 @@ import {
 import { IReportExporter } from '@/core/ports/scan-gateway.port';
 import { downloadScanReportPdf } from '../exporters/scan-pdf.exporter';
 import { useScanReport } from '../hooks/use-scans';
-import { filterAndSortFindings } from '../presenters/scan.presenter';
+import {
+  filterAndSortFindings,
+  formatRepositoryDisplay,
+  formatTargetHost,
+} from '../presenters/scan.presenter';
 import {
   PIPELINE_STAGES,
   PROBE_OUTCOME_REGISTRY,
@@ -31,7 +43,7 @@ import {
 } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
 import { StatusPill } from './StatusPill';
-import { KpiStatCard, PageHeader, SurfaceCard } from './ui/PagePrimitives';
+import { KpiStatCard, SurfaceCard } from './ui/PagePrimitives';
 
 type ReportTab = 'findings' | 'dependencies' | 'probes' | 'audit';
 
@@ -47,6 +59,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
   const [onlyKev, setOnlyKev] = useState(false);
   const [search, setSearch] = useState('');
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
 
   const filteredFindings = useMemo(() => {
     if (!report) return [];
@@ -113,53 +126,170 @@ export function ScanReportView({ scanId }: { scanId: string }) {
   const currentStageIdx = PIPELINE_STAGES.findIndex(
     (s) => s.key === report.currentStage,
   );
+  const repoDisplay = formatRepositoryDisplay(report.repositoryUrl);
+  const targetHost = formatTargetHost(report.targetUrl);
+  const isHttpRepo = /^https?:\/\//i.test(report.repositoryUrl);
+
+  async function handleCopyScanId(id: string) {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(true);
+      window.setTimeout(() => setCopiedId(false), 1800);
+    } catch {
+      // ignore clipboard errors
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        topSlot={
-          <Link
-            href="/history"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-fg-muted transition hover:text-fg"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar ao Histórico
-          </Link>
-        }
-        badge={<StatusPill meta={SCAN_STATUS_REGISTRY[report.status]} />}
-        title={report.repositoryUrl}
-        description={`Branch: ${report.branch} · Alvo Staging: ${
-          report.targetUrl ?? 'Não configurado (somente SCA)'
-        } · ID: ${report.id}`}
-        actions={
-          <>
+      {/* Report Header Card: Full-width identity + clean separated export bar */}
+      <SurfaceCard className="overflow-hidden">
+        <div className="space-y-4 p-5 sm:p-6">
+          {/* Top navigation & status bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Link
+              href="/history"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-fg-muted transition hover:text-fg"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Voltar ao Histórico
+            </Link>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill meta={SCAN_STATUS_REGISTRY[report.status]} />
+              <button
+                type="button"
+                onClick={() => void handleCopyScanId(report.id)}
+                title={`Copiar ID completo: ${report.id}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-subtle bg-surface-subtle px-2.5 py-0.5 font-mono text-[11px] text-fg-secondary transition hover:border-cyan-500/40 hover:text-fg"
+              >
+                <span>ID {report.id.slice(0, 8)}</span>
+                {copiedId ? (
+                  <Check className="h-3 w-3 text-emerald-500" />
+                ) : (
+                  <Copy className="h-3 w-3 opacity-70" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Primary Repository & Domain Identity */}
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+              <FolderGit2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                {isHttpRepo ? (
+                  <a
+                    href={report.repositoryUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={report.repositoryUrl}
+                    className="group inline-flex min-w-0 items-center gap-1.5 text-lg font-bold tracking-tight text-fg transition hover:text-cyan-700 sm:text-xl dark:hover:text-cyan-300"
+                  >
+                    <span className="break-all sm:break-normal">
+                      {repoDisplay.displayName}
+                    </span>
+                    <ExternalLink className="h-4 w-4 shrink-0 opacity-60 transition group-hover:opacity-100" />
+                  </a>
+                ) : (
+                  <h1 className="break-all text-lg font-bold tracking-tight text-fg sm:text-xl">
+                    {repoDisplay.displayName}
+                  </h1>
+                )}
+              </div>
+
+              {/* Structured metadata chips */}
+              <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 font-mono text-[11px] font-medium text-fg-secondary">
+                  <GitBranch className="h-3.5 w-3.5 text-fg-muted" />
+                  {report.branch}
+                </span>
+
+                {targetHost && report.targetUrl ? (
+                  <a
+                    href={report.targetUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={report.targetUrl}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-medium text-emerald-800 transition hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                    <span>Alvo: {targetHost}</span>
+                    <ExternalLink className="h-3 w-3 opacity-70" />
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] font-medium text-fg-muted">
+                    <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                    Somente SCA (sem alvo staging)
+                  </span>
+                )}
+
+                {report.ecosystems.length > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 font-mono text-[11px] font-medium text-fg-secondary">
+                    <Layers className="h-3.5 w-3.5 text-fg-muted" />
+                    {report.ecosystems.join(', ')}
+                  </span>
+                ) : null}
+
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] text-fg-muted">
+                  <Clock className="h-3.5 w-3.5" />
+                  {new Date(
+                    report.completedAt ?? report.createdAt,
+                  ).toLocaleString('pt-BR', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dedicated Export Toolbar */}
+        <div className="flex flex-col gap-2.5 border-t border-subtle bg-surface-subtle/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
+            Exportar Relatório
+          </span>
+
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               disabled={exportingPdf}
               onClick={() => void handleDownloadPdf(report)}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-cyan-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
             >
               {exportingPdf ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <FileDown className="h-3.5 w-3.5" />
               )}
-              {exportingPdf ? 'Gerando PDF...' : 'Baixar PDF'}
+              {exportingPdf ? 'Gerando PDF...' : 'PDF Executivo'}
             </button>
-            {REPORT_EXPORTERS.map((exporter) => (
-              <button
-                key={exporter.format}
-                type="button"
-                onClick={() => triggerDownload(exporter, report)}
-                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-subtle bg-surface-subtle px-3 py-2 text-xs font-semibold text-fg transition hover:border-cyan-500/40 hover:text-cyan-700 dark:hover:text-cyan-300"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {exporter.label}
-              </button>
-            ))}
-          </>
-        }
-      />
+
+            <span
+              aria-hidden="true"
+              className="hidden h-4 w-px bg-subtle sm:inline-block"
+            />
+
+            {REPORT_EXPORTERS.map((exporter) => {
+              const shortLabel = exporter.label.replace(/^Exportar\s+/i, '');
+              return (
+                <button
+                  key={exporter.format}
+                  type="button"
+                  onClick={() => triggerDownload(exporter, report)}
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-fg transition hover:border-cyan-500/40 hover:text-cyan-700 dark:hover:text-cyan-300"
+                >
+                  <Download className="h-3.5 w-3.5 text-fg-muted" />
+                  {shortLabel}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </SurfaceCard>
 
       {/* Pipeline stepper */}
       <SurfaceCard className="p-4 sm:p-5">

@@ -129,9 +129,9 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
               href={profileUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-300"
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-subtle bg-surface-subtle/80 px-3 py-1.5 text-xs font-medium text-cyan-700 transition hover:border-cyan-500/40 hover:bg-surface-hover dark:text-cyan-300"
             >
-              Ver perfil no GitHub
+              <span>Ver perfil no GitHub</span>
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>

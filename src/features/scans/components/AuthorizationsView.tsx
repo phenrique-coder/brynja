@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import {
+  BookOpen,
   CheckCircle2,
   Copy,
   KeyRound,
@@ -9,11 +10,15 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { VerificationMethod } from '@/core/models/scan.models';
+import {
+  TargetAuthorization,
+  VerificationMethod,
+} from '@/core/models/scan.models';
 import { useTargetAuthorizer } from '@/core/providers/gateway-provider';
 import { useTargetAuthorizations } from '../hooks/use-scans';
 import { AUTH_STATUS_REGISTRY } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
+import { OwnershipSetupGuide } from './OwnershipSetupGuide';
 import { StatusPill } from './StatusPill';
 import { PageHeader, SurfaceCard } from './ui/PagePrimitives';
 
@@ -24,6 +29,11 @@ export function AuthorizationsView() {
 
   const [targetUrl, setTargetUrl] = useState('');
   const [method, setMethod] = useState<VerificationMethod>('WELL_KNOWN_FILE');
+  const [guideMethod, setGuideMethod] =
+    useState<VerificationMethod>('WELL_KNOWN_FILE');
+  const [selectedGuideTargetId, setSelectedGuideTargetId] = useState<
+    string | null
+  >(null);
   const [instructions, setInstructions] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -38,6 +48,23 @@ export function AuthorizationsView() {
     );
   }
 
+  const activeGuideTarget: TargetAuthorization | null =
+    (selectedGuideTargetId
+      ? items.find((i) => i.id === selectedGuideTargetId)
+      : null) ??
+    items.find((i) => i.status === 'PENDING' && i.challengeToken) ??
+    items.find((i) => i.challengeToken) ??
+    null;
+
+  function openGuideForTarget(item: TargetAuthorization) {
+    setSelectedGuideTargetId(item.id);
+    setGuideMethod(item.method);
+    const el = document.getElementById('guia-configuracao-posse');
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setActionError(null);
@@ -45,6 +72,8 @@ export function AuthorizationsView() {
     try {
       const res = await authorizer.createAuthorization(targetUrl, method);
       setInstructions(res.instructions);
+      setSelectedGuideTargetId(res.authorization.id);
+      setGuideMethod(res.authorization.method);
       setTargetUrl('');
       await refresh();
     } catch (err) {
@@ -129,9 +158,11 @@ export function AuthorizationsView() {
                 </label>
                 <select
                   value={method}
-                  onChange={(e) =>
-                    setMethod(e.target.value as VerificationMethod)
-                  }
+                  onChange={(e) => {
+                    const next = e.target.value as VerificationMethod;
+                    setMethod(next);
+                    setGuideMethod(next);
+                  }}
                   className="mt-1.5 w-full rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2.5 text-sm text-fg focus:border-cyan-500 focus:outline-none"
                 >
                   <option value="WELL_KNOWN_FILE">
@@ -267,15 +298,25 @@ export function AuthorizationsView() {
                     ) : (
                       <>
                         {item.status !== 'VERIFIED' ? (
-                          <button
-                            type="button"
-                            disabled={busyId === item.id}
-                            onClick={() => void handleVerify(item.id)}
-                            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25 disabled:opacity-50"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Verificar Posse
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openGuideForTarget(item)}
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-cyan-300 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:border-cyan-500/40 dark:bg-cyan-500/15 dark:text-cyan-200 dark:hover:bg-cyan-500/25"
+                            >
+                              <BookOpen className="h-3.5 w-3.5" />
+                              Como configurar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyId === item.id}
+                              onClick={() => void handleVerify(item.id)}
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25 disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Verificar Posse
+                            </button>
+                          </>
                         ) : null}
                         <button
                           type="button"
@@ -295,6 +336,13 @@ export function AuthorizationsView() {
           )}
         </SurfaceCard>
       </div>
+
+      {/* Detailed Beginner & Remote SSH Terminal Setup Guide */}
+      <OwnershipSetupGuide
+        activeTarget={activeGuideTarget}
+        method={guideMethod}
+        onSelectMethod={setGuideMethod}
+      />
     </div>
   );
 }

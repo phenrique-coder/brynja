@@ -41,11 +41,17 @@ export function PageHeader({
 export interface SurfaceCardProps {
   children: React.ReactNode;
   className?: string;
+  id?: string;
 }
 
-export function SurfaceCard({ children, className = '' }: SurfaceCardProps) {
+export function SurfaceCard({
+  children,
+  className = '',
+  id,
+}: SurfaceCardProps) {
   return (
     <div
+      id={id}
       className={`rounded-2xl border border-subtle bg-surface shadow-sm transition-colors ${className}`}
     >
       {children}

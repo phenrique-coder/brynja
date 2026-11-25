@@ -102,6 +102,50 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
     });
   });
 
+  it('renders detailed beginner and SSH terminal setup instructions populated with the pending target token', async () => {
+    const gateway = makeBaseGateway({
+      listAuthorizations: vi.fn().mockResolvedValue([
+        {
+          id: 'auth-pending',
+          origin: 'https://staging.example.com',
+          hostname: 'staging.example.com',
+          method: 'WELL_KNOWN_FILE',
+          status: 'PENDING',
+          challengeToken: 'brynja-verify-abcdef1234567890',
+          verifiedAt: null,
+          expiresAt: null,
+          createdAt: '2026-11-25T09:00:00.000Z',
+          updatedAt: '2026-11-25T09:00:00.000Z',
+        },
+      ]),
+    });
+
+    render(
+      <GatewayProvider gateway={gateway}>
+        <AuthorizationsView />
+      </GatewayProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/ssh usuario@staging\.example\.com/i),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/brynja-verify-abcdef1234567890' \| sudo tee/i),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(
+          /curl -fsSL https:\/\/staging\.example\.com\/\.well-known\/brynja-verify\.txt/i,
+        ),
+      ).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Registro DNS TXT/i }));
+    expect(
+      screen.getByText(/dig \+short TXT _brynja\.staging\.example\.com/i),
+    ).toBeTruthy();
+  });
+
   it('filters scan history by scope (Safe Probes vs SCA only) and search query', async () => {
     const gateway = makeBaseGateway({
       listScans: vi.fn().mockResolvedValue([
