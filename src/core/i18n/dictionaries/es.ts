@@ -453,8 +453,12 @@ export const ES_MESSAGES: Messages = {
     sshStep2Label: 'Servidor remoto (Linux / VPS)',
     sshStep2Caption:
       'Si la raíz web de tu sitio no es /var/www/html (ej.: /var/www/misitio/public o /usr/share/nginx/html), cambia la ruta antes de ejecutar.',
+    proxySelectorAriaStep3: 'Seleccionar servidor proxy inverso (Paso 3)',
+    proxySelectorAriaStep5: 'Seleccionar servidor proxy inverso (Paso 5)',
+    proxyNginx: 'Nginx',
+    proxyApache: 'Apache',
     sshStep3Title:
-      'Paso 3 — (Opcional y común) Si usas Nginx como proxy inverso',
+      'Paso 3 — (Opcional y común) Si usas proxy inverso (Nginx o Apache)',
     sshStep3BodyBefore:
       'Si tu sitio corre en Node.js, Next.js, Docker o Python detrás de Nginx (',
     sshStep3BodyMiddle:
@@ -462,6 +466,19 @@ export const ES_MESSAGES: Messages = {
     sshStep3BodyAfter: 'en el archivo de tu sitio bajo',
     sshStep3Label: 'Bloque Nginx (/etc/nginx/sites-available/...)',
     sshStep3ReloadLabel: 'Validar sintaxis y recargar Nginx sin cortes',
+    sshStep3ApacheBodyBefore:
+      'Si tu sitio corre en Node.js, Next.js, Docker o Python detrás de Apache (',
+    sshStep3ApacheBodyMiddle:
+      '), Apache puede reenviar la ruta a tu app y devolver 404. Agrega este bloque dentro de',
+    sshStep3ApacheBodyAfter: 'en el archivo de tu sitio bajo',
+    sshStep3ApacheBodyOr: 'o',
+    sshStep3ApacheLabel:
+      'Bloque Apache (/etc/apache2/sites-available/... o /etc/httpd/conf.d/...)',
+    sshStep3ApacheCaption:
+      'Importante: coloca "ProxyPass /.well-known/ !" ANTES de "ProxyPass / ...". Si tu proxy usa <Location />, agrega "<Location /.well-known/> ProxyPass ! </Location>" después; si usa mod_rewrite ([P]), añade "RewriteCond %{REQUEST_URI} !^/\\.well-known/".',
+    sshStep3ApacheReloadLabel: 'Validar sintaxis y recargar Apache sin cortes',
+    sshStep3ApacheReloadCaption:
+      'En RHEL, Rocky, Alma, CentOS o Fedora, ejecuta: sudo httpd -t && sudo systemctl reload httpd',
     sshStep4Title: 'Paso 4 — Comprobar desde la terminal que quedó público',
     sshStep4Body:
       'Ejecuta el comando debajo (en el servidor o en tu equipo). Debe mostrar exactamente tu token:',
@@ -469,7 +486,7 @@ export const ES_MESSAGES: Messages = {
     sshStep4Caption:
       'Salida esperada: {token}. Si aparece exactamente eso, sube y haz clic en "Verificar Propiedad".',
     sshStep5Title:
-      'Paso 5 — (Opcional) Revertir todo: eliminar el archivo, la carpeta .well-known y el Paso 3 (Nginx)',
+      'Paso 5 — (Opcional) Revertir todo: eliminar el archivo, la carpeta .well-known y el Paso 3 (Nginx / Apache)',
     sshStep5Body:
       'Cuando quieras dejar el servidor exactamente como estaba antes (o revocar el acceso), sigue estos pasos. Atención: eliminar el archivo impide la renovación automática del certificado a los 7 días.',
     sshStep5RemoveFileLabel:
@@ -483,6 +500,13 @@ export const ES_MESSAGES: Messages = {
     sshStep5NginxFindLabel: '5.2 — Localizar el bloque en Nginx (Paso 3)',
     sshStep5NginxReloadLabel:
       '5.3 — Validar y recargar Nginx tras quitar el bloque del Paso 3',
+    sshStep5ApacheBodyBefore:
+      'Si agregaste las directivas del Paso 3 en Apache, localiza el archivo de configuración con el comando de abajo, elimina el bloque',
+    sshStep5ApacheBodyAfter:
+      '(solo si no lo usa Certbot/Let’s Encrypt), guarda y recarga Apache:',
+    sshStep5ApacheFindLabel: '5.2 — Localizar el bloque en Apache (Paso 3)',
+    sshStep5ApacheReloadLabel:
+      '5.3 — Validar y recargar Apache tras quitar el bloque del Paso 3',
     sshStep5VerifyLabel:
       '5.4 — Confirmar desde la terminal que el archivo fue eliminado',
     sshStep5VerifyCaption:
@@ -533,7 +557,7 @@ export const ES_MESSAGES: Messages = {
     troubleshootingTitle: 'Solución rápida si falla la verificación',
     tip1Lead: 'Devolvió una página HTML o 404:',
     tip1Body:
-      'comprueba que el proxy inverso (Nginx/Cloudflare/Vercel rewrites) no esté interceptando /.well-known/ devolviendo el index de la app.',
+      'comprueba que el proxy inverso (Nginx/Apache/Cloudflare/Vercel rewrites) no esté interceptando /.well-known/, redirigiendo (301/302) o devolviendo el index de la app.',
     tip2Lead: 'No borres la prueba tras verificar:',
     tip2Body:
       'mantener el archivo o el registro TXT publicado permite que Brynja renueve tu certificado automáticamente a los 7 días sin reconfigurar.',

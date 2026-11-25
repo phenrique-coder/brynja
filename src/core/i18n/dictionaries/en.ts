@@ -452,8 +452,12 @@ export const EN_MESSAGES: Messages = {
     sshStep2Label: 'Remote server (Linux / VPS)',
     sshStep2Caption:
       'If your web root is not /var/www/html (e.g., /var/www/mysite/public or /usr/share/nginx/html), replace the path before running.',
+    proxySelectorAriaStep3: 'Select reverse proxy server (Step 3)',
+    proxySelectorAriaStep5: 'Select reverse proxy server (Step 5)',
+    proxyNginx: 'Nginx',
+    proxyApache: 'Apache',
     sshStep3Title:
-      'Step 3 — (Optional, very common) If you use Nginx as a reverse proxy',
+      'Step 3 — (Optional, very common) If you use a reverse proxy (Nginx or Apache)',
     sshStep3BodyBefore:
       'If your site runs Node.js, Next.js, Docker, or Python behind Nginx (',
     sshStep3BodyMiddle:
@@ -461,6 +465,20 @@ export const EN_MESSAGES: Messages = {
     sshStep3BodyAfter: 'in your site config under',
     sshStep3Label: 'Nginx snippet (/etc/nginx/sites-available/...)',
     sshStep3ReloadLabel: 'Validate syntax and reload Nginx with zero downtime',
+    sshStep3ApacheBodyBefore:
+      'If your site runs Node.js, Next.js, Docker, or Python behind Apache (',
+    sshStep3ApacheBodyMiddle:
+      '), Apache may forward the route to your app and return 404. Add this block inside',
+    sshStep3ApacheBodyAfter: 'in your site config under',
+    sshStep3ApacheBodyOr: 'or',
+    sshStep3ApacheLabel:
+      'Apache snippet (/etc/apache2/sites-available/... or /etc/httpd/conf.d/...)',
+    sshStep3ApacheCaption:
+      'Important: place "ProxyPass /.well-known/ !" BEFORE "ProxyPass / ...". If your proxy uses <Location />, add "<Location /.well-known/> ProxyPass ! </Location>" after it; if using mod_rewrite ([P]), add "RewriteCond %{REQUEST_URI} !^/\\.well-known/".',
+    sshStep3ApacheReloadLabel:
+      'Validate syntax and reload Apache with zero downtime',
+    sshStep3ApacheReloadCaption:
+      'On RHEL, Rocky, Alma, CentOS, or Fedora, run: sudo httpd -t && sudo systemctl reload httpd',
     sshStep4Title: 'Step 4 — Test from the terminal that the file is public',
     sshStep4Body:
       'Run the command below (on the server or locally). It should print your exact token:',
@@ -468,7 +486,7 @@ export const EN_MESSAGES: Messages = {
     sshStep4Caption:
       'Expected output: {token}. If that exact string appears, scroll up and click "Verify Ownership"!',
     sshStep5Title:
-      'Step 5 — (Optional) Revert everything: remove the file, .well-known folder, and Step 3 (Nginx)',
+      'Step 5 — (Optional) Revert everything: remove the file, .well-known folder, and Step 3 (Nginx / Apache)',
     sshStep5Body:
       'Whenever you want to restore your server to its exact previous state (or revoke access), follow the steps below. Note: removing the file stops automatic 7-day certificate renewal.',
     sshStep5RemoveFileLabel:
@@ -482,6 +500,13 @@ export const EN_MESSAGES: Messages = {
     sshStep5NginxFindLabel: '5.2 — Locate the Nginx block (Step 3)',
     sshStep5NginxReloadLabel:
       '5.3 — Validate and reload Nginx after removing the Step 3 block',
+    sshStep5ApacheBodyBefore:
+      'If you added the Step 3 directives in Apache, locate the config file with the command below, remove the',
+    sshStep5ApacheBodyAfter:
+      'block (only if it is not used by Certbot/Let’s Encrypt), save, and reload Apache:',
+    sshStep5ApacheFindLabel: '5.2 — Locate the Apache block (Step 3)',
+    sshStep5ApacheReloadLabel:
+      '5.3 — Validate and reload Apache after removing the Step 3 block',
     sshStep5VerifyLabel:
       '5.4 — Confirm from the terminal that the file was removed',
     sshStep5VerifyCaption:
@@ -532,7 +557,7 @@ export const EN_MESSAGES: Messages = {
     troubleshootingTitle: 'Quick troubleshooting if verification fails',
     tip1Lead: 'Returned HTML page or 404:',
     tip1Body:
-      'check whether your reverse proxy (Nginx/Cloudflare/Vercel rewrites) is capturing /.well-known/ and returning your app index.',
+      'check whether your reverse proxy (Nginx/Apache/Cloudflare/Vercel rewrites) is capturing /.well-known/, redirecting (301/302), or returning your app index.',
     tip2Lead: 'Keep the proof published after verification:',
     tip2Body:
       'leaving the file or DNS TXT record active allows Brynja to automatically renew your certificate after 7 days with no reconfiguration.',

@@ -11,15 +11,27 @@ export interface OwnershipGuideSnippetsInput {
   dnsAltComment: string;
 }
 
+export type ReverseProxyServer = 'nginx' | 'apache';
+
+export interface ReverseProxySnippets {
+  snippet: string;
+  reloadCmd: string;
+  findBlockCmd: string;
+}
+
 export interface OwnershipGuideSnippets {
   wellKnownUrl: string;
   sshConnectCmd: string;
   sshCreateFileCmd: string;
   nginxSnippet: string;
   nginxReloadCmd: string;
+  apacheSnippet: string;
+  apacheReloadCmd: string;
   curlVerifyCmd: string;
   sshCleanupFileCmd: string;
   nginxFindBlockCmd: string;
+  apacheFindBlockCmd: string;
+  reverseProxy: Record<ReverseProxyServer, ReverseProxySnippets>;
   curlCleanupVerifyCmd: string;
   webCleanupCmd: string;
   dnsRecordHost: string;
@@ -154,19 +166,52 @@ export function buildOwnershipGuideSnippets(
   const safeToken = escapeShellSingleQuoted(token);
   const wellKnownUrl = `${origin}/.well-known/brynja-verify.txt`;
 
+  const nginxSnippet = `location ^~ /.well-known/ {
+    root /var/www/html;
+    default_type text/plain;
+    allow all;
+}`;
+  const nginxReloadCmd = `sudo nginx -t && sudo systemctl reload nginx`;
+  const nginxFindBlockCmd = `sudo grep -rn "well-known" /etc/nginx/sites-available/ /etc/nginx/conf.d/ 2>/dev/null`;
+
+  const apacheSnippet = `ProxyPass /.well-known/ !
+Alias /.well-known/ /var/www/html/.well-known/
+
+<Directory /var/www/html/.well-known>
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+    <Files "brynja-verify.txt">
+        ForceType text/plain
+    </Files>
+</Directory>`;
+  const apacheReloadCmd = `sudo apache2ctl configtest && sudo systemctl reload apache2`;
+  const apacheFindBlockCmd = `sudo grep -rn "well-known" /etc/apache2/sites-available/ /etc/apache2/conf-available/ /etc/httpd/conf.d/ /etc/httpd/conf/ 2>/dev/null`;
+
   return {
     wellKnownUrl,
     sshConnectCmd: `ssh usuario@${hostname}`,
     sshCreateFileCmd: `sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' '${safeToken}' | sudo tee /var/www/html/.well-known/brynja-verify.txt > /dev/null`,
-    nginxSnippet: `location ^~ /.well-known/ {
-    root /var/www/html;
-    default_type text/plain;
-    allow all;
-}`,
-    nginxReloadCmd: `sudo nginx -t && sudo systemctl reload nginx`,
+    nginxSnippet,
+    nginxReloadCmd,
+    apacheSnippet,
+    apacheReloadCmd,
     curlVerifyCmd: `curl -fsSL ${wellKnownUrl}`,
     sshCleanupFileCmd: `sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)`,
-    nginxFindBlockCmd: `sudo grep -rn "well-known" /etc/nginx/sites-available/ /etc/nginx/conf.d/ 2>/dev/null`,
+    nginxFindBlockCmd,
+    apacheFindBlockCmd,
+    reverseProxy: {
+      nginx: {
+        snippet: nginxSnippet,
+        reloadCmd: nginxReloadCmd,
+        findBlockCmd: nginxFindBlockCmd,
+      },
+      apache: {
+        snippet: apacheSnippet,
+        reloadCmd: apacheReloadCmd,
+        findBlockCmd: apacheFindBlockCmd,
+      },
+    },
     curlCleanupVerifyCmd: `curl -i ${wellKnownUrl}`,
     webCleanupCmd: `rm -f public/.well-known/brynja-verify.txt && (rmdir public/.well-known 2>/dev/null || true)`,
     dnsRecordHost: `_brynja.${hostname}`,

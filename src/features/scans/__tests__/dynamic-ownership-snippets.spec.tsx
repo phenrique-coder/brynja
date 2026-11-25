@@ -1,5 +1,11 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IBrynjaGateway } from '@/core/ports/scan-gateway.port';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
@@ -112,6 +118,28 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
       'sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
     );
     expect(snippets.nginxFindBlockCmd).toContain('/etc/nginx/sites-available/');
+    expect(snippets.apacheSnippet).toContain('ProxyPass /.well-known/ !');
+    expect(snippets.apacheSnippet).toContain(
+      'Alias /.well-known/ /var/www/html/.well-known/',
+    );
+    expect(snippets.apacheSnippet).toContain('ForceType text/plain');
+    expect(snippets.apacheReloadCmd).toBe(
+      'sudo apache2ctl configtest && sudo systemctl reload apache2',
+    );
+    expect(snippets.apacheFindBlockCmd).toContain(
+      '/etc/apache2/sites-available/',
+    );
+    expect(snippets.apacheFindBlockCmd).toContain('/etc/httpd/conf.d/');
+    expect(snippets.reverseProxy.nginx).toEqual({
+      snippet: snippets.nginxSnippet,
+      reloadCmd: snippets.nginxReloadCmd,
+      findBlockCmd: snippets.nginxFindBlockCmd,
+    });
+    expect(snippets.reverseProxy.apache).toEqual({
+      snippet: snippets.apacheSnippet,
+      reloadCmd: snippets.apacheReloadCmd,
+      findBlockCmd: snippets.apacheFindBlockCmd,
+    });
     expect(snippets.curlCleanupVerifyCmd).toBe(
       'curl -i https://app.acme.io/.well-known/brynja-verify.txt',
     );
@@ -343,5 +371,101 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
         /brynja-verify-11112222333344445555666677778888' \| sudo tee/i,
       ),
     ).toBeTruthy();
+  });
+
+  it('switches Step 3 and Step 5 reverse-proxy snippets synchronously between Nginx and Apache', async () => {
+    const gateway = makeGateway();
+
+    render(
+      <GatewayProvider gateway={gateway}>
+        <AuthorizationsView />
+      </GatewayProvider>,
+    );
+
+    const step3ProxyGroup = await screen.findByRole('group', {
+      name: /Selecionar servidor de proxy reverso \(Passo 3\)/i,
+    });
+    const step5ProxyGroup = screen.getByRole('group', {
+      name: /Selecionar servidor de proxy reverso \(Passo 5\)/i,
+    });
+
+    // Defaults to Nginx in both Step 3 and Step 5
+    expect(
+      within(step3ProxyGroup)
+        .getByRole('button', { name: 'Nginx' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(screen.getByText(/default_type text\/plain;/i)).toBeTruthy();
+    expect(
+      screen.getAllByText(/sudo nginx -t && sudo systemctl reload nginx/i),
+    ).toHaveLength(2);
+    expect(
+      screen.getByText(
+        /sudo grep -rn "well-known" \/etc\/nginx\/sites-available\//i,
+      ),
+    ).toBeTruthy();
+
+    // Switch to Apache from Step 3 -> updates both Step 3 and Step 5
+    fireEvent.click(
+      within(step3ProxyGroup).getByRole('button', { name: 'Apache' }),
+    );
+
+    expect(
+      within(step3ProxyGroup)
+        .getByRole('button', { name: 'Apache' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(
+      within(step5ProxyGroup)
+        .getByRole('button', { name: 'Apache' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+
+    expect(
+      screen.getByText(/Alias \/\.well-known\/ \/var\/www\/html\/\.well-known\//i),
+    ).toBeTruthy();
+    expect(screen.getByText(/ForceType text\/plain/i)).toBeTruthy();
+    expect(
+      screen.getAllByText(
+        /sudo apache2ctl configtest && sudo systemctl reload apache2/i,
+      ),
+    ).toHaveLength(2);
+    expect(
+      screen.getByText(
+        /sudo grep -rn "well-known" \/etc\/apache2\/sites-available\/ \/etc\/apache2\/conf-available\/ \/etc\/httpd\/conf\.d\//i,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByText(
+        /sudo httpd -t && sudo systemctl reload httpd/i,
+      ),
+    ).toHaveLength(2);
+
+    // Copying the Apache snippet writes the full Apache VirtualHost directives
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Copiar — Trecho Apache/i,
+      }),
+    );
+    await waitFor(() => {
+      expect(writeTextMock).toHaveBeenCalledWith(
+        expect.stringContaining('ProxyPass /.well-known/ !'),
+      );
+      expect(writeTextMock).toHaveBeenCalledWith(
+        expect.stringContaining('Alias /.well-known/ /var/www/html/.well-known/'),
+      );
+    });
+
+    // Switch back to Nginx from Step 5 -> syncs Step 3 back to Nginx
+    fireEvent.click(
+      within(step5ProxyGroup).getByRole('button', { name: 'Nginx' }),
+    );
+
+    expect(
+      within(step3ProxyGroup)
+        .getByRole('button', { name: 'Nginx' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(screen.getByText(/default_type text\/plain;/i)).toBeTruthy();
   });
 });

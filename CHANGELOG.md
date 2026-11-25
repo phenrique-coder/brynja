@@ -6,6 +6,12 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-25
+
+### Added
+- Synchronized **Nginx / Apache** reverse-proxy selector in the `/authorizations` SSH setup guide (`OwnershipSetupGuide` + `ownership-guide.presenter.ts`), automatically updating Step 3 and Step 5 rollback snippets across PT-BR, EN, and ES.
+- Copy-ready Apache HTTP Server (`apache2` / `httpd`) configuration for `/.well-known/brynja-verify.txt` (`ProxyPass /.well-known/ !`, `Alias /.well-known/`, scoped `<Directory>` with `Options -Indexes`, `AllowOverride None`, `Require all granted`, and `ForceType text/plain`), reload commands for Debian/Ubuntu and RHEL/Rocky/Alma/CentOS/Fedora, rollback search across `/etc/apache2/` and `/etc/httpd/`, plus `<Location />` / `mod_rewrite` / redirect troubleshooting guidance and automated tests.
+
 ## [1.4.0] - 2026-11-25
 
 ### Added

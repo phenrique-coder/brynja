@@ -15,7 +15,10 @@ import {
 } from 'lucide-react';
 import { VerificationMethod } from '@/core/models/scan.models';
 import { useI18n } from '@/core/providers/i18n-provider';
-import { buildOwnershipGuideSnippets } from '../presenters/ownership-guide.presenter';
+import {
+  buildOwnershipGuideSnippets,
+  ReverseProxyServer,
+} from '../presenters/ownership-guide.presenter';
 import { SurfaceCard } from './ui/PagePrimitives';
 
 export interface OwnershipGuideTarget {
@@ -168,6 +171,53 @@ function CopyableCodeBlock({
   );
 }
 
+function ReverseProxyToggle({
+  value,
+  onChange,
+  ariaLabel,
+  nginxLabel,
+  apacheLabel,
+}: {
+  value: ReverseProxyServer;
+  onChange: (next: ReverseProxyServer) => void;
+  ariaLabel: string;
+  nginxLabel: string;
+  apacheLabel: string;
+}) {
+  const options: Array<{ id: ReverseProxyServer; label: string }> = [
+    { id: 'nginx', label: nginxLabel },
+    { id: 'apache', label: apacheLabel },
+  ];
+
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className="inline-flex shrink-0 rounded-xl border border-subtle bg-surface-subtle p-0.5 text-xs"
+    >
+      {options.map((opt) => {
+        const active = value === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(opt.id)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-semibold transition ${
+              active
+                ? 'bg-surface text-cyan-700 shadow-sm dark:text-cyan-300'
+                : 'text-fg-secondary hover:text-fg'
+            }`}
+          >
+            <Server className="h-3.5 w-3.5" />
+            <span>{opt.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function OwnershipSetupGuide({
   activeTarget,
   method,
@@ -178,6 +228,7 @@ export function OwnershipSetupGuide({
   const { messages, t } = useI18n();
   const g = messages.setupGuide;
   const [fileTab, setFileTab] = useState<FileHostingTab>('ssh');
+  const [reverseProxy, setReverseProxy] = useState<ReverseProxyServer>('nginx');
   const [dnsTokenCopied, setDnsTokenCopied] = useState(false);
   const [dnsTokenCopying, setDnsTokenCopying] = useState(false);
   const dnsTimerRef = useRef<number | null>(null);
@@ -468,36 +519,85 @@ export function OwnershipSetupGuide({
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-fg">
-                    {g.sshStep3Title}
-                  </h3>
-                  <p className="text-xs text-fg-secondary">
-                    {g.sshStep3BodyBefore}
-                    <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                      proxy_pass
-                    </code>
-                    {g.sshStep3BodyMiddle}{' '}
-                    <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                      server &#123; ... &#125;
-                    </code>{' '}
-                    {g.sshStep3BodyAfter}{' '}
-                    <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                      /etc/nginx/sites-available/
-                    </code>
-                    :
-                  </p>
-                  <CopyableCodeBlock
-                    label={g.sshStep3Label}
-                    code={snippets.nginxSnippet}
-                    copyLabel={messages.common.copy}
-                    copiedLabel={messages.common.copied}
-                  />
-                  <CopyableCodeBlock
-                    label={g.sshStep3ReloadLabel}
-                    code={snippets.nginxReloadCmd}
-                    copyLabel={messages.common.copy}
-                    copiedLabel={messages.common.copied}
-                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-fg">
+                      {g.sshStep3Title}
+                    </h3>
+                    <ReverseProxyToggle
+                      value={reverseProxy}
+                      onChange={setReverseProxy}
+                      ariaLabel={g.proxySelectorAriaStep3}
+                      nginxLabel={g.proxyNginx}
+                      apacheLabel={g.proxyApache}
+                    />
+                  </div>
+                  {reverseProxy === 'nginx' ? (
+                    <>
+                      <p className="text-xs text-fg-secondary">
+                        {g.sshStep3BodyBefore}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          proxy_pass
+                        </code>
+                        {g.sshStep3BodyMiddle}{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          server &#123; ... &#125;
+                        </code>{' '}
+                        {g.sshStep3BodyAfter}{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          /etc/nginx/sites-available/
+                        </code>
+                        :
+                      </p>
+                      <CopyableCodeBlock
+                        label={g.sshStep3Label}
+                        code={snippets.reverseProxy.nginx.snippet}
+                        copyLabel={messages.common.copy}
+                        copiedLabel={messages.common.copied}
+                      />
+                      <CopyableCodeBlock
+                        label={g.sshStep3ReloadLabel}
+                        code={snippets.reverseProxy.nginx.reloadCmd}
+                        copyLabel={messages.common.copy}
+                        copiedLabel={messages.common.copied}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-fg-secondary">
+                        {g.sshStep3ApacheBodyBefore}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          ProxyPass
+                        </code>
+                        {g.sshStep3ApacheBodyMiddle}{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          &lt;VirtualHost *:443&gt;
+                        </code>{' '}
+                        {g.sshStep3ApacheBodyAfter}{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          /etc/apache2/sites-available/
+                        </code>{' '}
+                        {g.sshStep3ApacheBodyOr}{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          /etc/httpd/conf.d/
+                        </code>
+                        :
+                      </p>
+                      <CopyableCodeBlock
+                        label={g.sshStep3ApacheLabel}
+                        code={snippets.reverseProxy.apache.snippet}
+                        caption={g.sshStep3ApacheCaption}
+                        copyLabel={messages.common.copy}
+                        copiedLabel={messages.common.copied}
+                      />
+                      <CopyableCodeBlock
+                        label={g.sshStep3ApacheReloadLabel}
+                        code={snippets.reverseProxy.apache.reloadCmd}
+                        caption={g.sshStep3ApacheReloadCaption}
+                        copyLabel={messages.common.copy}
+                        copiedLabel={messages.common.copied}
+                      />
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -536,24 +636,65 @@ export function OwnershipSetupGuide({
                     copiedLabel={messages.common.copied}
                   />
 
-                  <p className="text-xs leading-relaxed text-fg-secondary">
-                    {g.sshStep5NginxBodyBefore}{' '}
-                    <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                      location ^~ /.well-known/ &#123; ... &#125;
-                    </code>{' '}
-                    {g.sshStep5NginxBodyAfter}
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    {reverseProxy === 'nginx' ? (
+                      <p className="flex-1 text-xs leading-relaxed text-fg-secondary">
+                        {g.sshStep5NginxBodyBefore}{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          location ^~ /.well-known/ &#123; ... &#125;
+                        </code>{' '}
+                        {g.sshStep5NginxBodyAfter}
+                      </p>
+                    ) : (
+                      <p className="flex-1 text-xs leading-relaxed text-fg-secondary">
+                        {g.sshStep5ApacheBodyBefore}{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          ProxyPass /.well-known/ !
+                        </code>{' '}
+                        /{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          Alias /.well-known/
+                        </code>{' '}
+                        /{' '}
+                        <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
+                          &lt;Directory /var/www/html/.well-known&gt;
+                        </code>{' '}
+                        {g.sshStep5ApacheBodyAfter}
+                      </p>
+                    )}
+
+                    <ReverseProxyToggle
+                      value={reverseProxy}
+                      onChange={setReverseProxy}
+                      ariaLabel={g.proxySelectorAriaStep5}
+                      nginxLabel={g.proxyNginx}
+                      apacheLabel={g.proxyApache}
+                    />
+                  </div>
 
                   <CopyableCodeBlock
-                    label={g.sshStep5NginxFindLabel}
-                    code={snippets.nginxFindBlockCmd}
+                    label={
+                      reverseProxy === 'nginx'
+                        ? g.sshStep5NginxFindLabel
+                        : g.sshStep5ApacheFindLabel
+                    }
+                    code={snippets.reverseProxy[reverseProxy].findBlockCmd}
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
                   />
 
                   <CopyableCodeBlock
-                    label={g.sshStep5NginxReloadLabel}
-                    code={snippets.nginxReloadCmd}
+                    label={
+                      reverseProxy === 'nginx'
+                        ? g.sshStep5NginxReloadLabel
+                        : g.sshStep5ApacheReloadLabel
+                    }
+                    code={snippets.reverseProxy[reverseProxy].reloadCmd}
+                    caption={
+                      reverseProxy === 'apache'
+                        ? g.sshStep3ApacheReloadCaption
+                        : undefined
+                    }
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
                   />
