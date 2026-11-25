@@ -113,6 +113,7 @@ export interface EncryptedPayload {
 export interface ITokenCipher {
   encrypt(plaintext: string): EncryptedPayload;
   decrypt(payload: EncryptedPayload): string;
+  deriveHmacHex(purpose: string, data: string, length?: number): string;
 }
 
 export interface GitHubUserProfile {

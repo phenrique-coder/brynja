@@ -48,6 +48,30 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
     expect(sessionCodec.unseal(expired)).toBeNull();
   });
 
+  it('derives deterministic per-user/per-origin ownership challenge tokens via HMAC-SHA256', () => {
+    const tokenA1 = certificates.deriveChallengeToken(
+      'user-a',
+      'https://staging.example.com',
+    );
+    const tokenA2 = certificates.deriveChallengeToken(
+      'user-a',
+      'https://staging.example.com',
+    );
+    const tokenUserB = certificates.deriveChallengeToken(
+      'user-b',
+      'https://staging.example.com',
+    );
+    const tokenOtherOrigin = certificates.deriveChallengeToken(
+      'user-a',
+      'https://other.example.com',
+    );
+
+    expect(tokenA1).toMatch(/^vereditosec-verify-[0-9a-f]{32}$/);
+    expect(tokenA1).toBe(tokenA2);
+    expect(tokenA1).not.toBe(tokenUserB);
+    expect(tokenA1).not.toBe(tokenOtherOrigin);
+  });
+
   it('blocks probes when ownership certificate is missing, tampered, or belongs to another user', async () => {
     const probe: IControlledProbe = {
       id: 'safe-probe:test',

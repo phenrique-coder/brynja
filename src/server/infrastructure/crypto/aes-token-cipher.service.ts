@@ -2,6 +2,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   randomBytes,
 } from 'node:crypto';
 import {
@@ -63,5 +64,12 @@ export class AesTokenCipherService implements ITokenCipher {
       decipher.final(),
     ]);
     return decrypted.toString('utf8');
+  }
+
+  deriveHmacHex(purpose: string, data: string, length = 32): string {
+    return createHmac('sha256', this.key)
+      .update(`${purpose}:${data}`)
+      .digest('hex')
+      .slice(0, length);
   }
 }

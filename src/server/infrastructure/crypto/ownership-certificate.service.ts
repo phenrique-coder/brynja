@@ -35,6 +35,15 @@ export interface UnsealedCertificateResult {
 export class OwnershipCertificateService {
   constructor(private readonly cipher: ITokenCipher) {}
 
+  deriveChallengeToken(ownerGithubUserId: string, origin: string): string {
+    const digest = this.cipher.deriveHmacHex(
+      'ownership-challenge:v1',
+      `${ownerGithubUserId}:${origin}`,
+      32,
+    );
+    return `vereditosec-verify-${digest}`;
+  }
+
   sealChallenge(payload: SealedChallengePayload): string {
     const encrypted = this.cipher.encrypt(JSON.stringify(payload));
     return `ch1.${encrypted.iv}.${encrypted.authTag}.${encrypted.encryptedToken}`;

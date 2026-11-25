@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   ProbeAuditEntry,
   TargetAuthorizationEntity,
@@ -53,7 +53,10 @@ export class TargetAuthorizationUseCase {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
     const id = randomUUID();
-    const challengeToken = `vereditosec-verify-${randomBytes(16).toString('hex')}`;
+    const challengeToken = this.certificates.deriveChallengeToken(
+      input.ownerGithubUserId,
+      parsed.origin,
+    );
     const createdAt = now.toISOString();
 
     const challengeSeal = this.certificates.sealChallenge({
