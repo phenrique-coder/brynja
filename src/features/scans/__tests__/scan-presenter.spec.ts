@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   computeDashboardMetrics,
   filterAndSortFindings,
+  formatReferenceLinks,
 } from '../presenters/scan.presenter';
 import { REPORT_EXPORTERS } from '../registries/finding-registries';
 import { ScanReport, ScanSummary, VulnerabilityFinding } from '@/core/models/scan.models';
@@ -149,5 +150,21 @@ describe('Scan Presenter & OCP Registries', () => {
       expect(exported.content.length).toBeGreaterThan(20);
       expect(exported.filename).toContain('11111111');
     }
+  });
+
+  it('labels reference links by origin and disambiguates duplicate sources', () => {
+    const formatted = formatReferenceLinks([
+      'https://github.com/vercel/next.js/security/advisories/GHSA-1111-2222-3333',
+      'https://nvd.nist.gov/vuln/detail/CVE-2026-75604',
+      'https://github.com/vercel/next.js/commit/abcdef1234567890',
+      'https://github.com/vercel/next.js/commit/9876543fedcba',
+    ]);
+
+    expect(formatted.map((r) => r.label)).toEqual([
+      'GitHub Advisory',
+      'NVD (NIST)',
+      'GitHub Commit (abcdef1)',
+      'GitHub Commit (9876543)',
+    ]);
   });
 });

@@ -175,3 +175,139 @@ export function computeOverallRisk(
   }
   return { label: 'POSTURA LIMPA', severity: 'INFO' };
 }
+
+export interface FormattedReferenceLink {
+  url: string;
+  label: string;
+  origin: string;
+}
+
+function classifyReferenceUrl(parsed: URL): {
+  baseLabel: string;
+  detail?: string;
+} {
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+  const path = parsed.pathname;
+
+  if (host === 'github.com') {
+    const ghsa = path.match(/(GHSA-[a-z0-9-]+)/i);
+    if (path.includes('/advisories/') || path.includes('/security/advisories')) {
+      return { baseLabel: 'GitHub Advisory', detail: ghsa?.[1] };
+    }
+    const commit = path.match(/\/commit\/([0-9a-f]{7,40})/i);
+    if (commit) {
+      return { baseLabel: 'GitHub Commit', detail: commit[1].slice(0, 7) };
+    }
+    const pr = path.match(/\/pull\/(\d+)/);
+    if (pr) {
+      return { baseLabel: `GitHub PR #${pr[1]}` };
+    }
+    const issue = path.match(/\/issues\/(\d+)/);
+    if (issue) {
+      return { baseLabel: `GitHub Issue #${issue[1]}` };
+    }
+    const release = path.match(/\/releases\/tag\/([^/]+)/);
+    if (release) {
+      return {
+        baseLabel: 'GitHub Release',
+        detail: decodeURIComponent(release[1]),
+      };
+    }
+    const repoMatch = path.match(/^\/([^/]+\/[^/]+)/);
+    return { baseLabel: 'GitHub', detail: repoMatch?.[1] };
+  }
+
+  if (host === 'nvd.nist.gov') {
+    const cve = path.match(/(CVE-\d{4}-\d+)/i);
+    return { baseLabel: 'NVD (NIST)', detail: cve?.[1] };
+  }
+  if (host === 'osv.dev') return { baseLabel: 'OSV.dev' };
+  if (host === 'cve.org') return { baseLabel: 'CVE.org' };
+  if (host === 'cve.mitre.org') return { baseLabel: 'MITRE CVE' };
+  if (host === 'cisa.gov' || host.endsWith('.cisa.gov')) {
+    return { baseLabel: 'CISA' };
+  }
+  if (host === 'npmjs.com') return { baseLabel: 'npm' };
+  if (host === 'pypi.org') return { baseLabel: 'PyPI' };
+  if (host === 'security.snyk.io' || host === 'snyk.io') {
+    return { baseLabel: 'Snyk' };
+  }
+  if (host === 'nextjs.org') return { baseLabel: 'Next.js' };
+  if (host === 'vercel.com') return { baseLabel: 'Vercel' };
+  if (host === 'nodejs.org') return { baseLabel: 'Node.js' };
+  if (host === 'hackerone.com') return { baseLabel: 'HackerOne' };
+  if (host === 'huntr.com' || host === 'huntr.dev') {
+    return { baseLabel: 'Huntr' };
+  }
+  if (host.endsWith('redhat.com')) return { baseLabel: 'Red Hat' };
+  if (host === 'ubuntu.com') return { baseLabel: 'Ubuntu' };
+  if (host.endsWith('debian.org')) return { baseLabel: 'Debian' };
+  if (host === 'owasp.org') return { baseLabel: 'OWASP' };
+
+  const lastSegment = path
+    .split('/')
+    .filter(Boolean)
+    .pop()
+    ?.slice(0, 24);
+  return { baseLabel: host, detail: lastSegment };
+}
+
+export function formatReferenceLinks(
+  references: string[],
+  limit = 4,
+): FormattedReferenceLink[] {
+  const uniqueUrls: string[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const raw of references) {
+    const trimmed = raw.trim();
+    if (!trimmed || seenUrls.has(trimmed)) continue;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
+      seenUrls.add(trimmed);
+      uniqueUrls.push(trimmed);
+      if (uniqueUrls.length >= limit) break;
+    } catch {
+      continue;
+    }
+  }
+
+  const prelim = uniqueUrls.map((url) => {
+    const parsed = new URL(url);
+    const { baseLabel, detail } = classifyReferenceUrl(parsed);
+    return {
+      url,
+      origin: parsed.hostname.replace(/^www\./, ''),
+      baseLabel,
+      detail,
+    };
+  });
+
+  const labelCounts = new Map<string, number>();
+  for (const item of prelim) {
+    labelCounts.set(item.baseLabel, (labelCounts.get(item.baseLabel) ?? 0) + 1);
+  }
+
+  const usedFinalLabels = new Map<string, number>();
+
+  return prelim.map((item) => {
+    const needsDisambiguation = (labelCounts.get(item.baseLabel) ?? 0) > 1;
+    let candidate =
+      needsDisambiguation && item.detail
+        ? `${item.baseLabel} (${item.detail})`
+        : item.baseLabel;
+
+    const prevCount = usedFinalLabels.get(candidate) ?? 0;
+    usedFinalLabels.set(candidate, prevCount + 1);
+    if (prevCount > 0) {
+      candidate = `${candidate} #${prevCount + 1}`;
+    }
+
+    return {
+      url: item.url,
+      label: candidate,
+      origin: item.origin,
+    };
+  });
+}

@@ -30,6 +30,7 @@ import { downloadScanReportPdf } from '../exporters/scan-pdf.exporter';
 import { useScanReport } from '../hooks/use-scans';
 import {
   filterAndSortFindings,
+  formatReferenceLinks,
   formatRepositoryDisplay,
   formatTargetHost,
 } from '../presenters/scan.presenter';
@@ -502,17 +503,18 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                   </p>
 
                   {f.references.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      {f.references.slice(0, 3).map((ref) => (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {formatReferenceLinks(f.references, 4).map((ref) => (
                         <a
-                          key={ref}
-                          href={ref}
+                          key={ref.url}
+                          href={ref.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-300"
+                          title={ref.url}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] font-medium text-cyan-700 transition hover:border-cyan-500/40 hover:bg-surface-hover dark:text-cyan-300"
                         >
-                          Referência
-                          <ExternalLink className="h-3 w-3" />
+                          <span>{ref.label}</span>
+                          <ExternalLink className="h-3 w-3 opacity-80" />
                         </a>
                       ))}
                     </div>
