@@ -6,6 +6,13 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.4.0] - 2026-11-25
+
+### Adicionado
+- Catálogo interativo de Safe Probes (`SafeProbesCatalogSection`) na tela `/scans/new` detalhando todos os 8 Safe Probes não destrutivos (Cabeçalhos HTTP, HSTS, Cookies, CORS, Artefatos Expostos, Docs/Métricas & `security.txt`, Correlação de Bibliotecas em Runtime e Source Maps), com filtros por categoria, badges de método (`GET`/`HEAD`), rotas/cabeçalhos inspecionados, severidade máxima, indicador do alvo selecionado e atalho direto a partir do card lateral.
+- Catálogo único tipado (`src/core/catalog/safe-probes.catalog.ts`) com checagem exaustiva em tempo de compilação nos 3 dicionários i18n (PT-BR, EN e ES) e teste automatizado de paridade 1-para-1 (`safe-probes-catalog.spec.tsx`) contra `createRegisteredSafeProbes()` (`src/server/application/container.ts`), garantindo que qualquer novo probe adicionado ao backend seja obrigatoriamente refletido em `/scans/new`.
+- Regras permanentes atualizadas em `AGENTS.md` e `.agents/skills/controlled-pentest-guardrails/SKILL.md` exigindo a atualização do catálogo e traduções a cada novo Safe Probe implementado.
+
 ## [1.3.1] - 2026-11-25
 
 ### Adicionado

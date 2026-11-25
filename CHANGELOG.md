@@ -6,6 +6,13 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-25
+
+### Added
+- Interactive Safe Probes catalog (`SafeProbesCatalogSection`) directly on `/scans/new` explaining all 8 non-destructive Safe Probes (HTTP Security Headers, HSTS, Cookie Security, CORS Policy, Exposed Artifacts, Exposed API Docs & Metrics, Runtime Library Fingerprint, and Source Maps) with category filters, HTTP method chips (`GET`/`HEAD`), inspected paths/headers, max severity badges, active target indicator, and quick jump link from the Safe Probes selector.
+- Single Source of Truth Safe Probes catalog (`src/core/catalog/safe-probes.catalog.ts`) with compile-time TypeScript exhaustiveness across PT-BR, EN, and ES i18n dictionaries plus an automated 1-to-1 parity test (`safe-probes-catalog.spec.tsx`) against `createRegisteredSafeProbes()` (`src/server/application/container.ts`) so any future probe added to the backend must also be documented on `/scans/new`.
+- Permanent workspace rules in `AGENTS.md` and `.agents/skills/controlled-pentest-guardrails/SKILL.md` enforcing Safe Probe catalog and i18n synchronization whenever new probes are added, renamed, or removed.
+
 ## [1.3.1] - 2026-11-25
 
 ### Added

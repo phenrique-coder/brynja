@@ -1,4 +1,67 @@
+import type {
+  SafeProbeCopy,
+  SafeProbeId,
+} from '../../catalog/safe-probes.catalog';
 import type { Messages } from './pt-BR';
+
+const SAFE_PROBE_ITEMS_EN: Record<SafeProbeId, SafeProbeCopy> = {
+  'safe-probe:security-headers': {
+    name: 'HTTP Security Headers & Banners',
+    summary:
+      'Checks whether the root response includes essential defensive headers against XSS, clickjacking, and MIME sniffing, while detecting technology/version leaks.',
+    checks:
+      'Inspects Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and X-Powered-By / Server banners correlated with the SBOM.',
+  },
+  'safe-probe:hsts-tls': {
+    name: 'HTTPS Strict Transport Security (HSTS)',
+    summary:
+      'Verifies on HTTPS targets that browsers are instructed to enforce encrypted connections long enough to prevent HTTP downgrade attacks.',
+    checks:
+      'Runs HEAD / and validates Strict-Transport-Security with max-age ≥ 15,552,000s (180 days). Automatically skipped for plain HTTP targets.',
+  },
+  'safe-probe:cookie-security': {
+    name: 'Cookie Security Flags (Set-Cookie)',
+    summary:
+      'Audits defensive flags on cookies issued at the root route without ever storing or displaying raw cookie values.',
+    checks:
+      'Checks HttpOnly, Secure (on HTTPS), and SameSite (Lax/Strict or None paired with Secure), prioritizing session and authentication cookies.',
+  },
+  'safe-probe:cors-policy': {
+    name: 'CORS Policy (Cross-Origin Resource Sharing)',
+    summary:
+      'Detects overly permissive cross-origin policies that could allow untrusted websites to read authenticated application data.',
+    checks:
+      'Sends GET / with an untrusted test Origin and checks for arbitrary Access-Control-Allow-Origin reflection, wildcard "*" with credentials, or "null" origin trust.',
+  },
+  'safe-probe:exposed-artifacts': {
+    name: 'Exposed Sensitive Artifacts',
+    summary:
+      'Checks whether critical version-control, environment-variable, or manifest files are accidentally served publicly on the web root.',
+    checks:
+      'Probes /.git/HEAD, /.env, and /package.json via HEAD and verifies structural signatures in the first 512 bytes only on HTTP 200, never downloading full files or logging secrets.',
+  },
+  'safe-probe:exposed-docs-metrics': {
+    name: 'API Docs, Metrics & security.txt',
+    summary:
+      'Identifies internal API documentation or observability endpoints unintentionally exposed in production and detects RFC 9116 disclosure files.',
+    checks:
+      'Checks /openapi.json, /swagger, /swagger-ui, /api/docs, /metrics, /actuator/health, and /graphql (ignoring SPA HTML catch-alls), plus /.well-known/security.txt.',
+  },
+  'safe-probe:runtime-fingerprint': {
+    name: 'Runtime Library & CVE Correlation',
+    summary:
+      'Cross-checks publicly served JavaScript assets against vulnerable packages in your repository SBOM to confirm active runtime exposure.',
+    checks:
+      'Inspects up to 32 KB of root HTML (GET /) for <script src> paths and explicit version banners matching CVEs found during SCA.',
+  },
+  'safe-probe:source-maps': {
+    name: 'Source Map Exposure (.js.map)',
+    summary:
+      'Detects publicly accessible JavaScript source maps that expose original unobfuscated client code in staging or production.',
+    checks:
+      'Extracts up to 3 same-origin JS bundles from "/" and verifies via HEAD whether their corresponding .js.map files return HTTP 200.',
+  },
+};
 
 export const EN_MESSAGES: Messages = {
   common: {
@@ -229,6 +292,8 @@ export const EN_MESSAGES: Messages = {
     probesDescription:
       'Only targets with cryptographically verified ownership appear below. Probes execute strictly GET/HEAD requests with rate limiting and audit logging.',
     probesNoneOption: 'SCA + CVEs only (no active probes)',
+    viewProbesCatalog: 'View all {count} Safe Probe types below',
+    probesReadyLink: '{count} Safe Probes ready for this target',
     pipelineTitle: 'Assessment Pipeline',
     pipelineSteps: [
       'SBOM Inventory (npm, pnpm, pip, pyproject)',
@@ -237,6 +302,27 @@ export const EN_MESSAGES: Messages = {
       'Real-world exploitation (EPSS) + CISA KEV',
       'Authorized Safe Probes + local audit trail',
     ],
+  },
+  safeProbesCatalog: {
+    title: 'Safe Probe Types Executed',
+    subtitle:
+      '100% non-destructive, read-only active checks (GET/HEAD only) executed exclusively when you select a target with a verified cryptographic ownership certificate.',
+    countBadge: '{count} active probes',
+    readOnlyBadge: 'GET / HEAD only',
+    statusActiveForTarget: 'Active for {origin}',
+    statusInactiveHint: 'Executed when a verified target is selected above',
+    filterAll: 'All ({count})',
+    categories: {
+      'headers-tls': 'Headers & TLS',
+      'cookies-cors': 'Cookies & CORS',
+      exposure: 'Exposure',
+      runtime: 'Runtime & Code',
+    },
+    whatItChecksLabel: 'What it checks',
+    maxSeverityPrefix: 'Up to {severity}',
+    guardrailsNote:
+      'Guardrails enforced on every probe: mandatory cryptographic ownership certificate, anti-SSRF DNS guard, rate limiter + circuit breaker, and zero storage of sensitive values.',
+    items: SAFE_PROBE_ITEMS_EN,
   },
   scanReport: {
     loading: 'Loading report...',

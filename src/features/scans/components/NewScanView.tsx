@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  ArrowDown,
   Building2,
   CheckCircle2,
   ExternalLink,
@@ -18,6 +19,7 @@ import {
   ShieldAlert,
   Sparkles,
 } from 'lucide-react';
+import { SAFE_PROBES_CATALOG } from '@/core/catalog/safe-probes.catalog';
 import { useScanCreator } from '@/core/providers/gateway-provider';
 import { useI18n } from '@/core/providers/i18n-provider';
 import {
@@ -25,6 +27,7 @@ import {
   useTargetAuthorizations,
 } from '../hooks/use-scans';
 import { AuthRequiredCard } from './AuthRequiredCard';
+import { SafeProbesCatalogSection } from './SafeProbesCatalogSection';
 import {
   PageHeader,
   PageLoadingState,
@@ -562,6 +565,21 @@ export function NewScanView() {
                 </option>
               ))}
             </select>
+
+            <a
+              href="#safe-probes-catalog"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700 transition hover:underline dark:text-cyan-300"
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+              <span>
+                {t(
+                  selectedAuth
+                    ? messages.newScan.probesReadyLink
+                    : messages.newScan.viewProbesCatalog,
+                  { count: SAFE_PROBES_CATALOG.length },
+                )}
+              </span>
+            </a>
           </SurfaceCard>
 
           <SurfaceCard className="p-5">
@@ -579,6 +597,11 @@ export function NewScanView() {
           </SurfaceCard>
         </div>
       </form>
+
+      <SafeProbesCatalogSection
+        id="safe-probes-catalog"
+        selectedTargetOrigin={selectedAuth?.origin ?? null}
+      />
     </div>
   );
 }

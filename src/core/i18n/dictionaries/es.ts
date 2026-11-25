@@ -1,4 +1,67 @@
+import type {
+  SafeProbeCopy,
+  SafeProbeId,
+} from '../../catalog/safe-probes.catalog';
 import type { Messages } from './pt-BR';
+
+const SAFE_PROBE_ITEMS_ES: Record<SafeProbeId, SafeProbeCopy> = {
+  'safe-probe:security-headers': {
+    name: 'Cabeceras de Seguridad HTTP y Banners',
+    summary:
+      'Verifica si la respuesta raíz incluye cabeceras defensivas esenciales contra XSS, clickjacking y MIME sniffing, además de detectar exposición de stack/versión.',
+    checks:
+      'Inspecciona Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, Referrer-Policy y banners X-Powered-By / Server correlacionados con el SBOM.',
+  },
+  'safe-probe:hsts-tls': {
+    name: 'Política HSTS en HTTPS',
+    summary:
+      'Valida en objetivos HTTPS que los navegadores exijan conexiones cifradas durante el período recomendado para prevenir ataques de downgrade HTTP.',
+    checks:
+      'Ejecuta HEAD / y valida Strict-Transport-Security con max-age ≥ 15.552.000s (180 días). Se omite automáticamente en objetivos HTTP.',
+  },
+  'safe-probe:cookie-security': {
+    name: 'Atributos de Seguridad en Cookies (Set-Cookie)',
+    summary:
+      'Audita las banderas defensivas de las cookies emitidas en la raíz sin almacenar ni mostrar jamás los valores secretos de las cookies.',
+    checks:
+      'Analiza HttpOnly, Secure (en HTTPS) y SameSite (Lax/Strict o None con Secure), priorizando cookies de sesión y autenticación.',
+  },
+  'safe-probe:cors-policy': {
+    name: 'Política CORS (Cross-Origin Resource Sharing)',
+    summary:
+      'Detecta configuraciones cross-origin demasiado permisivas que podrían permitir a sitios no confiables leer datos autenticados de la aplicación.',
+    checks:
+      'Envía GET / con un Origin de prueba no confiable y comprueba reflexión arbitraria de Access-Control-Allow-Origin, comodín "*" con credenciales u origen "null".',
+  },
+  'safe-probe:exposed-artifacts': {
+    name: 'Artefactos Sensibles Expuestos',
+    summary:
+      'Comprueba si archivos críticos de control de versiones, variables de entorno o manifiestos quedaron expuestos públicamente en la raíz web.',
+    checks:
+      'Sondea /.git/HEAD, /.env y /package.json mediante HEAD y valida firmas estructurales en los primeros 512 bytes solo si devuelve HTTP 200, sin descargar ni registrar secretos.',
+  },
+  'safe-probe:exposed-docs-metrics': {
+    name: 'Documentación de API, Métricas y security.txt',
+    summary:
+      'Identifica documentación interna de API o endpoints de observabilidad expuestos por error en producción y detecta el archivo RFC 9116.',
+    checks:
+      'Comprueba /openapi.json, /swagger, /swagger-ui, /api/docs, /metrics, /actuator/health y /graphql (ignorando HTML catch-all de SPAs), además de /.well-known/security.txt.',
+  },
+  'safe-probe:runtime-fingerprint': {
+    name: 'Correlación de Bibliotecas en Runtime con CVEs',
+    summary:
+      'Cruza los assets JavaScript servidos públicamente con los paquetes vulnerables del inventario SBOM para confirmar exposición activa en runtime.',
+    checks:
+      'Lee hasta 32 KB del HTML inicial (GET /) buscando rutas en <script src> y banners explícitos de versión que coincidan con las CVEs halladas en SCA.',
+  },
+  'safe-probe:source-maps': {
+    name: 'Exposición de Source Maps (.js.map)',
+    summary:
+      'Detecta mapas de código fuente accesibles públicamente que exponen el código original del cliente en staging o producción.',
+    checks:
+      'Extrae hasta 3 scripts JS del mismo origen en "/" y comprueba mediante HEAD si sus archivos .js.map devuelven HTTP 200.',
+  },
+};
 
 export const ES_MESSAGES: Messages = {
   common: {
@@ -229,6 +292,8 @@ export const ES_MESSAGES: Messages = {
     probesDescription:
       'Solo los objetivos con propiedad verificada criptográficamente aparecen debajo. Las sondas ejecutan solo GET/HEAD con rate limit y auditoría.',
     probesNoneOption: 'Solo SCA + CVEs (sin sondas activas)',
+    viewProbesCatalog: 'Ver los {count} tipos de Safe Probes abajo',
+    probesReadyLink: '{count} Safe Probes listos para este objetivo',
     pipelineTitle: 'Pipeline de Evaluación',
     pipelineSteps: [
       'Inventario SBOM (npm, pnpm, pip, pyproject)',
@@ -237,6 +302,27 @@ export const ES_MESSAGES: Messages = {
       'Probabilidad real (EPSS) + CISA KEV',
       'Safe Probes autorizadas + auditoría local',
     ],
+  },
+  safeProbesCatalog: {
+    title: 'Tipos de Safe Probes Ejecutados',
+    subtitle:
+      'Sondas activas 100% no destructivas (solo lectura mediante GET/HEAD) que se ejecutan únicamente cuando seleccionas un objetivo con certificado criptográfico de propiedad verificado.',
+    countBadge: '{count} probes activos',
+    readOnlyBadge: 'Solo GET / HEAD',
+    statusActiveForTarget: 'Activos para {origin}',
+    statusInactiveHint: 'Se ejecutan al seleccionar un objetivo verificado arriba',
+    filterAll: 'Todos ({count})',
+    categories: {
+      'headers-tls': 'Cabeceras y TLS',
+      'cookies-cors': 'Cookies y CORS',
+      exposure: 'Exposición',
+      runtime: 'Runtime y Código',
+    },
+    whatItChecksLabel: 'Qué verifica',
+    maxSeverityPrefix: 'Hasta {severity}',
+    guardrailsNote:
+      'Guardrails activos en cada probe: certificado criptográfico de propiedad obligatorio, protección anti-SSRF vía DNS, rate limit + circuit breaker y cero almacenamiento de valores sensibles.',
+    items: SAFE_PROBE_ITEMS_ES,
   },
   scanReport: {
     loading: 'Cargando informe...',

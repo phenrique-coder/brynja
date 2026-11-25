@@ -21,9 +21,28 @@ import { CisaKevEnricher } from '../infrastructure/vuln-intel/cisa-kev-enricher.
 import { EpssVulnerabilityEnricher } from '../infrastructure/vuln-intel/epss-enricher.adapter';
 import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enricher.adapter';
 import { OsvVulnerabilityProvider } from '../infrastructure/vuln-intel/osv-client.adapter';
+import { IControlledProbe } from '../domain/ports/server.ports';
 import { AnalyzeScaUseCase } from './analyze-sca.use-case';
 import { RunSafeProbesUseCase } from './run-safe-probes.use-case';
 import { TargetAuthorizationUseCase } from './target-authorization.use-case';
+
+/**
+ * Single server-side factory for all active Safe Probes.
+ * Exported so automated parity tests enforce that every registered probe is
+ * documented in `src/core/catalog/safe-probes.catalog.ts` and displayed on `/scans/new`.
+ */
+export function createRegisteredSafeProbes(): IControlledProbe[] {
+  return [
+    new SecurityHeadersProbe(),
+    new HstsTlsProbe(),
+    new CookieSecurityProbe(),
+    new CorsMisconfigProbe(),
+    new ExposedArtifactsProbe(),
+    new ExposedDocsAndMetricsProbe(),
+    new RuntimeFingerprintProbe(),
+    new SourceMapExposureProbe(),
+  ];
+}
 
 export interface ServerContainer {
   cipher: AesTokenCipherService;
@@ -60,16 +79,7 @@ export function getServerContainer(): ServerContainer {
     new EpssVulnerabilityEnricher(),
     new CisaKevEnricher(vulnCache),
   ];
-  const probes = [
-    new SecurityHeadersProbe(),
-    new HstsTlsProbe(),
-    new CookieSecurityProbe(),
-    new CorsMisconfigProbe(),
-    new ExposedArtifactsProbe(),
-    new ExposedDocsAndMetricsProbe(),
-    new RuntimeFingerprintProbe(),
-    new SourceMapExposureProbe(),
-  ];
+  const probes = createRegisteredSafeProbes();
 
   cachedContainer = {
     cipher,
