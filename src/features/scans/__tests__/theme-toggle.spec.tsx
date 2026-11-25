@@ -7,7 +7,7 @@ import {
 } from '@/core/providers/theme-provider';
 import { ThemeToggle } from '../components/ThemeToggle';
 
-describe('ThemeToggle (Cute Sun/Moon Light & Dark Switch)', () => {
+describe('ThemeToggle (Medieval Heraldic Light & Dark Switch)', () => {
   beforeEach(() => {
     window.localStorage.clear();
     document.documentElement.classList.remove('dark');
