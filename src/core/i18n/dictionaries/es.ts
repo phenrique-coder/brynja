@@ -326,9 +326,17 @@ export const ES_MESSAGES: Messages = {
       'Sigue los pasos debajo para habilitar las sondas seguras en tu sitio.',
     subtitleReady:
       'Los comandos de abajo ya están rellenados con el dominio y token de tu objetivo.',
+    subtitleDraftReady:
+      'Los comandos de abajo se actualizaron dinámicamente para {origin} con tu token real listo para copiar y ejecutar en la terminal.',
+    subtitleResolving:
+      'Preparando tu token real de verificación para {origin}...',
     subtitlePlaceholder:
-      'Genera un desafío en el formulario de arriba para rellenar automáticamente todos los comandos con tu token real.',
+      'Ingresa la URL de tu objetivo arriba o genera un desafío para rellenar automáticamente todos los comandos con tu token real.',
     commandsReadyFor: 'Comandos listos para',
+    resolvingTokenFor: 'Preparando token para',
+    tokenReadyBadge: 'Token real listo para copiar',
+    copyingToken: 'Preparando...',
+    copyDnsTokenTitle: 'Copiar valor del token DNS TXT',
     step1Title: 'Genera el código (token)',
     step1Body:
       'Ingresa la URL de tu sitio arriba, elige el método y haz clic en Generar Desafío de Propiedad.',

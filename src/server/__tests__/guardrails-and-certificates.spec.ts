@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { InMemoryBrynjaStore } from '@/core/storage/brynja-indexeddb.store';
 import { RunSafeProbesUseCase } from '../application/run-safe-probes.use-case';
+import { TargetAuthorizationUseCase } from '../application/target-authorization.use-case';
 import {
+  InvalidTargetUrlError,
   TargetNotAuthorizedError,
   UnsafeProbeBlockedError,
 } from '../domain/errors/domain.errors';
@@ -70,6 +72,46 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
     expect(tokenA1).toBe(tokenA2);
     expect(tokenA1).not.toBe(tokenUserB);
     expect(tokenA1).not.toBe(tokenOtherOrigin);
+  });
+
+  it('previews the exact deterministic challenge token matching createChallenge and rejects unsafe URLs', () => {
+    const verifier: IDomainOwnershipVerifier = {
+      verify: vi.fn(),
+    };
+    const authUseCase = new TargetAuthorizationUseCase(
+      certificates,
+      new SsrfDnsGuardService(false),
+      verifier,
+    );
+
+    const preview = authUseCase.previewChallengeToken({
+      ownerGithubUserId: 'user-a',
+      targetUrl: 'https://STAGING.Example.com:8443/dashboard?tab=1',
+    });
+
+    const created = authUseCase.createChallenge({
+      ownerGithubUserId: 'user-a',
+      targetUrl: 'https://staging.example.com:8443',
+      method: 'WELL_KNOWN_FILE',
+    });
+
+    expect(preview.origin).toBe('https://staging.example.com:8443');
+    expect(preview.hostname).toBe('staging.example.com');
+    expect(preview.challengeToken).toBe(created.authorization.challengeToken);
+
+    expect(() =>
+      authUseCase.previewChallengeToken({
+        ownerGithubUserId: 'user-a',
+        targetUrl: 'ftp://staging.example.com',
+      }),
+    ).toThrow(InvalidTargetUrlError);
+
+    expect(() =>
+      authUseCase.previewChallengeToken({
+        ownerGithubUserId: 'user-a',
+        targetUrl: 'https://user:pass@staging.example.com',
+      }),
+    ).toThrow(InvalidTargetUrlError);
   });
 
   it('blocks probes when ownership certificate is missing, tampered, or belongs to another user', async () => {

@@ -6,6 +6,14 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-25
+
+### Added
+- Dynamic terminal snippets on `/authorizations` (`OwnershipSetupGuide` + `ownership-guide.presenter.ts`) that react live to the target URL typed in the form (SSH, `/.well-known/brynja-verify.txt` creation, `curl`, web file content, and DNS TXT commands/records).
+- Stateless authenticated endpoint `POST /api/authorizations/preview` and `TargetAuthorizationUseCase.previewChallengeToken` to derive the exact deterministic per-user/per-origin HMAC verification token on the fly without polluting local IndexedDB storage.
+- Copy-ready guarantee on `/authorizations`: clicking Copy resolves the real verification token immediately (even before the typing debounce finishes) and includes a one-click copy button for the DNS TXT record value.
+- Automated unit and component tests (`dynamic-ownership-snippets.spec.tsx` and `guardrails-and-certificates.spec.ts`) covering URL parsing/shell-safety, live snippet updates, on-demand token resolution on copy, and deterministic preview parity.
+
 ## [1.2.0] - 2026-11-25
 
 ### Added

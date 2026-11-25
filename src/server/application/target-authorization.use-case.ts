@@ -20,6 +20,12 @@ export interface CreateChallengeResult {
   instructions: string;
 }
 
+export interface ChallengeTokenPreviewResult {
+  origin: string;
+  hostname: string;
+  challengeToken: string;
+}
+
 export interface VerifyOwnershipResult {
   authorization: TargetAuthorizationEntity;
   auditLogs: ProbeAuditEntry[];
@@ -31,6 +37,23 @@ export class TargetAuthorizationUseCase {
     private readonly ssrfGuard: SsrfDnsGuardService,
     private readonly verifier: IDomainOwnershipVerifier,
   ) {}
+
+  previewChallengeToken(input: {
+    ownerGithubUserId: string;
+    targetUrl: string;
+  }): ChallengeTokenPreviewResult {
+    const parsed = SafeProbePolicy.parseAndValidateTargetUrl(input.targetUrl);
+    const challengeToken = this.certificates.deriveChallengeToken(
+      input.ownerGithubUserId,
+      parsed.origin,
+    );
+
+    return {
+      origin: parsed.origin,
+      hostname: parsed.hostname,
+      challengeToken,
+    };
+  }
 
   createChallenge(input: {
     ownerGithubUserId: string;

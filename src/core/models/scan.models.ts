@@ -47,6 +47,12 @@ export interface CreateAuthorizationResponse {
   instructions: string;
 }
 
+export interface ChallengeTokenPreview {
+  origin: string;
+  hostname: string;
+  challengeToken: string;
+}
+
 export interface ScanSummary {
   id: string;
   ownerLogin?: string | null;

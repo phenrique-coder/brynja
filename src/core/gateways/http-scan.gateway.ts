@@ -1,4 +1,5 @@
 import {
+  ChallengeTokenPreview,
   CreateAuthorizationResponse,
   CreateScanPayload,
   GitHubIntegrationStatus,
@@ -178,6 +179,16 @@ export class HttpScanGateway implements IBrynjaGateway {
   async listAuthorizations(): Promise<TargetAuthorization[]> {
     const owner = await this.requireOwner();
     return this.store.listAuthorizations(owner.githubUserId);
+  }
+
+  async previewChallengeToken(
+    targetUrl: string,
+  ): Promise<ChallengeTokenPreview> {
+    await this.requireOwner();
+    return this.request<ChallengeTokenPreview>('/authorizations/preview', {
+      method: 'POST',
+      body: JSON.stringify({ targetUrl }),
+    });
   }
 
   async createAuthorization(

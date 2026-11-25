@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   CheckCircle2,
@@ -11,21 +11,28 @@ import {
   Trash2,
 } from 'lucide-react';
 import {
+  ChallengeTokenPreview,
   TargetAuthorization,
   VerificationMethod,
 } from '@/core/models/scan.models';
 import { useTargetAuthorizer } from '@/core/providers/gateway-provider';
 import { useI18n } from '@/core/providers/i18n-provider';
 import { useTargetAuthorizations } from '../hooks/use-scans';
+import { parseDraftTargetUrl } from '../presenters/ownership-guide.presenter';
 import { AUTH_STATUS_REGISTRY } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
-import { OwnershipSetupGuide } from './OwnershipSetupGuide';
+import {
+  OwnershipGuideTarget,
+  OwnershipSetupGuide,
+} from './OwnershipSetupGuide';
 import { StatusPill } from './StatusPill';
 import {
   PageHeader,
   PageLoadingState,
   SurfaceCard,
 } from './ui/PagePrimitives';
+
+const TOKEN_PREVIEW_DEBOUNCE_MS = 250;
 
 export function AuthorizationsView() {
   const authorizer = useTargetAuthorizer();
@@ -40,10 +47,170 @@ export function AuthorizationsView() {
   const [selectedGuideTargetId, setSelectedGuideTargetId] = useState<
     string | null
   >(null);
+  const [lastCreatedTarget, setLastCreatedTarget] =
+    useState<TargetAuthorization | null>(null);
+  const [guideSource, setGuideSource] = useState<'draft' | 'target'>('target');
+  const [previewTokensByOrigin, setPreviewTokensByOrigin] = useState<
+    Record<string, ChallengeTokenPreview>
+  >({});
+  const [resolvingToken, setResolvingToken] = useState(false);
   const [instructions, setInstructions] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  const previewTokenCacheRef = useRef<Map<string, ChallengeTokenPreview>>(
+    new Map(),
+  );
+  const inFlightPreviewRef = useRef<
+    Map<string, Promise<ChallengeTokenPreview | null>>
+  >(new Map());
+
+  const draftTarget = useMemo(
+    () => parseDraftTargetUrl(targetUrl),
+    [targetUrl],
+  );
+
+  const activeRegisteredTarget: TargetAuthorization | null = useMemo(() => {
+    const selected = selectedGuideTargetId
+      ? items.find((i) => i.id === selectedGuideTargetId) ??
+        (lastCreatedTarget?.id === selectedGuideTargetId
+          ? lastCreatedTarget
+          : null)
+      : null;
+
+    return (
+      selected ??
+      items.find((i) => i.status === 'PENDING' && i.challengeToken) ??
+      items.find((i) => i.challengeToken) ??
+      null
+    );
+  }, [items, lastCreatedTarget, selectedGuideTargetId]);
+
+  const activeGuideTarget: OwnershipGuideTarget | null = useMemo(() => {
+    if (guideSource === 'draft' && draftTarget) {
+      const existing = items.find((i) => i.origin === draftTarget.origin);
+      const preview = previewTokensByOrigin[draftTarget.origin];
+
+      return {
+        origin: draftTarget.origin,
+        hostname: draftTarget.hostname,
+        challengeToken:
+          existing?.challengeToken ?? preview?.challengeToken ?? null,
+        isDraft: !existing,
+      };
+    }
+
+    if (activeRegisteredTarget) {
+      const preview = previewTokensByOrigin[activeRegisteredTarget.origin];
+
+      return {
+        origin: activeRegisteredTarget.origin,
+        hostname: activeRegisteredTarget.hostname,
+        challengeToken:
+          activeRegisteredTarget.challengeToken ??
+          preview?.challengeToken ??
+          null,
+        isDraft: false,
+      };
+    }
+
+    return null;
+  }, [
+    activeRegisteredTarget,
+    draftTarget,
+    guideSource,
+    items,
+    previewTokensByOrigin,
+  ]);
+
+  const resolveTokenForOrigin = useCallback(
+    async (origin: string): Promise<string | null> => {
+      const existing = items.find(
+        (item) => item.origin === origin && item.challengeToken,
+      );
+      if (existing?.challengeToken) {
+        return existing.challengeToken;
+      }
+
+      const cached = previewTokenCacheRef.current.get(origin);
+      if (cached?.challengeToken) {
+        return cached.challengeToken;
+      }
+
+      if (!authorizer.previewChallengeToken) {
+        return null;
+      }
+
+      const existingPromise = inFlightPreviewRef.current.get(origin);
+      if (existingPromise) {
+        const resolved = await existingPromise;
+        return resolved?.challengeToken ?? null;
+      }
+
+      const promise = authorizer
+        .previewChallengeToken(origin)
+        .then((preview) => {
+          previewTokenCacheRef.current.set(origin, preview);
+          previewTokenCacheRef.current.set(preview.origin, preview);
+          setPreviewTokensByOrigin((prev) => {
+            if (
+              prev[origin]?.challengeToken === preview.challengeToken &&
+              prev[preview.origin]?.challengeToken === preview.challengeToken
+            ) {
+              return prev;
+            }
+            return {
+              ...prev,
+              [origin]: preview,
+              [preview.origin]: preview,
+            };
+          });
+          return preview;
+        })
+        .catch(() => null)
+        .finally(() => {
+          inFlightPreviewRef.current.delete(origin);
+        });
+
+      inFlightPreviewRef.current.set(origin, promise);
+      const resolved = await promise;
+      return resolved?.challengeToken ?? null;
+    },
+    [authorizer, items],
+  );
+
+  const originNeedingToken =
+    !authRequired &&
+    !(loading && items.length === 0) &&
+    activeGuideTarget &&
+    !activeGuideTarget.challengeToken &&
+    Boolean(authorizer.previewChallengeToken)
+      ? activeGuideTarget.origin
+      : null;
+
+  useEffect(() => {
+    if (!originNeedingToken) {
+      setResolvingToken(false);
+      return;
+    }
+
+    let cancelled = false;
+    setResolvingToken(true);
+
+    const timer = window.setTimeout(() => {
+      void resolveTokenForOrigin(originNeedingToken).finally(() => {
+        if (!cancelled) {
+          setResolvingToken(false);
+        }
+      });
+    }, TOKEN_PREVIEW_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [originNeedingToken, resolveTokenForOrigin]);
 
   if (authRequired) {
     return (
@@ -58,17 +225,10 @@ export function AuthorizationsView() {
     return <PageLoadingState label={messages.authorizations.loading} />;
   }
 
-  const activeGuideTarget: TargetAuthorization | null =
-    (selectedGuideTargetId
-      ? items.find((i) => i.id === selectedGuideTargetId)
-      : null) ??
-    items.find((i) => i.status === 'PENDING' && i.challengeToken) ??
-    items.find((i) => i.challengeToken) ??
-    null;
-
   function openGuideForTarget(item: TargetAuthorization) {
     setSelectedGuideTargetId(item.id);
     setGuideMethod(item.method);
+    setGuideSource('target');
     const el = document.getElementById('guia-configuracao-posse');
     if (el && typeof el.scrollIntoView === 'function') {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -82,10 +242,27 @@ export function AuthorizationsView() {
     try {
       const res = await authorizer.createAuthorization(targetUrl, method);
       setInstructions(res.instructions);
+      setLastCreatedTarget(res.authorization);
       setSelectedGuideTargetId(res.authorization.id);
       setGuideMethod(res.authorization.method);
-      setTargetUrl('');
+      setGuideSource('target');
+      if (res.authorization.challengeToken) {
+        const cachedPreview: ChallengeTokenPreview = {
+          origin: res.authorization.origin,
+          hostname: res.authorization.hostname,
+          challengeToken: res.authorization.challengeToken,
+        };
+        previewTokenCacheRef.current.set(
+          res.authorization.origin,
+          cachedPreview,
+        );
+        setPreviewTokensByOrigin((prev) => ({
+          ...prev,
+          [res.authorization.origin]: cachedPreview,
+        }));
+      }
       await refresh();
+      setTargetUrl('');
     } catch (err) {
       setActionError(
         err instanceof Error
@@ -118,6 +295,12 @@ export function AuthorizationsView() {
     try {
       await authorizer.revokeAuthorization(id);
       setConfirmRemoveId(null);
+      if (lastCreatedTarget?.id === id) {
+        setLastCreatedTarget(null);
+      }
+      if (selectedGuideTargetId === id) {
+        setSelectedGuideTargetId(null);
+      }
       await refresh();
     } catch (err) {
       setActionError(
@@ -161,7 +344,11 @@ export function AuthorizationsView() {
                   required
                   placeholder={messages.authorizations.targetUrlPlaceholder}
                   value={targetUrl}
-                  onChange={(e) => setTargetUrl(e.target.value)}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    setTargetUrl(nextValue);
+                    setGuideSource(nextValue.trim() ? 'draft' : 'target');
+                  }}
                   className="mt-1.5 w-full rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2.5 font-mono text-xs text-fg focus:border-cyan-500 focus:outline-none sm:text-sm"
                 />
               </div>
@@ -362,6 +549,8 @@ export function AuthorizationsView() {
         activeTarget={activeGuideTarget}
         method={guideMethod}
         onSelectMethod={setGuideMethod}
+        resolvingToken={resolvingToken}
+        onEnsureTokenReady={resolveTokenForOrigin}
       />
     </div>
   );

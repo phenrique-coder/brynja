@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   BookOpen,
   Check,
@@ -8,46 +8,118 @@ import {
   Globe,
   HelpCircle,
   Laptop,
+  Loader2,
   Server,
   Terminal,
 } from 'lucide-react';
-import {
-  TargetAuthorization,
-  VerificationMethod,
-} from '@/core/models/scan.models';
+import { VerificationMethod } from '@/core/models/scan.models';
 import { useI18n } from '@/core/providers/i18n-provider';
+import { buildOwnershipGuideSnippets } from '../presenters/ownership-guide.presenter';
 import { SurfaceCard } from './ui/PagePrimitives';
 
+export interface OwnershipGuideTarget {
+  origin: string;
+  hostname: string;
+  challengeToken?: string | null;
+  isDraft?: boolean;
+}
+
 export interface OwnershipSetupGuideProps {
-  activeTarget: TargetAuthorization | null;
+  activeTarget: OwnershipGuideTarget | null;
   method: VerificationMethod;
   onSelectMethod: (method: VerificationMethod) => void;
+  resolvingToken?: boolean;
+  onEnsureTokenReady?: (origin: string) => Promise<string | null>;
 }
 
 type FileHostingTab = 'ssh' | 'web';
 
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (
+    typeof navigator !== 'undefined' &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === 'function'
+  ) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall through to textarea fallback
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return copied;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 function CopyableCodeBlock({
   label,
   code,
+  resolveCode,
   caption,
   copyLabel,
   copiedLabel,
+  copyingLabel,
 }: {
   label: string;
   code: string;
+  resolveCode?: () => Promise<string>;
   caption?: string;
   copyLabel: string;
   copiedLabel: string;
+  copyingLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const resetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   async function handleCopy() {
+    if (copying) return;
     try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      let textToCopy = code;
+      if (resolveCode) {
+        setCopying(true);
+        textToCopy = await resolveCode();
+      }
+      const ok = await copyTextToClipboard(textToCopy);
+      if (ok) {
+        setCopied(true);
+        if (resetTimerRef.current !== null) {
+          window.clearTimeout(resetTimerRef.current);
+        }
+        resetTimerRef.current = window.setTimeout(() => {
+          setCopied(false);
+          resetTimerRef.current = null;
+        }, 1800);
+      }
     } catch {
       // clipboard unavailable in restricted environments
+    } finally {
+      setCopying(false);
     }
   }
 
@@ -60,10 +132,17 @@ function CopyableCodeBlock({
         </span>
         <button
           type="button"
+          disabled={copying}
           onClick={() => void handleCopy()}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-medium text-slate-200 transition hover:border-cyan-500/60 hover:text-cyan-300"
+          aria-label={`${copyLabel} — ${label}`}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-medium text-slate-200 transition hover:border-cyan-500/60 hover:text-cyan-300 disabled:opacity-60"
         >
-          {copied ? (
+          {copying ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
+              <span>{copyingLabel ?? copyLabel}</span>
+            </>
+          ) : copied ? (
             <>
               <Check className="h-3 w-3 text-emerald-400" />
               <span>{copiedLabel}</span>
@@ -92,27 +171,79 @@ export function OwnershipSetupGuide({
   activeTarget,
   method,
   onSelectMethod,
+  resolvingToken = false,
+  onEnsureTokenReady,
 }: OwnershipSetupGuideProps) {
   const { messages, t } = useI18n();
   const g = messages.setupGuide;
   const [fileTab, setFileTab] = useState<FileHostingTab>('ssh');
+  const [dnsTokenCopied, setDnsTokenCopied] = useState(false);
+  const [dnsTokenCopying, setDnsTokenCopying] = useState(false);
+  const dnsTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dnsTimerRef.current !== null) {
+        window.clearTimeout(dnsTimerRef.current);
+      }
+    };
+  }, []);
 
   const origin = activeTarget?.origin ?? g.placeholderOrigin;
   const hostname = activeTarget?.hostname ?? g.placeholderHost;
-  const token = activeTarget?.challengeToken ?? g.placeholderToken;
-  const hasRealTarget = Boolean(activeTarget?.challengeToken);
+  const token = activeTarget?.challengeToken || g.placeholderToken;
+  const hasRealToken = Boolean(activeTarget?.challengeToken);
+  const isDraft = Boolean(activeTarget?.isDraft);
+  const needsTokenOnCopy =
+    !hasRealToken && Boolean(activeTarget?.origin) && Boolean(onEnsureTokenReady);
 
-  const wellKnownUrl = `${origin}/.well-known/brynja-verify.txt`;
-  const sshConnectCmd = `ssh usuario@${hostname}`;
-  const sshCreateFileCmd = `sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' '${token}' | sudo tee /var/www/html/.well-known/brynja-verify.txt > /dev/null`;
-  const nginxSnippet = `location ^~ /.well-known/ {
-    root /var/www/html;
-    default_type text/plain;
-    allow all;
-}`;
-  const nginxReloadCmd = `sudo nginx -t && sudo systemctl reload nginx`;
-  const curlVerifyCmd = `curl -fsSL ${wellKnownUrl}`;
-  const dnsVerifyCmd = `dig +short TXT _brynja.${hostname}\n${g.dnsAltComment}\nnslookup -type=TXT _brynja.${hostname}`;
+  const snippets = buildOwnershipGuideSnippets({
+    origin,
+    hostname,
+    token,
+    dnsAltComment: g.dnsAltComment,
+  });
+
+  async function resolveTokenOnDemand(): Promise<string> {
+    if (hasRealToken) return token;
+    if (activeTarget?.origin && onEnsureTokenReady) {
+      const freshToken = await onEnsureTokenReady(activeTarget.origin);
+      if (freshToken) return freshToken;
+    }
+    return token;
+  }
+
+  async function handleCopyDnsToken() {
+    if (dnsTokenCopying) return;
+    try {
+      let textToCopy = token;
+      if (needsTokenOnCopy) {
+        setDnsTokenCopying(true);
+        textToCopy = await resolveTokenOnDemand();
+      }
+      const ok = await copyTextToClipboard(textToCopy);
+      if (ok) {
+        setDnsTokenCopied(true);
+        if (dnsTimerRef.current !== null) {
+          window.clearTimeout(dnsTimerRef.current);
+        }
+        dnsTimerRef.current = window.setTimeout(() => {
+          setDnsTokenCopied(false);
+          dnsTimerRef.current = null;
+        }, 1800);
+      }
+    } finally {
+      setDnsTokenCopying(false);
+    }
+  }
+
+  const subtitleDetail = hasRealToken
+    ? isDraft
+      ? t(g.subtitleDraftReady, { origin })
+      : g.subtitleReady
+    : resolvingToken && activeTarget
+      ? t(g.subtitleResolving, { origin })
+      : g.subtitlePlaceholder;
 
   return (
     <SurfaceCard
@@ -129,17 +260,40 @@ export function OwnershipSetupGuide({
             </div>
             <h2 className="mt-1 text-base font-bold text-fg">{g.title}</h2>
             <p className="mt-0.5 text-xs text-fg-secondary">
-              {g.subtitlePrefix}{' '}
-              {hasRealTarget ? g.subtitleReady : g.subtitlePlaceholder}
+              {g.subtitlePrefix} {subtitleDetail}
             </p>
           </div>
 
-          {hasRealTarget ? (
-            <div className="shrink-0 rounded-xl border border-cyan-500/30 bg-cyan-50 px-3 py-2 text-xs dark:bg-cyan-500/10">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
-                {g.commandsReadyFor}
+          {activeTarget ? (
+            <div
+              className={`shrink-0 rounded-xl border px-3 py-2 text-xs ${
+                hasRealToken
+                  ? 'border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10'
+                  : 'border-cyan-500/30 bg-cyan-50 dark:bg-cyan-500/10'
+              }`}
+            >
+              <div
+                className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  hasRealToken
+                    ? 'text-emerald-800 dark:text-emerald-300'
+                    : 'text-cyan-800 dark:text-cyan-300'
+                }`}
+              >
+                {resolvingToken ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : hasRealToken ? (
+                  <Check className="h-3 w-3" />
+                ) : null}
+                <span>
+                  {resolvingToken ? g.resolvingTokenFor : g.commandsReadyFor}
+                </span>
               </div>
               <div className="font-mono font-semibold text-fg">{origin}</div>
+              {hasRealToken ? (
+                <div className="mt-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                  {g.tokenReadyBadge}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -235,7 +389,7 @@ export function OwnershipSetupGuide({
               <p className="text-xs leading-relaxed text-fg-secondary">
                 {g.wellKnownIntroPrefix}{' '}
                 <code className="rounded bg-surface-subtle px-1.5 py-0.5 font-mono text-[11px] font-semibold text-cyan-700 dark:text-cyan-300">
-                  {wellKnownUrl}
+                  {snippets.wellKnownUrl}
                 </code>{' '}
                 {g.wellKnownIntroSuffix}
               </p>
@@ -277,7 +431,7 @@ export function OwnershipSetupGuide({
                   <p className="text-xs text-fg-secondary">{g.sshStep1Body}</p>
                   <CopyableCodeBlock
                     label={g.sshStep1Label}
-                    code={sshConnectCmd}
+                    code={snippets.sshConnectCmd}
                     caption={g.sshStep1Caption}
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
@@ -291,10 +445,24 @@ export function OwnershipSetupGuide({
                   <p className="text-xs text-fg-secondary">{g.sshStep2Body}</p>
                   <CopyableCodeBlock
                     label={g.sshStep2Label}
-                    code={sshCreateFileCmd}
+                    code={snippets.sshCreateFileCmd}
+                    resolveCode={
+                      needsTokenOnCopy
+                        ? async () => {
+                            const resolvedToken = await resolveTokenOnDemand();
+                            return buildOwnershipGuideSnippets({
+                              origin,
+                              hostname,
+                              token: resolvedToken,
+                              dnsAltComment: g.dnsAltComment,
+                            }).sshCreateFileCmd;
+                          }
+                        : undefined
+                    }
                     caption={g.sshStep2Caption}
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
+                    copyingLabel={g.copyingToken}
                   />
                 </div>
 
@@ -319,13 +487,13 @@ export function OwnershipSetupGuide({
                   </p>
                   <CopyableCodeBlock
                     label={g.sshStep3Label}
-                    code={nginxSnippet}
+                    code={snippets.nginxSnippet}
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
                   />
                   <CopyableCodeBlock
                     label={g.sshStep3ReloadLabel}
-                    code={nginxReloadCmd}
+                    code={snippets.nginxReloadCmd}
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
                   />
@@ -338,7 +506,7 @@ export function OwnershipSetupGuide({
                   <p className="text-xs text-fg-secondary">{g.sshStep4Body}</p>
                   <CopyableCodeBlock
                     label={g.sshStep4Label}
-                    code={curlVerifyCmd}
+                    code={snippets.curlVerifyCmd}
                     caption={t(g.sshStep4Caption, { token })}
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
@@ -355,13 +523,19 @@ export function OwnershipSetupGuide({
                     <li>{g.webOptionAStep1}</li>
                     <li>{g.webOptionAStep2}</li>
                     <li>{g.webOptionAStep3}</li>
-                    <li>{t(g.webOptionAStep4, { url: wellKnownUrl })}</li>
+                    <li>
+                      {t(g.webOptionAStep4, { url: snippets.wellKnownUrl })}
+                    </li>
                   </ol>
                   <CopyableCodeBlock
                     label={g.webOptionACodeLabel}
-                    code={token}
+                    code={snippets.fileContent}
+                    resolveCode={
+                      needsTokenOnCopy ? resolveTokenOnDemand : undefined
+                    }
                     copyLabel={messages.common.copy}
                     copiedLabel={messages.common.copied}
+                    copyingLabel={g.copyingToken}
                   />
                 </div>
 
@@ -409,7 +583,31 @@ export function OwnershipSetupGuide({
                       </span>
                     </td>
                     <td className="break-all px-4 py-3 text-amber-700 dark:text-amber-300">
-                      {token}
+                      <div className="flex items-center gap-2">
+                        <span>{token}</span>
+                        <button
+                          type="button"
+                          disabled={dnsTokenCopying}
+                          onClick={() => void handleCopyDnsToken()}
+                          title={g.copyDnsTokenTitle}
+                          aria-label={g.copyDnsTokenTitle}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-subtle bg-surface-subtle px-2 py-1 font-sans text-[11px] font-medium text-fg-secondary transition hover:border-cyan-500/60 hover:text-cyan-700 dark:hover:text-cyan-300 disabled:opacity-60"
+                        >
+                          {dnsTokenCopying ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : dnsTokenCopied ? (
+                            <>
+                              <Check className="h-3 w-3 text-emerald-500" />
+                              <span>{messages.common.copied}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3 w-3" />
+                              <span>{messages.common.copy}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-secondary">
                       {g.dnsTtlValue}
@@ -426,7 +624,7 @@ export function OwnershipSetupGuide({
               <p className="text-xs text-fg-secondary">{g.dnsCheckBody}</p>
               <CopyableCodeBlock
                 label={g.dnsCheckLabel}
-                code={dnsVerifyCmd}
+                code={snippets.dnsVerifyCmd}
                 caption={t(g.dnsCheckCaption, { token })}
                 copyLabel={messages.common.copy}
                 copiedLabel={messages.common.copied}
@@ -443,7 +641,7 @@ export function OwnershipSetupGuide({
 
             <CopyableCodeBlock
               label={g.sandboxCodeLabel}
-              code={`ALLOW_LOCAL_LOOPBACK_TARGETS=true`}
+              code={snippets.sandboxEnvLine}
               caption={g.sandboxCodeCaption}
               copyLabel={messages.common.copy}
               copiedLabel={messages.common.copied}

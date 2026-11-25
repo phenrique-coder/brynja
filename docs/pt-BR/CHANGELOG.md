@@ -6,6 +6,14 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] - 2026-11-25
+
+### Adicionado
+- Snippets de terminal dinâmicos em `/authorizations` (`OwnershipSetupGuide` + `ownership-guide.presenter.ts`) que se atualizam em tempo real conforme a URL inserida para o alvo (SSH, criação de `/.well-known/brynja-verify.txt`, `curl`, conteúdo do arquivo web e tabela/comandos DNS TXT).
+- Endpoint autenticado stateless `POST /api/authorizations/preview` e caso de uso `TargetAuthorizationUseCase.previewChallengeToken` para derivar o token determinístico HMAC exato do usuário/origem em tempo real, sem poluir o armazenamento local (`IndexedDB`).
+- Garantia de cópia pronta para o terminal em `/authorizations`: ao clicar em Copiar, o token real é resolvido imediatamente (mesmo antes do término do debounce de digitação), além de novo botão de cópia rápida para o valor DNS TXT.
+- Testes automatizados de unidade e componentes (`dynamic-ownership-snippets.spec.tsx` e `guardrails-and-certificates.spec.ts`) validando parsing seguro de URLs, atualização dinâmica de snippets, resolução sob demanda ao copiar e paridade do preview determinístico.
+
 ## [1.2.0] - 2026-11-25
 
 ### Adicionado

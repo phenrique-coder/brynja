@@ -1,4 +1,5 @@
 import {
+  ChallengeTokenPreview,
   CreateAuthorizationResponse,
   CreateScanPayload,
   GitHubIntegrationStatus,
@@ -22,6 +23,7 @@ export interface IScanCreator {
 
 export interface ITargetAuthorizer {
   listAuthorizations(): Promise<TargetAuthorization[]>;
+  previewChallengeToken?(targetUrl: string): Promise<ChallengeTokenPreview>;
   createAuthorization(
     targetUrl: string,
     method: VerificationMethod,

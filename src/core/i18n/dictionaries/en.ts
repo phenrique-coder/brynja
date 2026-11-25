@@ -325,9 +325,17 @@ export const EN_MESSAGES: Messages = {
       'Follow the steps below to unlock safe probes for your site.',
     subtitleReady:
       'The commands below are already pre-filled with your target domain and token.',
+    subtitleDraftReady:
+      'The commands below were dynamically updated for {origin} with your real token ready to copy and run in the terminal.',
+    subtitleResolving:
+      'Preparing your real verification token for {origin}...',
     subtitlePlaceholder:
-      'Generate a challenge in the form above to automatically fill all commands with your real token.',
+      'Enter your target URL above or generate a challenge to automatically populate all commands with your real token.',
     commandsReadyFor: 'Commands ready for',
+    resolvingTokenFor: 'Preparing token for',
+    tokenReadyBadge: 'Real token ready to copy',
+    copyingToken: 'Preparing...',
+    copyDnsTokenTitle: 'Copy DNS TXT token value',
     step1Title: 'Generate the token',
     step1Body:
       'Enter your site URL above, choose a proof method, and click Generate Ownership Challenge.',
