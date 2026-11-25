@@ -1,0 +1,123 @@
+import { randomUUID } from 'node:crypto';
+import {
+  NormalizedAdvisory,
+  ParsedDependency,
+  RepositoryFile,
+} from '../domain/entities/scan.types';
+import { InvalidRepositoryUrlError } from '../domain/errors/domain.errors';
+import {
+  IDependencyParser,
+  IRepositoryFetcher,
+  IVulnerabilityEnricher,
+  IVulnerabilityProvider,
+} from '../domain/ports/server.ports';
+
+export interface AnalyzeScaInput {
+  repositoryUrl: string;
+  branch: string;
+  accessToken?: string | null;
+  manifestFiles?: RepositoryFile[];
+}
+
+export interface AnalyzeScaOutput {
+  ecosystems: string[];
+  dependencies: Array<ParsedDependency & { id: string }>;
+  findings: Array<NormalizedAdvisory & { id: string; dependencyId: string }>;
+  warnings: string[];
+}
+
+export class AnalyzeScaUseCase {
+  constructor(
+    private readonly fetchers: IRepositoryFetcher[],
+    private readonly parsers: IDependencyParser[],
+    private readonly vulnProvider: IVulnerabilityProvider,
+    private readonly enrichers: IVulnerabilityEnricher[],
+  ) {}
+
+  async execute(input: AnalyzeScaInput): Promise<AnalyzeScaOutput> {
+    const warnings: string[] = [];
+
+    let files: RepositoryFile[] = [];
+    if (input.manifestFiles && input.manifestFiles.length > 0) {
+      files = input.manifestFiles;
+    } else {
+      const ctx = {
+        repositoryUrl: input.repositoryUrl,
+        branch: input.branch,
+        accessToken: input.accessToken,
+      };
+      const fetcher = this.fetchers.find((f) => f.supports(ctx));
+      if (!fetcher) {
+        throw new InvalidRepositoryUrlError(
+          `Formato de repositório não suportado em modo serverless: "${input.repositoryUrl}". Informe uma URL HTTPS do GitHub (https://github.com/org/repo) ou cole os manifestos manualmente.`,
+        );
+      }
+      files = await fetcher.fetchManifestFiles(ctx);
+    }
+
+    if (files.length === 0) {
+      warnings.push(
+        'Nenhum manifesto suportado (package.json, package-lock.json, pnpm-lock.yaml, requirements.txt, pyproject.toml) foi encontrado.',
+      );
+    }
+
+    const dedupMap = new Map<string, ParsedDependency>();
+    for (const file of files) {
+      for (const parser of this.parsers) {
+        if (!parser.supports(file.path)) continue;
+        const parsed = parser.parse(file.path, file.content);
+        for (const dep of parsed) {
+          const key = `${dep.ecosystem}:${dep.name}@${dep.version}`;
+          const existing = dedupMap.get(key);
+          if (!existing || (!existing.isDirect && dep.isDirect)) {
+            dedupMap.set(key, dep);
+          }
+        }
+      }
+    }
+
+    const rawDependencies = Array.from(dedupMap.values());
+    const dependencies = rawDependencies.map((d) => ({
+      ...d,
+      id: randomUUID(),
+    }));
+    const depIdByKey = new Map(
+      dependencies.map((d) => [`${d.ecosystem}:${d.name}@${d.version}`, d.id]),
+    );
+    const ecosystems = Array.from(
+      new Set(dependencies.map((d) => d.ecosystem)),
+    );
+
+    const osvResult = await this.vulnProvider.lookupBatch(rawDependencies);
+    warnings.push(...osvResult.warnings);
+    let advisories = osvResult.advisories;
+
+    for (const enricher of this.enrichers) {
+      try {
+        const enriched = await enricher.enrich(advisories);
+        advisories = enriched.advisories;
+        warnings.push(...enriched.warnings);
+      } catch (err) {
+        warnings.push(
+          `Enriquecedor ${enricher.name} falhou: ${err instanceof Error ? err.message : 'erro'}`,
+        );
+      }
+    }
+
+    const findings = advisories.map((adv) => ({
+      ...adv,
+      id: randomUUID(),
+      dependencyId:
+        depIdByKey.get(`${adv.ecosystem}:${adv.packageName}@${adv.packageVersion}`) ??
+        dependencies[0]?.id ??
+        randomUUID(),
+    }));
+
+    return {
+      ecosystems,
+      dependencies,
+      findings,
+      warnings,
+    };
+  }
+}

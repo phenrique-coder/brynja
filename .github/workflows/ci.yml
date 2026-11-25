@@ -40,46 +40,17 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: backend/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install backend dependencies
-        working-directory: backend
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client
-        working-directory: backend
-        run: pnpm prisma:generate
+      - name: Run mandatory SafeProbe & Ownership Guardrails tests
+        run: pnpm vitest run src/server/__tests__/safe-probe-policy.spec.ts src/server/__tests__/guardrails-and-certificates.spec.ts src/server/__tests__/safe-probes.spec.ts
 
-      - name: Run mandatory SafeProbe & Authorization Guardrails tests
-        working-directory: backend
-        run: pnpm jest safe-probe.policy.spec.ts authorization-guardrails.spec.ts safe-probes.spec.ts --runInBand
-
-  backend:
-    name: Backend (Typecheck, Tests & Build)
+  server-core:
+    name: Server Core & Safe Probes Tests
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: veredito
-          POSTGRES_PASSWORD: veredito_ci_pwd
-          POSTGRES_DB: veredito_sec_ci
-        ports:
-          - 5434:5432
-        options: >-
-          --health-cmd="pg_isready -U veredito -d veredito_sec_ci"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    env:
-      DATABASE_URL: postgresql://veredito:veredito_ci_pwd@localhost:5434/veredito_sec_ci?schema=public
-      TOKEN_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-      ALLOW_LOCAL_LOOPBACK_TARGETS: "true"
-      SAFE_PROBE_MAX_RPS: "2"
-      SAFE_PROBE_TIMEOUT_MS: "5000"
-      SAFE_PROBE_MAX_REQUESTS_PER_SCAN: "40"
-      FRONTEND_URL: http://localhost:3000
-      CORS_ORIGIN: http://localhost:3000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,35 +65,17 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: backend/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install backend dependencies
-        working-directory: backend
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client & Apply Migrations
-        working-directory: backend
-        run: |
-          pnpm prisma:generate
-          pnpm prisma migrate deploy
+      - name: Run full Server Core test suite
+        run: pnpm vitest run src/server/__tests__
 
-      - name: Typecheck
-        working-directory: backend
-        run: pnpm typecheck
-
-      - name: Unit & Integration Tests
-        working-directory: backend
-        run: pnpm test -- --runInBand
-
-      - name: Build
-        working-directory: backend
-        run: pnpm build
-
-  frontend:
-    name: Frontend (Typecheck, Tests & Build)
+  frontend-build:
+    name: UI Tests, Typecheck & Next.js Build
     runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -137,20 +90,16 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install frontend dependencies
-        working-directory: frontend
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        working-directory: frontend
         run: pnpm typecheck
 
-      - name: Unit Tests
-        working-directory: frontend
+      - name: Full Test Suite
         run: pnpm test
 
-      - name: Build
-        working-directory: frontend
+      - name: Production Build (Vercel-ready)
         run: pnpm build

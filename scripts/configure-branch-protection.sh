@@ -4,8 +4,6 @@ set -euo pipefail
 # Aplica proteção rigorosa na branch "main" via GitHub CLI (gh).
 # Uso:
 #   ./scripts/configure-branch-protection.sh <owner>/<repo>
-# Exemplo:
-#   ./scripts/configure-branch-protection.sh seu-usuario/veredito-sec
 
 if [ $# -lt 1 ]; then
   echo "Uso: $0 <owner>/<repo>"
@@ -32,8 +30,8 @@ gh api \
     "strict": true,
     "contexts": [
       "Guardrails & Secrets Check",
-      "Backend (Typecheck, Tests & Build)",
-      "Frontend (Typecheck, Tests & Build)"
+      "Server Core & Safe Probes Tests",
+      "UI Tests, Typecheck & Next.js Build"
     ]
   },
   "enforce_admins": false,
@@ -51,4 +49,3 @@ gh api \
 JSON
 
 echo "Proteção da branch '${BRANCH}' aplicada com sucesso!"
-echo "Recomenda-se também habilitar no GitHub UI: Settings -> Code security -> Private vulnerability reporting & Secret scanning."
