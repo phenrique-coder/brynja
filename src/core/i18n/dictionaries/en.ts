@@ -331,17 +331,37 @@ export const EN_MESSAGES: Messages = {
     targetPrefix: 'Target: {host}',
     scaOnlyBadge: 'SCA Only (no staging target)',
     exportReportLabel: 'Export Report',
+    exportDropdownMenuLabel: 'Report export options',
+    exportOnlyPdfHint:
+      'No issues detected — only Executive PDF remains enabled.',
     generatingPdf: 'Generating PDF...',
     executivePdf: 'Executive PDF (Board)',
     executivePdfTitle:
       'Executive PDF report for management and leadership with problem explanations and solution plans',
+    executivePdfMenuHint: 'For management & leadership (problems & solutions)',
     aiJson: 'AI Fix JSON',
     aiJsonTitle:
       'Download concise, structured remediation JSON built for AI coding models',
+    aiJsonMenuHint: 'Concise remediation JSON for AI coding models',
+    copyAiJsonLabel: 'Copy AI Fix JSON',
     copyAiJsonTitle: 'Copy AI remediation JSON to clipboard',
+    copyAiJsonMenuHint: 'Copy directly to paste into an AI chat or agent',
+    copiedAiJsonLabel: 'AI Fix JSON copied!',
+    otherExportsLabel: 'Other technical formats',
+    disabledNoErrorsBadge: 'No issues',
     rawJsonLabel: 'Full JSON',
     markdownLabel: 'Markdown',
     sbomLabel: 'SBOM (CycloneDX)',
+    allClearBadge: '100% Passed',
+    allClearTitle: 'Shield Intact — All checks passed with zero issues!',
+    allClearBodyWithProbes:
+      'Great work! {deps} dependency(ies) audited and {probes} Safe Probe(s) verified with zero vulnerabilities or security issues detected.',
+    allClearBodyScaOnly:
+      'Great work! {deps} dependency(ies) audited in the SBOM inventory with zero known vulnerabilities detected.',
+    noVulnsCleanState:
+      'All clear! No vulnerabilities were detected across {deps} audited dependency(ies).',
+    noVulnsButProbeFindings:
+      'No dependency (SCA) vulnerabilities found, but there are {count} finding(s) in the Safe Probes tab.',
     executionError: 'Execution error: {message}',
     kpiDependencies: 'Dependencies',
     kpiCritical: 'Critical',

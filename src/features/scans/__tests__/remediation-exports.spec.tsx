@@ -349,7 +349,7 @@ describe('AI Remediation JSON Exporter & Executive Remediation Planner', () => {
     expect(aiPayload.summary.totalTasks).toBe(0);
   });
 
-  it('exposes Executive PDF (Gerência) and AI Fix JSON (download + clipboard copy) on ScanReportView', async () => {
+  it('places all report exports in a right-side dropdown ordered PDF -> AI JSON -> others and supports clipboard copy', async () => {
     const report = makeSampleScanReport();
     const gateway = makeGateway(report);
 
@@ -359,24 +359,36 @@ describe('AI Remediation JSON Exporter & Executive Remediation Planner', () => {
       </GatewayProvider>,
     );
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /PDF Executivo \(Gerência\)/i }),
-      ).toBeTruthy();
-      expect(
-        screen.getByRole('button', { name: 'JSON para IA' }),
-      ).toBeTruthy();
-      expect(
-        screen.getByRole('button', { name: /JSON Completo/i }),
-      ).toBeTruthy();
+    const trigger = await screen.findByRole('button', {
+      name: /Exportar Relatório/i,
     });
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('menu')).toBeNull();
 
-    // Clicking the clipboard icon copies the concise AI remediation JSON
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /Copiar JSON para IA para a área de transferência/i,
-      }),
-    );
+    // Should NOT display all-clear celebration when vulnerabilities/findings exist
+    expect(screen.queryByText(/Escudo Íntegro/i)).toBeNull();
+
+    // Open dropdown menu
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+    const menuItems = screen.getAllByRole('menuitem');
+    expect(menuItems.map((el) => el.textContent ?? '')).toEqual([
+      expect.stringContaining('PDF Executivo (Gerência)'),
+      expect.stringContaining('JSON para IA'),
+      expect.stringContaining('Copiar JSON para IA'),
+      expect.stringContaining('JSON Completo'),
+      expect.stringContaining('Markdown'),
+      expect.stringContaining('SBOM (CycloneDX)'),
+    ]);
+
+    // All menu items are enabled when there are findings
+    for (const item of menuItems) {
+      expect((item as HTMLButtonElement).disabled).toBe(false);
+    }
+
+    // Clicking "Copiar JSON para IA" copies the concise AI remediation JSON
+    fireEvent.click(menuItems[2]);
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledTimes(1);
@@ -388,5 +400,68 @@ describe('AI Remediation JSON Exporter & Executive Remediation Planner', () => {
     expect(copiedPayload.schema).toBe('brynja.ai-remediation.v1');
     expect(copiedPayload.summary.totalTasks).toBe(3);
     expect(copiedPayload.tasks[0].package).toBe('next');
+  });
+
+  it('shows the celebratory all-clear message and disables non-PDF exports when all checks pass with zero issues', async () => {
+    const cleanReport: ScanReport = {
+      ...makeSampleScanReport(),
+      totalDependencies: 264,
+      criticalCount: 0,
+      highCount: 0,
+      mediumCount: 0,
+      lowCount: 0,
+      confirmedActiveCount: 0,
+      findings: [],
+      probeResults: [
+        {
+          id: 'p-ok-1',
+          probeId: 'safe-probe:hsts-tls',
+          title: 'Política HSTS configurada adequadamente',
+          severity: 'INFO',
+          status: 'PASSED',
+          targetUrl: 'https://staging.acme.io',
+          evidence: 'HSTS max-age=31536000',
+          recommendation: 'Manter política atual.',
+          matchedPackage: null,
+          createdAt: '2026-11-25T10:00:12.000Z',
+        },
+      ],
+    };
+
+    const gateway = makeGateway(cleanReport);
+
+    render(
+      <GatewayProvider gateway={gateway}>
+        <ScanReportView scanId={cleanReport.id} />
+      </GatewayProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Escudo Íntegro — Todos os testes passaram sem nenhum erro!/i),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/264 dependência\(s\) analisada\(s\) e 1 Safe Probe\(s\)/i),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/Tudo limpo! Nenhuma vulnerabilidade foi detectada/i),
+      ).toBeTruthy();
+    });
+
+    // Open export dropdown: only PDF Executivo stays enabled; AI JSON & others are disabled
+    fireEvent.click(
+      screen.getByRole('button', { name: /Exportar Relatório/i }),
+    );
+    expect(
+      screen.getByText(/Nenhum erro encontrado — apenas o PDF Executivo permanece habilitado/i),
+    ).toBeTruthy();
+
+    const menuItems = screen.getAllByRole('menuitem') as HTMLButtonElement[];
+    expect(menuItems[0].textContent).toContain('PDF Executivo (Gerência)');
+    expect(menuItems[0].disabled).toBe(false);
+
+    for (const nonPdfItem of menuItems.slice(1)) {
+      expect(nonPdfItem.disabled).toBe(true);
+    }
   });
 });

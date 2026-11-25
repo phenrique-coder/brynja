@@ -6,6 +6,15 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.7.0] - 2026-11-25
+
+### Adicionado
+- Menu dropdown **Exportar Relatório** posicionado no canto direito do cabeçalho de `/scans/[id]` (`ScanReportView`), reunindo todas as opções na ordem **PDF Executivo (Gerência)** primeiro, seguido de **JSON para IA** (download + cópia em 1 clique) e demais formatos técnicos (`JSON Completo`, `Markdown`, `SBOM CycloneDX`), com fechamento por tecla `Escape` e clique externo.
+- Banner celebratório **Escudo Íntegro (100% Aprovado)** e estado limpo positivo na aba de vulnerabilidades (`isScanAllClear`) quando todas as verificações SCA e Safe Probes passam sem nenhum erro, vulnerabilidade ou achado, traduzido em PT-BR, EN e ES.
+
+### Alterado
+- Quando a varredura conclui sem nenhum erro (`isScanAllClear`), as opções não-PDF do menu de exportação (`JSON para IA`, `Copiar JSON para IA`, `JSON Completo`, `Markdown` e `SBOM`) ficam automaticamente desabilitadas com aviso contextual, mantendo apenas o **PDF Executivo (Gerência)** habilitado.
+
 ## [1.6.1] - 2026-11-25
 
 ### Corrigido

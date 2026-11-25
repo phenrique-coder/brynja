@@ -6,6 +6,15 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-11-25
+
+### Added
+- Right-aligned **Export Report** dropdown menu on `/scans/[id]` (`ScanReportView`) consolidating all export actions in priority order: **Executive PDF (Board)** first, followed by **AI Fix JSON** (download + one-click clipboard copy) and other technical formats (`Full JSON`, `Markdown`, `SBOM CycloneDX`), with Escape and outside-click dismissal.
+- Celebratory **Shield Intact (100% Passed)** banner and positive empty state on `/scans/[id]` (`isScanAllClear`) whenever all SCA dependency checks and Safe Probes complete with zero vulnerabilities, zero probe findings, and zero execution errors, translated across PT-BR, EN, and ES.
+
+### Changed
+- When a scan completes cleanly with zero issues (`isScanAllClear`), non-PDF export entries inside the report dropdown (`AI Fix JSON`, `Copy AI Fix JSON`, `Full JSON`, `Markdown`, and `SBOM`) are automatically disabled with a clear status hint, leaving only **Executive PDF (Board)** active.
+
 ## [1.6.1] - 2026-11-25
 
 ### Fixed

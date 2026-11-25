@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowLeft,
   Check,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Copy,
   Download,
@@ -35,6 +36,7 @@ import {
   formatReferenceLinks,
   formatRepositoryDisplay,
   formatTargetHost,
+  isScanAllClear,
 } from '../presenters/scan.presenter';
 import {
   PIPELINE_STAGES,
@@ -69,6 +71,34 @@ export function ScanReportView({ scanId }: { scanId: string }) {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [copiedAiJson, setCopiedAiJson] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+
+    function handleOutsideClick(event: MouseEvent) {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(event.target as Node)
+      ) {
+        setExportMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setExportMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [exportMenuOpen]);
 
   const filteredFindings = useMemo(() => {
     if (!report) return [];
@@ -167,11 +197,15 @@ export function ScanReportView({ scanId }: { scanId: string }) {
     markdown: messages.scanReport.markdownLabel,
     cyclonedx: messages.scanReport.sbomLabel,
   };
+  const allClear = isScanAllClear(report);
+  const probeIssuesCount = report.probeResults.filter(
+    (p) => p.status === 'FINDING' || p.status === 'ABORTED',
+  ).length;
 
   return (
     <div className="space-y-6">
-      {/* Report Header Card: Full-width identity + clean separated export bar */}
-      <SurfaceCard className="overflow-hidden">
+      {/* Report Header Card: Full-width identity + right-aligned export dropdown */}
+      <SurfaceCard className="relative overflow-visible">
         <div className="space-y-4 p-5 sm:p-6">
           {/* Top navigation & status bar */}
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -204,159 +238,284 @@ export function ScanReportView({ scanId }: { scanId: string }) {
             </div>
           </div>
 
-          {/* Primary Repository & Domain Identity */}
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
-              <FolderGit2 className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                {isHttpRepo ? (
-                  <a
-                    href={report.repositoryUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={report.repositoryUrl}
-                    className="group inline-flex min-w-0 items-center gap-1.5 text-lg font-bold tracking-tight text-fg transition hover:text-cyan-700 sm:text-xl dark:hover:text-cyan-300"
-                  >
-                    <span className="break-all sm:break-normal">
-                      {repoDisplay.displayName}
-                    </span>
-                    <ExternalLink className="h-4 w-4 shrink-0 opacity-60 transition group-hover:opacity-100" />
-                  </a>
-                ) : (
-                  <h1 className="break-all text-lg font-bold tracking-tight text-fg sm:text-xl">
-                    {repoDisplay.displayName}
-                  </h1>
-                )}
+          {/* Primary Repository & Domain Identity + Right-corner Export Dropdown */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+                <FolderGit2 className="h-5 w-5" />
               </div>
-
-              {/* Structured metadata chips */}
-              <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 font-mono text-[11px] font-medium text-fg-secondary">
-                  <GitBranch className="h-3.5 w-3.5 text-fg-muted" />
-                  {report.branch}
-                </span>
-
-                {targetHost && report.targetUrl ? (
-                  <a
-                    href={report.targetUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={report.targetUrl}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-medium text-emerald-800 transition hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      {t(messages.scanReport.targetPrefix, {
-                        host: targetHost,
-                      })}
-                    </span>
-                    <ExternalLink className="h-3 w-3 opacity-70" />
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] font-medium text-fg-muted">
-                    <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                    {messages.scanReport.scaOnlyBadge}
-                  </span>
-                )}
-
-                {report.ecosystems.length > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 font-mono text-[11px] font-medium text-fg-secondary">
-                    <Layers className="h-3.5 w-3.5 text-fg-muted" />
-                    {report.ecosystems.join(', ')}
-                  </span>
-                ) : null}
-
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] text-fg-muted">
-                  <Clock className="h-3.5 w-3.5" />
-                  {new Date(
-                    report.completedAt ?? report.createdAt,
-                  ).toLocaleString(intlLocale, {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Dedicated Export Toolbar */}
-        <div className="flex flex-col gap-2.5 border-t border-subtle bg-surface-subtle/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
-            {messages.scanReport.exportReportLabel}
-          </span>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={exportingPdf}
-              title={messages.scanReport.executivePdfTitle}
-              onClick={() => void handleDownloadPdf(report)}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-cyan-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
-            >
-              {exportingPdf ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <FileDown className="h-3.5 w-3.5" />
-              )}
-              {exportingPdf
-                ? messages.scanReport.generatingPdf
-                : messages.scanReport.executivePdf}
-            </button>
-
-            {aiExporter ? (
-              <div className="inline-flex items-center overflow-hidden rounded-xl border border-emerald-500/40 bg-emerald-600 text-white shadow-sm dark:bg-emerald-500 dark:text-slate-950">
-                <button
-                  type="button"
-                  title={messages.scanReport.aiJsonTitle}
-                  onClick={() => triggerDownload(aiExporter, report)}
-                  className="inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold transition hover:bg-emerald-500 dark:hover:bg-emerald-400"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {messages.scanReport.aiJson}
-                </button>
-                <button
-                  type="button"
-                  title={messages.scanReport.copyAiJsonTitle}
-                  aria-label={messages.scanReport.copyAiJsonTitle}
-                  onClick={() => void handleCopyAiJson(aiExporter, report)}
-                  className="inline-flex items-center justify-center border-l border-white/25 px-2.5 py-1.5 text-xs font-semibold transition hover:bg-emerald-500 dark:border-slate-950/25 dark:hover:bg-emerald-400"
-                >
-                  {copiedAiJson ? (
-                    <Check className="h-3.5 w-3.5" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  {isHttpRepo ? (
+                    <a
+                      href={report.repositoryUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={report.repositoryUrl}
+                      className="group inline-flex min-w-0 items-center gap-1.5 text-lg font-bold tracking-tight text-fg transition hover:text-cyan-700 sm:text-xl dark:hover:text-cyan-300"
+                    >
+                      <span className="break-all sm:break-normal">
+                        {repoDisplay.displayName}
+                      </span>
+                      <ExternalLink className="h-4 w-4 shrink-0 opacity-60 transition group-hover:opacity-100" />
+                    </a>
                   ) : (
-                    <Copy className="h-3.5 w-3.5" />
+                    <h1 className="break-all text-lg font-bold tracking-tight text-fg sm:text-xl">
+                      {repoDisplay.displayName}
+                    </h1>
                   )}
-                </button>
+                </div>
+
+                {/* Structured metadata chips */}
+                <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 font-mono text-[11px] font-medium text-fg-secondary">
+                    <GitBranch className="h-3.5 w-3.5 text-fg-muted" />
+                    {report.branch}
+                  </span>
+
+                  {targetHost && report.targetUrl ? (
+                    <a
+                      href={report.targetUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={report.targetUrl}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-medium text-emerald-800 transition hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        {t(messages.scanReport.targetPrefix, {
+                          host: targetHost,
+                        })}
+                      </span>
+                      <ExternalLink className="h-3 w-3 opacity-70" />
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] font-medium text-fg-muted">
+                      <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                      {messages.scanReport.scaOnlyBadge}
+                    </span>
+                  )}
+
+                  {report.ecosystems.length > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 font-mono text-[11px] font-medium text-fg-secondary">
+                      <Layers className="h-3.5 w-3.5 text-fg-muted" />
+                      {report.ecosystems.join(', ')}
+                    </span>
+                  ) : null}
+
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 text-[11px] text-fg-muted">
+                    <Clock className="h-3.5 w-3.5" />
+                    {new Date(
+                      report.completedAt ?? report.createdAt,
+                    ).toLocaleString(intlLocale, {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    })}
+                  </span>
+                </div>
               </div>
-            ) : null}
+            </div>
 
-            <span
-              aria-hidden="true"
-              className="hidden h-4 w-px bg-subtle sm:inline-block"
-            />
+            {/* Right-corner Export Dropdown Menu (PDF first -> AI JSON -> others) */}
+            <div ref={exportMenuRef} className="relative shrink-0 self-end sm:self-start">
+              <button
+                type="button"
+                disabled={exportingPdf}
+                aria-haspopup="menu"
+                aria-expanded={exportMenuOpen}
+                onClick={() => setExportMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
+              >
+                {exportingPdf ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <FileDown className="h-3.5 w-3.5" />
+                )}
+                <span>
+                  {exportingPdf
+                    ? messages.scanReport.generatingPdf
+                    : messages.scanReport.exportReportLabel}
+                </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${
+                    exportMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
 
-            {secondaryExporters.map((exporter) => {
-              const shortLabel =
-                exporterLabels[exporter.format] ??
-                exporter.label.replace(/^Exportar\s+/i, '');
-              return (
-                <button
-                  key={exporter.format}
-                  type="button"
-                  onClick={() => triggerDownload(exporter, report)}
-                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-fg transition hover:border-cyan-500/40 hover:text-cyan-700 dark:hover:text-cyan-300"
+              {exportMenuOpen ? (
+                <div
+                  role="menu"
+                  aria-label={messages.scanReport.exportDropdownMenuLabel}
+                  className="absolute right-0 z-30 mt-2 w-72 rounded-2xl border border-subtle bg-surface p-1.5 shadow-xl sm:w-80"
                 >
-                  <Download className="h-3.5 w-3.5 text-fg-muted" />
-                  {shortLabel}
-                </button>
-              );
-            })}
+                  {allClear ? (
+                    <div className="mb-1.5 rounded-xl border border-emerald-500/30 bg-emerald-50 px-3 py-2 text-[11px] font-medium leading-snug text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200">
+                      {messages.scanReport.exportOnlyPdfHint}
+                    </div>
+                  ) : null}
+
+                  {/* 1. Executive PDF (always enabled) */}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={exportingPdf}
+                    title={messages.scanReport.executivePdfTitle}
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      void handleDownloadPdf(report);
+                    }}
+                    className="flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition hover:bg-cyan-50 dark:hover:bg-cyan-500/10 disabled:opacity-50"
+                  >
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-600 text-white dark:bg-cyan-500 dark:text-slate-950">
+                      <FileDown className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold text-fg">
+                        {messages.scanReport.executivePdf}
+                      </span>
+                      <span className="block text-[11px] leading-snug text-fg-muted">
+                        {messages.scanReport.executivePdfMenuHint}
+                      </span>
+                    </span>
+                  </button>
+
+                  {/* 2. AI Remediation JSON (download + copy) */}
+                  {aiExporter ? (
+                    <>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={allClear}
+                        title={messages.scanReport.aiJsonTitle}
+                        onClick={() => {
+                          if (allClear) return;
+                          setExportMenuOpen(false);
+                          triggerDownload(aiExporter, report);
+                        }}
+                        className="mt-0.5 flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent dark:hover:bg-emerald-500/10"
+                      >
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950">
+                          <Sparkles className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-2 text-xs font-semibold text-fg">
+                            <span>{messages.scanReport.aiJson}</span>
+                            {allClear ? (
+                              <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">
+                                {messages.scanReport.disabledNoErrorsBadge}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="block text-[11px] leading-snug text-fg-muted">
+                            {messages.scanReport.aiJsonMenuHint}
+                          </span>
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={allClear}
+                        title={messages.scanReport.copyAiJsonTitle}
+                        onClick={() => {
+                          if (allClear) return;
+                          void handleCopyAiJson(aiExporter, report);
+                        }}
+                        className="mt-0.5 flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                      >
+                        {copiedAiJson ? (
+                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold text-fg">
+                            {copiedAiJson
+                              ? messages.scanReport.copiedAiJsonLabel
+                              : messages.scanReport.copyAiJsonLabel}
+                          </span>
+                          <span className="block text-[11px] text-fg-muted">
+                            {messages.scanReport.copyAiJsonMenuHint}
+                          </span>
+                        </span>
+                      </button>
+                    </>
+                  ) : null}
+
+                  <div className="my-1.5 border-t border-subtle" />
+                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
+                    {messages.scanReport.otherExportsLabel}
+                  </div>
+
+                  {/* 3. Other technical formats (JSON Completo, Markdown, SBOM) */}
+                  {secondaryExporters.map((exporter) => {
+                    const shortLabel =
+                      exporterLabels[exporter.format] ??
+                      exporter.label.replace(/^Exportar\s+/i, '');
+                    return (
+                      <button
+                        key={exporter.format}
+                        type="button"
+                        role="menuitem"
+                        disabled={allClear}
+                        onClick={() => {
+                          if (allClear) return;
+                          setExportMenuOpen(false);
+                          triggerDownload(exporter, report);
+                        }}
+                        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-fg transition hover:bg-surface-hover hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-fg dark:hover:text-cyan-300"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Download className="h-3.5 w-3.5 text-fg-muted" />
+                          <span>{shortLabel}</span>
+                        </span>
+                        {allClear ? (
+                          <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">
+                            {messages.scanReport.disabledNoErrorsBadge}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </SurfaceCard>
+
+      {/* Celebratory All-Clear Banner when every SCA & Safe Probe check passed with zero issues */}
+      {allClear ? (
+        <SurfaceCard className="border-emerald-300/80 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-cyan-50/60 p-5 sm:p-6 dark:border-emerald-500/35 dark:from-emerald-500/12 dark:via-teal-500/8 dark:to-cyan-500/8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-600 text-white shadow-sm dark:bg-emerald-500 dark:text-slate-950">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200">
+                  <Sparkles className="h-3 w-3" />
+                  <span>{messages.scanReport.allClearBadge}</span>
+                </div>
+                <h2 className="text-base font-bold text-emerald-950 dark:text-emerald-100">
+                  {messages.scanReport.allClearTitle}
+                </h2>
+                <p className="text-xs leading-relaxed text-emerald-900/80 sm:text-sm dark:text-emerald-200/85">
+                  {report.probeResults.length > 0
+                    ? t(messages.scanReport.allClearBodyWithProbes, {
+                        deps: report.totalDependencies,
+                        probes: report.probeResults.length,
+                      })
+                    : t(messages.scanReport.allClearBodyScaOnly, {
+                        deps: report.totalDependencies,
+                      })}
+                </p>
+              </div>
+            </div>
+          </div>
+        </SurfaceCard>
+      ) : null}
 
       {/* Pipeline stepper */}
       <SurfaceCard className="p-4 sm:p-5">
@@ -542,7 +701,32 @@ export function ScanReportView({ scanId }: { scanId: string }) {
             </label>
           </SurfaceCard>
 
-          {filteredFindings.length === 0 ? (
+          {report.findings.length === 0 ? (
+            <SurfaceCard
+              className={`p-8 text-center text-sm ${
+                probeIssuesCount > 0
+                  ? 'border-amber-300/60 bg-amber-50/40 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200'
+                  : 'border-emerald-300/60 bg-emerald-50/40 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+              }`}
+            >
+              <div className="inline-flex items-center gap-2 font-semibold">
+                {probeIssuesCount > 0 ? (
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                )}
+                <span>
+                  {probeIssuesCount > 0
+                    ? t(messages.scanReport.noVulnsButProbeFindings, {
+                        count: probeIssuesCount,
+                      })
+                    : t(messages.scanReport.noVulnsCleanState, {
+                        deps: report.totalDependencies,
+                      })}
+                </span>
+              </div>
+            </SurfaceCard>
+          ) : filteredFindings.length === 0 ? (
             <SurfaceCard className="p-8 text-center text-sm text-fg-secondary">
               {messages.scanReport.noFindingsFiltered}
             </SurfaceCard>

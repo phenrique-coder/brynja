@@ -331,17 +331,38 @@ export const ES_MESSAGES: Messages = {
     targetPrefix: 'Objetivo: {host}',
     scaOnlyBadge: 'Solo SCA (sin objetivo staging)',
     exportReportLabel: 'Exportar Informe',
+    exportDropdownMenuLabel: 'Opciones de exportación del informe',
+    exportOnlyPdfHint:
+      'Sin errores detectados — solo el PDF Ejecutivo permanece habilitado.',
     generatingPdf: 'Generando PDF...',
     executivePdf: 'PDF Ejecutivo (Dirección)',
     executivePdfTitle:
       'Informe ejecutivo en PDF para gerencia y dirección con explicación de problemas y plan de soluciones',
+    executivePdfMenuHint: 'Para gerencia y dirección (problemas y soluciones)',
     aiJson: 'JSON para IA',
     aiJsonTitle:
       'Descargar JSON estructurado y conciso para modelos de IA enfocado en resolver cada problema',
+    aiJsonMenuHint: 'JSON conciso enfocado en corrección para modelos de IA',
+    copyAiJsonLabel: 'Copiar JSON para IA',
     copyAiJsonTitle: 'Copiar JSON para IA al portapapeles',
+    copyAiJsonMenuHint: 'Copiar directo para pegar en tu chat o agente de IA',
+    copiedAiJsonLabel: '¡JSON para IA copiado!',
+    otherExportsLabel: 'Otros formatos técnicos',
+    disabledNoErrorsBadge: 'Sin errores',
     rawJsonLabel: 'JSON Completo',
     markdownLabel: 'Markdown',
     sbomLabel: 'SBOM (CycloneDX)',
+    allClearBadge: '100% Aprobado',
+    allClearTitle:
+      'Escudo Íntegro — ¡Todas las pruebas pasaron sin errores!',
+    allClearBodyWithProbes:
+      '¡Excelente trabajo! {deps} dependencia(s) analizada(s) y {probes} Safe Probe(s) verificados sin vulnerabilidades ni fallos de seguridad detectados.',
+    allClearBodyScaOnly:
+      '¡Excelente trabajo! {deps} dependencia(s) analizada(s) en el inventario SBOM sin vulnerabilidades conocidas detectadas.',
+    noVulnsCleanState:
+      '¡Todo limpio! No se detectaron vulnerabilidades en las {deps} dependencia(s) analizada(s).',
+    noVulnsButProbeFindings:
+      'No se encontraron vulnerabilidades en dependencias (SCA), pero hay {count} hallazgo(s) en la pestaña Safe Probes.',
     executionError: 'Error de ejecución: {message}',
     kpiDependencies: 'Dependencias',
     kpiCritical: 'Críticas',

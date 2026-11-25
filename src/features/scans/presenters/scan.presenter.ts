@@ -1,5 +1,6 @@
 import {
   FindingVerdict,
+  ScanReport,
   ScanStatus,
   ScanSummary,
   SeverityLevel,
@@ -174,6 +175,24 @@ export function computeOverallRisk(
     return { label: 'RISCO BAIXO', severity: 'LOW' };
   }
   return { label: 'POSTURA LIMPA', severity: 'INFO' };
+}
+
+/**
+ * Returns true when a completed scan passed all dependency (SCA) and Safe Probe checks
+ * with zero vulnerabilities, zero probe findings, and zero execution errors.
+ */
+export function isScanAllClear(
+  report: Pick<ScanReport, 'status' | 'errorMessage' | 'findings' | 'probeResults'>,
+): boolean {
+  if (report.status !== 'COMPLETED' || Boolean(report.errorMessage)) {
+    return false;
+  }
+  if (report.findings.length > 0) {
+    return false;
+  }
+  return !report.probeResults.some(
+    (p) => p.status === 'FINDING' || p.status === 'ABORTED',
+  );
 }
 
 export interface FormattedReferenceLink {
