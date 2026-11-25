@@ -239,8 +239,18 @@ export function AuthorizationsView() {
     e.preventDefault();
     setActionError(null);
     setInstructions(null);
+
+    const normalized = parseDraftTargetUrl(targetUrl);
+    if (!normalized) {
+      setActionError(messages.authorizations.invalidTargetUrl);
+      return;
+    }
+
     try {
-      const res = await authorizer.createAuthorization(targetUrl, method);
+      const res = await authorizer.createAuthorization(
+        normalized.origin,
+        method,
+      );
       setInstructions(res.instructions);
       setLastCreatedTarget(res.authorization);
       setSelectedGuideTargetId(res.authorization.id);
@@ -340,7 +350,11 @@ export function AuthorizationsView() {
                   {messages.authorizations.targetUrlLabel}
                 </label>
                 <input
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   required
                   placeholder={messages.authorizations.targetUrlPlaceholder}
                   value={targetUrl}

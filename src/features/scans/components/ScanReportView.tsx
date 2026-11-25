@@ -19,6 +19,7 @@ import {
   Layers,
   Loader2,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import {
   FindingVerdict,
@@ -67,6 +68,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
   const [search, setSearch] = useState('');
   const [exportingPdf, setExportingPdf] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedAiJson, setCopiedAiJson] = useState(false);
 
   const filteredFindings = useMemo(() => {
     if (!report) return [];
@@ -95,6 +97,20 @@ export function ScanReportView({ scanId }: { scanId: string }) {
       await downloadScanReportPdf(current);
     } finally {
       setExportingPdf(false);
+    }
+  }
+
+  async function handleCopyAiJson(
+    exporter: IReportExporter,
+    current: ScanReport,
+  ) {
+    try {
+      const file = exporter.export(current);
+      await navigator.clipboard.writeText(file.content);
+      setCopiedAiJson(true);
+      window.setTimeout(() => setCopiedAiJson(false), 1800);
+    } catch {
+      // ignore clipboard errors
     }
   }
 
@@ -141,6 +157,16 @@ export function ScanReportView({ scanId }: { scanId: string }) {
       // ignore clipboard errors
     }
   }
+
+  const aiExporter = REPORT_EXPORTERS.find((e) => e.format === 'ai-json');
+  const secondaryExporters = REPORT_EXPORTERS.filter(
+    (e) => e.format !== 'ai-json',
+  );
+  const exporterLabels: Record<string, string> = {
+    json: messages.scanReport.rawJsonLabel,
+    markdown: messages.scanReport.markdownLabel,
+    cyclonedx: messages.scanReport.sbomLabel,
+  };
 
   return (
     <div className="space-y-6">
@@ -266,6 +292,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
             <button
               type="button"
               disabled={exportingPdf}
+              title={messages.scanReport.executivePdfTitle}
               onClick={() => void handleDownloadPdf(report)}
               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-cyan-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
             >
@@ -279,13 +306,42 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                 : messages.scanReport.executivePdf}
             </button>
 
+            {aiExporter ? (
+              <div className="inline-flex items-center overflow-hidden rounded-xl border border-emerald-500/40 bg-emerald-600 text-white shadow-sm dark:bg-emerald-500 dark:text-slate-950">
+                <button
+                  type="button"
+                  title={messages.scanReport.aiJsonTitle}
+                  onClick={() => triggerDownload(aiExporter, report)}
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold transition hover:bg-emerald-500 dark:hover:bg-emerald-400"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {messages.scanReport.aiJson}
+                </button>
+                <button
+                  type="button"
+                  title={messages.scanReport.copyAiJsonTitle}
+                  aria-label={messages.scanReport.copyAiJsonTitle}
+                  onClick={() => void handleCopyAiJson(aiExporter, report)}
+                  className="inline-flex items-center justify-center border-l border-white/25 px-2.5 py-1.5 text-xs font-semibold transition hover:bg-emerald-500 dark:border-slate-950/25 dark:hover:bg-emerald-400"
+                >
+                  {copiedAiJson ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </div>
+            ) : null}
+
             <span
               aria-hidden="true"
               className="hidden h-4 w-px bg-subtle sm:inline-block"
             />
 
-            {REPORT_EXPORTERS.map((exporter) => {
-              const shortLabel = exporter.label.replace(/^Exportar\s+/i, '');
+            {secondaryExporters.map((exporter) => {
+              const shortLabel =
+                exporterLabels[exporter.format] ??
+                exporter.label.replace(/^Exportar\s+/i, '');
               return (
                 <button
                   key={exporter.format}

@@ -11,6 +11,7 @@ import {
   ExportedReportFile,
   IReportExporter,
 } from '@/core/ports/scan-gateway.port';
+import { AiRemediationJsonExporter } from '../exporters/ai-remediation-json.exporter';
 
 export interface BadgeMeta {
   label: string;
@@ -239,6 +240,7 @@ class CycloneDxSbomExporter implements IReportExporter {
 }
 
 export const REPORT_EXPORTERS: IReportExporter[] = [
+  new AiRemediationJsonExporter(),
   new JsonReportExporter(),
   new MarkdownReportExporter(),
   new CycloneDxSbomExporter(),

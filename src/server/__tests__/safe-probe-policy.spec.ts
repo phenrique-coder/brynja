@@ -55,19 +55,44 @@ describe('SafeProbePolicy', () => {
   });
 
   describe('parseAndValidateTargetUrl', () => {
-    it('accepts valid http/https URLs', () => {
+    it('accepts valid http/https URLs and auto-prepends https:// (or http:// for loopback) on bare domains', () => {
       const parsed = SafeProbePolicy.parseAndValidateTargetUrl(
         'https://staging.example.com/app',
       );
       expect(parsed.origin).toBe('https://staging.example.com');
+
+      const bareDomain =
+        SafeProbePolicy.parseAndValidateTargetUrl('prenora.com.br');
+      expect(bareDomain.origin).toBe('https://prenora.com.br');
+
+      const barePath = SafeProbePolicy.parseAndValidateTargetUrl(
+        'staging.empresa.com.br:8443/login',
+      );
+      expect(barePath.origin).toBe('https://staging.empresa.com.br:8443');
+
+      const bareLoopback =
+        SafeProbePolicy.parseAndValidateTargetUrl('localhost:3000');
+      expect(bareLoopback.origin).toBe('http://localhost:3000');
     });
 
-    it('rejects non-http protocols and embedded credentials', () => {
+    it('rejects non-http protocols, invalid bare hosts, and embedded credentials', () => {
       expect(() =>
         SafeProbePolicy.parseAndValidateTargetUrl('file:///etc/passwd'),
       ).toThrow(InvalidTargetUrlError);
       expect(() =>
+        SafeProbePolicy.parseAndValidateTargetUrl('javascript:alert(1)'),
+      ).toThrow(InvalidTargetUrlError);
+      expect(() =>
         SafeProbePolicy.parseAndValidateTargetUrl('https://user:pass@site.com'),
+      ).toThrow(InvalidTargetUrlError);
+      expect(() =>
+        SafeProbePolicy.parseAndValidateTargetUrl('user:pass@prenora.com.br'),
+      ).toThrow(InvalidTargetUrlError);
+      expect(() =>
+        SafeProbePolicy.parseAndValidateTargetUrl('prenora'),
+      ).toThrow(InvalidTargetUrlError);
+      expect(() =>
+        SafeProbePolicy.parseAndValidateTargetUrl('prenora.c'),
       ).toThrow(InvalidTargetUrlError);
     });
   });

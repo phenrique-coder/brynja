@@ -468,4 +468,58 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     ).toBe('true');
     expect(screen.getByText(/default_type text\/plain;/i)).toBeTruthy();
   });
+
+  it('validates bare domains on /authorizations and transparently prepends https:// on submit', async () => {
+    const createAuthorization = vi.fn().mockResolvedValue({
+      authorization: {
+        id: 'auth-prenora',
+        origin: 'https://prenora.com.br',
+        hostname: 'prenora.com.br',
+        method: 'WELL_KNOWN_FILE',
+        status: 'PENDING',
+        challengeToken: 'brynja-verify-1234abcd5678ef001234abcd5678ef00',
+        verifiedAt: null,
+        expiresAt: null,
+        createdAt: '2026-11-25T15:00:00.000Z',
+        updatedAt: '2026-11-25T15:00:00.000Z',
+      },
+      instructions: 'Publique o arquivo de verificação.',
+    });
+
+    const gateway = makeGateway({ createAuthorization });
+
+    render(
+      <GatewayProvider gateway={gateway}>
+        <AuthorizationsView />
+      </GatewayProvider>,
+    );
+
+    const urlInput = await screen.findByPlaceholderText(
+      'https://staging.suaempresa.com',
+    );
+    expect(urlInput.getAttribute('type')).toBe('text');
+
+    // Invalid bare host is blocked with a friendly error without calling createAuthorization
+    fireEvent.change(urlInput, { target: { value: 'prenora' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gerar Desafio de Posse/i }),
+    );
+    expect(createAuthorization).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/Informe um domínio ou URL válido/i),
+    ).toBeTruthy();
+
+    // Valid bare domain transparently gets https:// prepended under the hood
+    fireEvent.change(urlInput, { target: { value: 'prenora.com.br' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gerar Desafio de Posse/i }),
+    );
+
+    await waitFor(() => {
+      expect(createAuthorization).toHaveBeenCalledWith(
+        'https://prenora.com.br',
+        'WELL_KNOWN_FILE',
+      );
+    });
+  });
 });

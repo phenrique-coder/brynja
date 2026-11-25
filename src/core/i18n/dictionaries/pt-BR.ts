@@ -331,7 +331,16 @@ export const PT_BR_MESSAGES = {
     scaOnlyBadge: 'Somente SCA (sem alvo staging)',
     exportReportLabel: 'Exportar Relatório',
     generatingPdf: 'Gerando PDF...',
-    executivePdf: 'PDF Executivo',
+    executivePdf: 'PDF Executivo (Gerência)',
+    executivePdfTitle:
+      'Relatório executivo em PDF para gerência e diretoria com apresentação dos problemas e plano de soluções',
+    aiJson: 'JSON para IA',
+    aiJsonTitle:
+      'Baixar JSON estruturado e conciso para modelos de IA focado na resolução direta dos problemas',
+    copyAiJsonTitle: 'Copiar JSON para IA para a área de transferência',
+    rawJsonLabel: 'JSON Completo',
+    markdownLabel: 'Markdown',
+    sbomLabel: 'SBOM (CycloneDX)',
     executionError: 'Erro na execução: {message}',
     kpiDependencies: 'Dependências',
     kpiCritical: 'Críticas',
@@ -380,6 +389,8 @@ export const PT_BR_MESSAGES = {
     methodSandbox: 'Sandbox Loopback Local (dev)',
     generateButton: 'Gerar Desafio de Posse',
     instructionPrefix: 'Instrução de Verificação:',
+    invalidTargetUrl:
+      'Informe um domínio ou URL válido (ex.: seusite.com.br ou https://staging.suaempresa.com).',
     createErrorFallback: 'Erro ao criar desafio.',
     verifyErrorFallback: 'Falha na verificação de posse.',
     revokeErrorFallback: 'Falha ao revogar e remover autorização.',

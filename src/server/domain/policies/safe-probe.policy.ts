@@ -6,6 +6,9 @@ import {
 
 const ALLOWED_SAFE_METHODS = new Set(['GET', 'HEAD']);
 const ALLOWED_SAFE_REQUEST_HEADERS = new Set(['origin', 'accept']);
+const DNS_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
+const TLD_LABEL_RE = /^(?:[a-z]{2,}|xn--[a-z0-9-]{2,})$/i;
+const IPV6_BRACKETED_RE = /^\[[0-9a-f:]+\]$/i;
 
 export interface NetworkSafetyOptions {
   allowLoopbackTargets: boolean;
@@ -66,10 +69,65 @@ export class SafeProbePolicy {
     return sanitized;
   }
 
+  private static isValidTargetHostname(hostname: string): boolean {
+    const clean = hostname.toLowerCase();
+    if (!clean || /\s/.test(clean)) return false;
+
+    if (clean === 'localhost') return true;
+    if (IPV6_BRACKETED_RE.test(clean)) return true;
+    if (ipv4ToInt(clean) !== null) return true;
+
+    if (clean.endsWith('.localhost')) {
+      const subLabels = clean.slice(0, -'.localhost'.length).split('.');
+      return subLabels.length > 0 && subLabels.every((l) => DNS_LABEL_RE.test(l));
+    }
+
+    const labels = clean.split('.');
+    if (labels.length < 2) return false;
+    if (!labels.every((label) => DNS_LABEL_RE.test(label))) return false;
+
+    const tld = labels[labels.length - 1];
+    return TLD_LABEL_RE.test(tld);
+  }
+
   static parseAndValidateTargetUrl(rawUrl: string): URL {
+    const trimmed = rawUrl.trim();
+    if (!trimmed || /\s/.test(trimmed)) {
+      throw new InvalidTargetUrlError(`URL alvo inválida: "${rawUrl}"`);
+    }
+
+    let candidate = trimmed;
+
+    if (!trimmed.includes('://')) {
+      if (/^https?:/i.test(trimmed)) {
+        throw new InvalidTargetUrlError(`URL alvo inválida: "${rawUrl}"`);
+      }
+
+      const isBracketedIpv6 = /^\[[0-9a-f:]+\](?::\d+)?(?:\/.*)?$/i.test(
+        trimmed,
+      );
+      if (!isBracketedIpv6) {
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx !== -1) {
+          const afterColon = trimmed.slice(colonIdx + 1);
+          if (!/^\d+(?:\/|$)/.test(afterColon)) {
+            throw new InvalidTargetUrlError(`URL alvo inválida: "${rawUrl}"`);
+          }
+        }
+      }
+
+      const hostProbe = isBracketedIpv6
+        ? trimmed.slice(0, trimmed.indexOf(']') + 1)
+        : trimmed.split(/[/:?#]/)[0];
+      const defaultProtocol = SafeProbePolicy.isLoopbackHostnameOrIp(hostProbe)
+        ? 'http://'
+        : 'https://';
+      candidate = `${defaultProtocol}${trimmed}`;
+    }
+
     let parsed: URL;
     try {
-      parsed = new URL(rawUrl.trim());
+      parsed = new URL(candidate);
     } catch {
       throw new InvalidTargetUrlError(`URL alvo inválida: "${rawUrl}"`);
     }
@@ -84,6 +142,10 @@ export class SafeProbePolicy {
       throw new InvalidTargetUrlError(
         'Credenciais embutidas na URL alvo não são permitidas.',
       );
+    }
+
+    if (!SafeProbePolicy.isValidTargetHostname(parsed.hostname)) {
+      throw new InvalidTargetUrlError(`URL alvo inválida: "${rawUrl}"`);
     }
 
     return parsed;

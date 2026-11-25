@@ -316,11 +316,20 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
       ],
     };
 
-    const doc = await buildScanReportPdf(sampleReport);
+    const doc = await buildScanReportPdf(sampleReport, { compress: false });
     expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1);
 
     const bytes = new Uint8Array(doc.output('arraybuffer'));
     const header = String.fromCharCode(...bytes.slice(0, 5));
     expect(header).toBe('%PDF-');
+
+    const pdfLatin1 = new TextDecoder('latin1').decode(bytes);
+    expect(pdfLatin1).toContain('PARECER EXECUTIVO PARA GERÊNCIA E DIRETORIA');
+    expect(pdfLatin1).toContain('Apresentação dos Problemas e Plano de Soluções');
+    expect(pdfLatin1).toContain('APRESENTAÇÃO E EXPLANAÇÃO DO PROBLEMA');
+    expect(pdfLatin1).toContain('SOLUÇÃO RECOMENDADA');
+    expect(pdfLatin1).toContain('FIX-01');
+    expect(pdfLatin1).toContain('FIX-02');
+    expect(pdfLatin1).toContain('15.2.3');
   });
 });

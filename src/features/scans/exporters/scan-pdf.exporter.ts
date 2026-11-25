@@ -5,7 +5,11 @@ import {
   SeverityLevel,
 } from '@/core/models/scan.models';
 import {
-  computeOverallRisk,
+  buildRemediationPlan,
+  RemediationItem,
+  RemediationPriority,
+} from '../presenters/remediation-plan.presenter';
+import {
   filterAndSortFindings,
   formatRepositoryDisplay,
 } from '../presenters/scan.presenter';
@@ -56,6 +60,18 @@ const PROBE_COLORS: Record<ProbeOutcome, { fg: RgbTuple; bg: RgbTuple }> = {
   SKIPPED: { fg: PALETTE.mutedText, bg: PALETTE.slateBg },
   ABORTED: { fg: PALETTE.rose, bg: PALETTE.roseBg },
 };
+
+const PRIORITY_COLORS: Record<
+  RemediationPriority,
+  { fg: RgbTuple; bg: RgbTuple }
+> = {
+  P0: { fg: PALETTE.rose, bg: PALETTE.roseBg },
+  P1: { fg: PALETTE.orange, bg: PALETTE.orangeBg },
+  P2: { fg: PALETTE.amber, bg: PALETTE.amberBg },
+  P3: { fg: PALETTE.sky, bg: PALETTE.skyBg },
+};
+
+const MAX_EXECUTIVE_SOLUTION_CARDS = 25;
 
 /**
  * Ensures strings render cleanly with jsPDF's built-in Latin-1/WinAnsi Helvetica font
@@ -166,7 +182,172 @@ type DocWithAutoTable = jsPDF & {
   lastAutoTable?: { finalY: number };
 };
 
-export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
+export interface BuildScanPdfOptions {
+  compress?: boolean;
+}
+
+function drawExecutiveSolutionCard(
+  doc: jsPDF,
+  item: RemediationItem,
+  cursorY: number,
+  marginX: number,
+  contentWidth: number,
+): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const innerX = marginX + 5;
+  const innerW = contentWidth - 9;
+  const prioColor = PRIORITY_COLORS[item.priority];
+  const sevColor = SEVERITY_COLORS[item.severity];
+
+  const titleLines = doc.splitTextToSize(
+    sanitizePdfText(item.title),
+    innerW,
+  ) as string[];
+  const problemLines = doc.splitTextToSize(
+    sanitizePdfText(`${item.executiveProblem} ${item.executiveImpact}`),
+    innerW - 4,
+  ) as string[];
+  const solutionLines = doc.splitTextToSize(
+    sanitizePdfText(item.executiveSolution),
+    innerW - 4,
+  ) as string[];
+  const validationLines = doc.splitTextToSize(
+    sanitizePdfText(`Critério de validação: ${item.executiveValidation}`),
+    innerW - 4,
+  ) as string[];
+
+  const lineH = 3.7;
+  const titleBlockH = titleLines.length * 4.2;
+  const problemBoxH = 6.2 + problemLines.length * lineH + 2.5;
+  const solutionBoxH =
+    6.2 + solutionLines.length * lineH + validationLines.length * 3.4 + 3.6;
+  const cardH = 12 + titleBlockH + problemBoxH + solutionBoxH + 6.5;
+
+  let y = cursorY;
+  if (y + cardH > pageHeight - 18) {
+    doc.addPage();
+    y = 20;
+  }
+
+  // Outer executive card
+  doc.setFillColor(...PALETTE.white);
+  doc.setDrawColor(...PALETTE.cardBorder);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(marginX, y, contentWidth, cardH, 2.2, 2.2, 'FD');
+
+  // Left priority accent rail
+  doc.setFillColor(...prioColor.fg);
+  doc.roundedRect(marginX, y, 2.2, cardH, 1.1, 1.1, 'F');
+
+  // Top badge row: Priority + SLA, Severity, Category, and ID/Where on right
+  const badgeY = y + 3.2;
+  const prioText = sanitizePdfText(`${item.priority} | ${item.slaWindow}`);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.1);
+  const prioBadgeW = Math.min(46, doc.getTextWidth(prioText) + 5.5);
+  doc.setFillColor(...prioColor.bg);
+  doc.roundedRect(innerX, badgeY, prioBadgeW, 5.2, 1.2, 1.2, 'F');
+  doc.setTextColor(...prioColor.fg);
+  doc.text(prioText, innerX + prioBadgeW / 2, badgeY + 3.6, {
+    align: 'center',
+  });
+
+  const sevText = sanitizePdfText(
+    SEVERITY_REGISTRY[item.severity].label.toUpperCase(),
+  );
+  const sevBadgeX = innerX + prioBadgeW + 2;
+  const sevBadgeW = Math.max(16, doc.getTextWidth(sevText) + 5);
+  doc.setFillColor(...sevColor.bg);
+  doc.roundedRect(sevBadgeX, badgeY, sevBadgeW, 5.2, 1.2, 1.2, 'F');
+  doc.setTextColor(...sevColor.fg);
+  doc.text(sevText, sevBadgeX + sevBadgeW / 2, badgeY + 3.6, {
+    align: 'center',
+  });
+
+  const kindText = sanitizePdfText(
+    item.kind === 'dependency' ? 'Dependência (SCA)' : 'Configuração / Runtime',
+  );
+  const kindBadgeX = sevBadgeX + sevBadgeW + 2;
+  const kindBadgeW = doc.getTextWidth(kindText) + 5;
+  doc.setFillColor(...PALETTE.slateBg);
+  doc.roundedRect(kindBadgeX, badgeY, kindBadgeW, 5.2, 1.2, 1.2, 'F');
+  doc.setTextColor(...PALETTE.mutedText);
+  doc.text(kindText, kindBadgeX + kindBadgeW / 2, badgeY + 3.6, {
+    align: 'center',
+  });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.1);
+  doc.setTextColor(...PALETTE.subtleText);
+  doc.text(
+    sanitizePdfText(`${item.id} | ${truncateText(item.where, 38)}`),
+    marginX + contentWidth - 4,
+    badgeY + 3.6,
+    { align: 'right' },
+  );
+
+  // Card Title
+  let blockY = badgeY + 8.6;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.2);
+  doc.setTextColor(...PALETTE.slateText);
+  doc.text(titleLines, innerX, blockY);
+  blockY += titleBlockH + 1.5;
+
+  // Sub-box 1: Problem & Business Impact Explanation
+  doc.setFillColor(...PALETTE.cardBg);
+  doc.setDrawColor(...PALETTE.cardBorder);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(innerX, blockY, innerW, problemBoxH, 1.6, 1.6, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.1);
+  doc.setTextColor(...PALETTE.navySoft);
+  doc.text(
+    sanitizePdfText('APRESENTAÇÃO E EXPLANAÇÃO DO PROBLEMA'),
+    innerX + 2.5,
+    blockY + 4.3,
+  );
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.7);
+  doc.setTextColor(...PALETTE.slateText);
+  doc.text(problemLines, innerX + 2.5, blockY + 8.2);
+  blockY += problemBoxH + 2.4;
+
+  // Sub-box 2: Recommended Solution & Validation
+  doc.setFillColor(240, 253, 244);
+  doc.setDrawColor(167, 243, 208);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(innerX, blockY, innerW, solutionBoxH, 1.6, 1.6, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.1);
+  doc.setTextColor(...PALETTE.emerald);
+  doc.text(
+    sanitizePdfText('SOLUÇÃO RECOMENDADA'),
+    innerX + 2.5,
+    blockY + 4.3,
+  );
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.7);
+  doc.setTextColor(...PALETTE.slateText);
+  doc.text(solutionLines, innerX + 2.5, blockY + 8.2);
+
+  const valY = blockY + 8.2 + solutionLines.length * lineH + 0.8;
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7.1);
+  doc.setTextColor(...PALETTE.emerald);
+  doc.text(validationLines, innerX + 2.5, valY);
+
+  return y + cardH + 4;
+}
+
+export async function buildScanReportPdf(
+  report: ScanReport,
+  options: BuildScanPdfOptions = {},
+): Promise<jsPDF> {
   const [{ jsPDF: JsPdfCtor }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
     import('jspdf-autotable'),
@@ -176,7 +357,7 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
-    compress: true,
+    compress: options.compress ?? true,
   }) as DocWithAutoTable;
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -184,7 +365,8 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   const marginX = 14;
   const contentWidth = pageWidth - marginX * 2;
   const repoDisplay = formatRepositoryDisplay(report.repositoryUrl);
-  const risk = computeOverallRisk(report);
+  const remediationPlan = buildRemediationPlan(report);
+  const risk = remediationPlan.overallRisk;
   const riskColor = SEVERITY_COLORS[risk.severity];
   const generatedAt = new Date().toLocaleString('pt-BR', {
     dateStyle: 'short',
@@ -212,7 +394,9 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   doc.setFontSize(8.5);
   doc.setTextColor(148, 163, 184);
   doc.text(
-    sanitizePdfText('Relatório Executivo de Avaliação de Segurança | SCA + CVE Intel + Safe Probes'),
+    sanitizePdfText(
+      'Relatório Executivo para Gerência e Diretoria | Diagnóstico & Plano de Soluções',
+    ),
     marginX + 14.5,
     21.8,
   );
@@ -455,12 +639,154 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   }
 
   // =========================================================================
-  // 5. SECTION 1 — SAFE PROBES RESULTS
+  // 5. EXECUTIVE BRIEF FOR MANAGEMENT & LEADERSHIP
+  // =========================================================================
+  const briefLines = doc.splitTextToSize(
+    sanitizePdfText(remediationPlan.executiveBrief),
+    contentWidth - 10,
+  ) as string[];
+  const briefCardH = 19 + briefLines.length * 3.8 + 8;
+
+  if (cursorY + briefCardH > pageHeight - 18) {
+    doc.addPage();
+    cursorY = 20;
+  }
+
+  doc.setFillColor(...PALETTE.cardBg);
+  doc.setDrawColor(...PALETTE.navySoft);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(marginX, cursorY, contentWidth, briefCardH, 2.5, 2.5, 'FD');
+
+  // Left navy bar
+  doc.setFillColor(...PALETTE.navy);
+  doc.roundedRect(marginX, cursorY, 2.4, briefCardH, 1.2, 1.2, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.2);
+  doc.setTextColor(...PALETTE.cyanDark);
+  doc.text(
+    sanitizePdfText('PARECER EXECUTIVO PARA GERÊNCIA E DIRETORIA'),
+    marginX + 5.5,
+    cursorY + 5.6,
+  );
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.8);
+  doc.setTextColor(...PALETTE.slateText);
+  doc.text(
+    sanitizePdfText(remediationPlan.executiveHeadline),
+    marginX + 5.5,
+    cursorY + 11.2,
+  );
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.9);
+  doc.setTextColor(...PALETTE.mutedText);
+  doc.text(briefLines, marginX + 5.5, cursorY + 16.2);
+
+  // Priority summary pills inside executive brief
+  const pillRowY = cursorY + 16.2 + briefLines.length * 3.8 + 1.4;
+  const prioSummaryItems: Array<{
+    priority: RemediationPriority;
+    label: string;
+    count: number;
+  }> = [
+    { priority: 'P0', label: 'P0 Imediato', count: remediationPlan.counts.p0 },
+    { priority: 'P1', label: 'P1 Curto Prazo', count: remediationPlan.counts.p1 },
+    { priority: 'P2', label: 'P2 Planejado', count: remediationPlan.counts.p2 },
+    { priority: 'P3', label: 'P3 Manutenção', count: remediationPlan.counts.p3 },
+  ];
+  let pillX = marginX + 5.5;
+  for (const ps of prioSummaryItems) {
+    const c = PRIORITY_COLORS[ps.priority];
+    const text = sanitizePdfText(`${ps.label}: ${ps.count}`);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.1);
+    const w = doc.getTextWidth(text) + 6;
+    doc.setFillColor(...c.bg);
+    doc.roundedRect(pillX, pillRowY, w, 5.4, 1.3, 1.3, 'F');
+    doc.setTextColor(...c.fg);
+    doc.text(text, pillX + w / 2, pillRowY + 3.7, { align: 'center' });
+    pillX += w + 2.6;
+  }
+
+  cursorY += briefCardH + 6;
+
+  // =========================================================================
+  // 6. SECTION 1 — PROBLEM PRESENTATION & SOLUTION PLAN (MANAGEMENT & BOARD)
   // =========================================================================
   cursorY = drawSectionHeading(
     doc,
     cursorY,
     '01',
+    `Apresentação dos Problemas e Plano de Soluções (${remediationPlan.counts.total})`,
+    'Explanação executiva de cada problema identificado, impacto no negócio e solução recomendada priorizada por SLA.',
+    marginX,
+  );
+
+  if (remediationPlan.items.length === 0) {
+    doc.setFillColor(...PALETTE.emeraldBg);
+    doc.setDrawColor(...PALETTE.emerald);
+    doc.roundedRect(marginX, cursorY, contentWidth, 13, 2, 2, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.4);
+    doc.setTextColor(...PALETTE.emerald);
+    doc.text(
+      sanitizePdfText(
+        'Nenhum problema acionável foi detectado. Manter monitoramento contínuo e atualização regular de dependências.',
+      ),
+      marginX + 4,
+      cursorY + 8,
+    );
+    cursorY += 18;
+  } else {
+    const displayedPlanItems = remediationPlan.items.slice(
+      0,
+      MAX_EXECUTIVE_SOLUTION_CARDS,
+    );
+    for (const item of displayedPlanItems) {
+      cursorY = drawExecutiveSolutionCard(
+        doc,
+        item,
+        cursorY,
+        marginX,
+        contentWidth,
+      );
+    }
+
+    if (remediationPlan.items.length > MAX_EXECUTIVE_SOLUTION_CARDS) {
+      const remaining =
+        remediationPlan.items.length - MAX_EXECUTIVE_SOLUTION_CARDS;
+      if (cursorY + 13 > pageHeight - 18) {
+        doc.addPage();
+        cursorY = 20;
+      }
+      doc.setFillColor(...PALETTE.slateBg);
+      doc.setDrawColor(...PALETTE.cardBorder);
+      doc.roundedRect(marginX, cursorY, contentWidth, 11, 2, 2, 'FD');
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.6);
+      doc.setTextColor(...PALETTE.mutedText);
+      doc.text(
+        sanitizePdfText(
+          `Exibidos os ${MAX_EXECUTIVE_SOLUTION_CARDS} planos mais prioritários; há mais ${remaining} item(ns) na tabela técnica abaixo e no JSON estruturado para IA.`,
+        ),
+        marginX + 4,
+        cursorY + 7,
+      );
+      cursorY += 15;
+    } else {
+      cursorY += 3;
+    }
+  }
+
+  // =========================================================================
+  // 7. SECTION 2 — SAFE PROBES RESULTS
+  // =========================================================================
+  cursorY = drawSectionHeading(
+    doc,
+    cursorY,
+    '02',
     `Verificação Ativa Controlada — Safe Probes (${report.probeResults.length})`,
     'Sondas estritamente não destrutivas (GET/HEAD) executadas após verificação criptográfica de posse do domínio.',
     marginX,
@@ -538,7 +864,7 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   }
 
   // =========================================================================
-  // 6. SECTION 2 — PRIORITIZED VULNERABILITIES
+  // 8. SECTION 3 — PRIORITIZED VULNERABILITIES (TECHNICAL APPENDIX)
   // =========================================================================
   const sortedFindings = filterAndSortFindings(report.findings, {
     severity: 'ALL',
@@ -550,8 +876,8 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   cursorY = drawSectionHeading(
     doc,
     cursorY,
-    '02',
-    `Vulnerabilidades Priorizadas (${sortedFindings.length})`,
+    '03',
+    `Detalhamento Técnico de Vulnerabilidades (${sortedFindings.length})`,
     'Ordenadas por exploração ativa (CISA KEV), veredito de exposição, severidade e probabilidade EPSS.',
     marginX,
   );
@@ -646,13 +972,13 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   }
 
   // =========================================================================
-  // 7. SECTION 3 — AUDIT TRAIL (IF PRESENT)
+  // 9. SECTION 4 — AUDIT TRAIL (IF PRESENT)
   // =========================================================================
   if (report.auditLogs.length > 0) {
     cursorY = drawSectionHeading(
       doc,
       cursorY,
-      '03',
+      '04',
       `Trilha de Auditoria de Sondas (${report.auditLogs.length} evento(s))`,
       'Registro imutável de autorizações verificadas e requisições HTTP GET/HEAD emitidas durante a avaliação.',
       marginX,
@@ -697,10 +1023,10 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
   }
 
   // =========================================================================
-  // 8. SECTION 4 — SBOM SUMMARY (DIRECT / TOP DEPENDENCIES)
+  // 10. SECTION 5 — SBOM SUMMARY (DIRECT / TOP DEPENDENCIES)
   // =========================================================================
   if (report.dependencies.length > 0) {
-    const sbomSectionNum = report.auditLogs.length > 0 ? '04' : '03';
+    const sbomSectionNum = report.auditLogs.length > 0 ? '05' : '04';
     const maxSbomRows = 50;
     const displayedDeps = report.dependencies.slice(0, maxSbomRows);
 
@@ -791,7 +1117,7 @@ export async function buildScanReportPdf(report: ScanReport): Promise<jsPDF> {
     doc.setTextColor(...PALETTE.subtleText);
     doc.text(
       sanitizePdfText(
-        `Brynja | Relatório Gerado em ${generatedAt} | Avaliação Defensiva Não Destrutiva`,
+        `Brynja | Relatório Executivo (Gerência & Diretoria) | Gerado em ${generatedAt}`,
       ),
       marginX,
       pageHeight - 7.5,

@@ -332,7 +332,16 @@ export const EN_MESSAGES: Messages = {
     scaOnlyBadge: 'SCA Only (no staging target)',
     exportReportLabel: 'Export Report',
     generatingPdf: 'Generating PDF...',
-    executivePdf: 'Executive PDF',
+    executivePdf: 'Executive PDF (Board)',
+    executivePdfTitle:
+      'Executive PDF report for management and leadership with problem explanations and solution plans',
+    aiJson: 'AI Fix JSON',
+    aiJsonTitle:
+      'Download concise, structured remediation JSON built for AI coding models',
+    copyAiJsonTitle: 'Copy AI remediation JSON to clipboard',
+    rawJsonLabel: 'Full JSON',
+    markdownLabel: 'Markdown',
+    sbomLabel: 'SBOM (CycloneDX)',
     executionError: 'Execution error: {message}',
     kpiDependencies: 'Dependencies',
     kpiCritical: 'Critical',
@@ -380,6 +389,8 @@ export const EN_MESSAGES: Messages = {
     methodSandbox: 'Local Loopback Sandbox (dev)',
     generateButton: 'Generate Ownership Challenge',
     instructionPrefix: 'Verification Instruction:',
+    invalidTargetUrl:
+      'Enter a valid domain or URL (e.g., yoursite.com or https://staging.yourcompany.com).',
     createErrorFallback: 'Failed to create ownership challenge.',
     verifyErrorFallback: 'Domain ownership verification failed.',
     revokeErrorFallback: 'Failed to revoke and remove authorization.',

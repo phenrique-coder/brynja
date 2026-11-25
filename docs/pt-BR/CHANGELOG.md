@@ -6,6 +6,16 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.6.0] - 2026-11-25
+
+### Adicionado
+- Exportação **JSON para IA** concisa e estruturada (`AiRemediationJsonExporter`, schema `brynja.ai-remediation.v1`, arquivo `brynja-ai-fix-<id>.json`) voltada para modelos de IA resolverem os problemas diretamente: consolida múltiplos CVEs por pacote em uma única ação mirando a maior versão corrigida SemVer com comando exato do gerenciador (`pnpm`/`npm`/`pip`), unifica confirmações de runtime-fingerprint no pacote correspondente, remove ruído (dependências limpas, probes aprovados e logs brutos) e oferece download e cópia em 1 clique na barra de `/scans/[id]`.
+- Planejador puro compartilhado de remediação (`src/features/scans/presenters/remediation-plan.presenter.ts`) com priorização `P0`–`P3` por SLA, explicação de impacto no negócio, ações diretas de correção e critérios de validação.
+- Evolução do **PDF Executivo (Gerência e Diretoria)** (`scan-pdf.exporter.ts`): novo card **Parecer Executivo para Gerência e Diretoria** com contagem `P0`–`P3` e **Seção 01 — Apresentação dos Problemas e Plano de Soluções** com cartões estruturados exibindo a explanação de cada problema e seu impacto de negócio junto da solução recomendada e critério de validação.
+
+### Corrigido
+- Validação do campo de URL alvo em `/authorizations` e no backend (`AuthorizationsView`, `SafeProbePolicy.parseAndValidateTargetUrl`, `/api/authorizations/challenge`, `/api/authorizations/preview`) agora aceita domínios sem protocolo (ex.: `prenora.com.br`) e adiciona `https://` automaticamente por baixo dos panos (ou `http://` para loopback local), eliminando o bloqueio nativo do `type="url"` e mantendo a rejeição de hosts inválidos, protocolos não HTTP e credenciais embutidas.
+
 ## [1.5.0] - 2026-11-25
 
 ### Adicionado

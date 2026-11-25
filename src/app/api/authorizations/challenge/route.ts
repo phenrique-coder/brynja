@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic';
 const CreateChallengeSchema = z.object({
   targetUrl: z
     .string()
-    .url('Informe uma URL válida (ex.: https://staging.app.com)'),
+    .trim()
+    .min(1, 'Informe uma URL ou domínio válido (ex.: staging.app.com)'),
   method: z.enum(['WELL_KNOWN_FILE', 'DNS_TXT', 'LOCAL_DEV_SANDBOX']),
 });
 

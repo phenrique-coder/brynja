@@ -148,7 +148,13 @@ describe('Scan Presenter & OCP Registries', () => {
       auditLogs: [],
     };
 
-    expect(REPORT_EXPORTERS).toHaveLength(3);
+    expect(REPORT_EXPORTERS).toHaveLength(4);
+    expect(REPORT_EXPORTERS.map((e) => e.format)).toEqual([
+      'ai-json',
+      'json',
+      'markdown',
+      'cyclonedx',
+    ]);
     for (const exporter of REPORT_EXPORTERS) {
       const exported = exporter.export(report);
       expect(exported.content.length).toBeGreaterThan(20);

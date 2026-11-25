@@ -332,7 +332,16 @@ export const ES_MESSAGES: Messages = {
     scaOnlyBadge: 'Solo SCA (sin objetivo staging)',
     exportReportLabel: 'Exportar Informe',
     generatingPdf: 'Generando PDF...',
-    executivePdf: 'PDF Ejecutivo',
+    executivePdf: 'PDF Ejecutivo (Dirección)',
+    executivePdfTitle:
+      'Informe ejecutivo en PDF para gerencia y dirección con explicación de problemas y plan de soluciones',
+    aiJson: 'JSON para IA',
+    aiJsonTitle:
+      'Descargar JSON estructurado y conciso para modelos de IA enfocado en resolver cada problema',
+    copyAiJsonTitle: 'Copiar JSON para IA al portapapeles',
+    rawJsonLabel: 'JSON Completo',
+    markdownLabel: 'Markdown',
+    sbomLabel: 'SBOM (CycloneDX)',
     executionError: 'Error de ejecución: {message}',
     kpiDependencies: 'Dependencias',
     kpiCritical: 'Críticas',
@@ -381,6 +390,8 @@ export const ES_MESSAGES: Messages = {
     methodSandbox: 'Sandbox Loopback Local (dev)',
     generateButton: 'Generar Desafío de Propiedad',
     instructionPrefix: 'Instrucción de Verificación:',
+    invalidTargetUrl:
+      'Ingresa un dominio o URL válido (ej.: tusitio.com o https://staging.tuempresa.com).',
     createErrorFallback: 'Error al crear el desafío.',
     verifyErrorFallback: 'Error al verificar la propiedad del dominio.',
     revokeErrorFallback: 'Error al revocar y eliminar la autorización.',
