@@ -1,25 +1,24 @@
-## Resumo das Alterações
+## Summary of Changes
 
-Descreva de forma objetiva o que foi alterado e por quê.
+Concisely describe what changed and why.
 
-## Tipo de Mudança
+## Type of Change
 
-- [ ] Nova sonda segura (*Safe Probe* não destrutiva)
-- [ ] Novo parser de dependências / ecossistema (OCP)
-- [ ] Melhoria de UI/UX ou exportação de relatório
-- [ ] Correção de bug / falso positivo
-- [ ] Documentação / CI / Infraestrutura
+- [ ] New non-destructive *Safe Probe*
+- [ ] New dependency parser / ecosystem (OCP)
+- [ ] UI/UX or report export improvement
+- [ ] Bug fix / false positive fix
+- [ ] Documentation / CI / Infrastructure
 
-## Checklist Obrigatório de Segurança & Guardrails
+## Mandatory Security & Guardrails Checklist
 
-- [ ] Não enfraquece verificação criptográfica de posse (`AuthorizationPolicy`).
-- [ ] Não enfraquece proteção anti-SSRF (`SsrfDnsGuardService`).
-- [ ] Sondas utilizam exclusivamente `GET` / `HEAD` via `IRateLimitedHttpClient`, sem payloads destrutivos nem persistência de valores sensíveis (ex.: tokens/cookies).
-- [ ] Nenhum token OAuth é salvo em banco de dados.
-- [ ] Nenhum arquivo `.env`, segredo real ou domínio/usuário privado foi incluído no diff ou nos testes.
+- [ ] Does not weaken cryptographic ownership verification (`OwnershipCertificateService` / `AuthorizationPolicy`).
+- [ ] Does not weaken anti-SSRF protection (`SsrfDnsGuardService`).
+- [ ] Probes exclusively use `GET` / `HEAD` via `IRateLimitedHttpClient` (header allowlist `Origin`/`Accept`), with no destructive payloads or sensitive secret/cookie values captured in `evidence`.
+- [ ] No OAuth tokens are persisted in any database or logs.
+- [ ] No `.env*` files (other than `.env.example`), real secrets, or private domains/users are included in the diff or tests.
 
-## Checklist Técnico & Validação
+## Technical & Validation Checklist
 
-- [ ] Arquitetura SOLID respeitada (`domain` / `application` / `infrastructure` / `presentation` no backend; `core` / `features` no frontend).
-- [ ] `cd backend && pnpm typecheck && pnpm test && pnpm build` executado com sucesso.
-- [ ] `cd frontend && pnpm typecheck && pnpm test && pnpm build` executado com sucesso.
+- [ ] SOLID architecture respected (`src/server/` layers and `src/core/` + `src/features/` separation).
+- [ ] `pnpm typecheck && pnpm test && pnpm build` executed successfully.

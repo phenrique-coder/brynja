@@ -1,28 +1,30 @@
-# Guia de Deploy na Vercel e Governança Open-Source
+# Vercel Deployment & Open-Source Governance Guide
 
-## 1. Deploy 100% Gratuito na Vercel
+> **English** · [Português (Brasil)](./pt-BR/OPEN_SOURCE_RELEASE.md)
 
-1. Acesse [https://vercel.com/new](https://vercel.com/new) e importe o repositório `brynja`.
-2. Deixe **Root Directory** na raiz (`.`) e Framework **Next.js** (auto-detectado).
-3. Em **Environment Variables**, configure:
-   - `GITHUB_CLIENT_ID`: Client ID do seu GitHub OAuth App de produção
-   - `GITHUB_CLIENT_SECRET`: Client Secret do seu GitHub OAuth App de produção
-   - `TOKEN_ENCRYPTION_KEY`: gere uma nova chave de 64 caracteres hex (`openssl rand -hex 32`)
+## 1. 100% Free-Tier Deployment on Vercel
+
+1. Go to [https://vercel.com/new](https://vercel.com/new) and import the `brynja` repository.
+2. Keep **Root Directory** at the repository root (`.`) and Framework Preset as **Next.js** (auto-detected).
+3. Under **Environment Variables**, configure:
+   - `GITHUB_CLIENT_ID`: Client ID of your production GitHub OAuth App
+   - `GITHUB_CLIENT_SECRET`: Client Secret of your production GitHub OAuth App
+   - `TOKEN_ENCRYPTION_KEY`: generate a 64-character hex key (`openssl rand -hex 32`)
    - `ALLOW_LOCAL_LOOPBACK_TARGETS`: `false`
    - `AUTHORIZATION_TTL_DAYS`: `7`
-   - *(Opcional)* `NVD_API_KEY`: chave gratuita da NVD 2.0
-4. No GitHub (**Settings -> Developer settings -> OAuth Apps**), configure o **Authorization callback URL** do app de produção para:
-   - `https://<seu-dominio-vercel>/api/integrations/github/callback`
-   *(Não é obrigatório definir `GITHUB_CALLBACK_URL` na Vercel: a aplicação detecta automaticamente a origem da requisição HTTPS, mas você pode defini-la explicitamente se usar domínio customizado.)*
+   - *(Optional)* `NVD_API_KEY`: free NVD 2.0 API key for faster CVSS enrichment
+4. On GitHub (**Settings -> Developer settings -> OAuth Apps**), set your production app's **Authorization callback URL** to:
+   - `https://<your-vercel-domain>/api/integrations/github/callback`
+   *(Defining `GITHUB_CALLBACK_URL` on Vercel is optional: Brynja automatically derives the HTTPS request origin, though you can set it explicitly when using a custom domain.)*
 
-## 2. Proteção da Branch `main`
+## 2. Protecting the `main` Branch
 
 ```bash
 chmod +x scripts/configure-branch-protection.sh
-./scripts/configure-branch-protection.sh <seu-usuario>/brynja
+./scripts/configure-branch-protection.sh <your-user>/brynja
 ```
 
-Checks obrigatórios configurados:
+Required CI status checks enforced on `main`:
 - `Guardrails & Secrets Check`
 - `Server Core & Safe Probes Tests`
 - `UI Tests, Typecheck & Next.js Build`

@@ -1,30 +1,32 @@
-# Política de Segurança — Brynja
+# Security Policy — Brynja
 
-## Uso Ético e Autorizado
+> **English** · [Português (Brasil)](./docs/pt-BR/SECURITY.md)
 
-O **Brynja** é uma plataforma estritamente **defensiva** para inventário de dependências (SCA/SBOM), cruzamento de inteligência pública de vulnerabilidades (OSV.dev, NVD, EPSS, CISA KEV) e verificação ativa **não destrutiva** (*Safe Probes*) exclusivamente em ambientes que você possui ou tem autorização explícita para auditar.
+## Ethical and Authorized Use
 
-É expressamente proibido utilizar este software contra alvos sem autorização formal do proprietário.
+**Brynja** is a strictly **defensive** platform for dependency inventory (SCA/SBOM), public vulnerability intelligence correlation (OSV.dev, NVD, EPSS, CISA KEV), and **non-destructive** active verification (*Safe Probes*) exclusively targeting environments that you own or have explicit written authorization to audit.
 
-## Guardrails Arquiteturais Invioláveis
+Using this software against targets without formal authorization from the asset owner is strictly prohibited.
 
-Todas as releases e contribuições devem preservar os seguintes invariantes:
+## Inviolable Architectural Guardrails
 
-1. **Verificação Criptográfica de Posse Obrigatória (`OwnershipCertificateService` + `AuthorizationPolicy`):** nenhuma sonda HTTP é disparada sem validação prévia de posse (`/.well-known/brynja-verify.txt`, registro `_brynja` DNS TXT ou loopback local em dev). Certificados assinados em AES-256-GCM têm validade limitada (padrão 7 dias) e só se renovam automaticamente se a prova ao vivo ainda estiver publicada no domínio.
-2. **Proteção Anti-SSRF (`SsrfDnsGuardService`):** resolução DNS prévia bloqueando endereços privados (RFC1918), CGNAT, link-local / cloud metadata (`169.254.169.254`) e loopback em produção (`ALLOW_LOCAL_LOOPBACK_TARGETS=false`).
-3. **Política Estrita Não Destrutiva (`SafeProbePolicy`):**
-   - Apenas métodos HTTP `GET` e `HEAD`.
-   - Allowlist estrita de cabeçalhos de requisição (`Origin` e `Accept` apenas).
-   - Proibição de payloads de exploração, escrita/mutação, força bruta ou *flooding*.
-4. **Rate Limiting, Timeout e Circuit Breaker:** limitação de taxa por scan, teto máximo de requisições e abertura imediata de *circuit breaker* em respostas `429` ou falhas `5xx` repetidas.
-5. **Privacidade Local-First & Zero Persistência de Tokens OAuth:**
-   - Tokens GitHub OAuth nunca são salvos em banco de dados; trafegam selados em AES-256-GCM exclusivamente em cookie `HttpOnly` de sessão do navegador.
-   - Histórico de varreduras, SBOM e trilha de auditoria ficam salvos localmente no navegador do usuário (**IndexedDB**), isolados por `ownerGithubUserId`.
+Every release and contribution must preserve the following security invariants:
 
-## Reportando Vulnerabilidades no Brynja
+1. **Mandatory Cryptographic Ownership Verification (`OwnershipCertificateService` + `AuthorizationPolicy`):** no HTTP probe is ever dispatched without prior ownership verification (`/.well-known/brynja-verify.txt`, `_brynja` DNS TXT record, or local loopback sandbox in development). AES-256-GCM signed certificates carry a bounded validity window (default 7 days) and only renew automatically if the live proof is still published on the target domain.
+2. **Anti-SSRF Protection (`SsrfDnsGuardService`):** pre-flight DNS resolution blocking private networks (RFC1918), CGNAT, link-local / cloud metadata (`169.254.169.254`), and loopback in production (`ALLOW_LOCAL_LOOPBACK_TARGETS=false`).
+3. **Strict Non-Destructive Policy (`SafeProbePolicy`):**
+   - Only `GET` and `HEAD` HTTP methods are permitted.
+   - Strict request header allowlist (`Origin` and `Accept` only).
+   - No exploit payloads, write/mutation requests, brute-force enumeration, or flooding.
+4. **Rate Limiting, Timeout, and Circuit Breaker:** per-scan rate limit, maximum request cap, strict timeout, and immediate circuit breaker trip on HTTP `429` or repeated `5xx` failures.
+5. **Local-First Privacy & Zero Persistence of OAuth Tokens:**
+   - GitHub OAuth tokens are never stored in any database; they travel sealed with AES-256-GCM exclusively inside an `HttpOnly` browser session cookie.
+   - Scan history, SBOMs, authorizations, and probe audit trails are stored locally in the user's browser (**IndexedDB**), isolated by `ownerGithubUserId`.
 
-Se você identificar uma vulnerabilidade de segurança no próprio Brynja:
+## Reporting Vulnerabilities in Brynja
 
-- **Não abra uma issue pública** contendo detalhes exploráveis.
-- Utilize a aba **Security -> Advisories -> Report a vulnerability** do repositório no GitHub (Private Vulnerability Reporting).
-- Inclua passos claros de reprodução, impacto estimado e sugestão de mitigação.
+If you discover a security vulnerability in Brynja itself:
+
+- **Do not open a public issue** containing exploitable details.
+- Use the repository's **Security -> Advisories -> Report a vulnerability** workflow on GitHub (Private Vulnerability Reporting).
+- Include clear reproduction steps, estimated impact, and suggested mitigation.

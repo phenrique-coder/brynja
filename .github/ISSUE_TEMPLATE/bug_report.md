@@ -1,27 +1,27 @@
 ---
-name: Relato de Bug
-about: Reporte um erro funcional ou falso positivo em parsers, CVEs ou Safe Probes
+name: Bug Report
+about: Report a functional issue or false positive in parsers, CVE correlation, or Safe Probes
 title: "[Bug]: "
 labels: bug
 ---
 
-> **Atenção:** Se o problema for uma vulnerabilidade de segurança no próprio Brynja, **não abra uma issue pública**. Siga as instruções em [SECURITY.md](../../SECURITY.md).
+> **Security Notice:** If this is a security vulnerability in Brynja itself, **do not open a public issue**. Please follow the instructions in [SECURITY.md](../../SECURITY.md) ([PT-BR](../../docs/pt-BR/SECURITY.md)).
 
-## Descrição do Problema
+## Problem Description
 
-Descreva claramente o comportamento inesperado.
+Clearly describe the unexpected behavior.
 
-## Passos para Reproduzir
+## Steps to Reproduce
 
 1. ...
 2. ...
 
-## Comportamento Esperado
+## Expected Behavior
 
-O que deveria acontecer.
+What should have happened instead.
 
-## Ambiente
+## Environment
 
 - Node.js:
-- Navegador / SO:
-- Ecossistema / Sonda envolvida (se aplicável):
+- Browser / OS:
+- Ecosystem / Probe involved (if applicable):

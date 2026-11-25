@@ -1,29 +1,31 @@
-# Contribuindo com o Brynja
+# Contributing to Brynja
 
-Obrigado pelo interesse em contribuir com o **Brynja**! Este projeto é um aplicativo **Next.js 15 (100% Vercel Serverless + IndexedDB Local-First)** organizado com rigor em **SOLID** e **segurança defensiva**.
+> **English** · [Português (Brasil)](./docs/pt-BR/CONTRIBUTING.md)
 
-## Diretrizes de Arquitetura
+Thank you for your interest in contributing to **Brynja**! This project is a unified **Next.js 15 (100% Vercel Serverless + IndexedDB Local-First)** web application structured rigorously around **SOLID** principles and **defensive security**.
 
-- **`src/server/` (Núcleo Server-Side SOLID):** `domain/` (entidades, erros, políticas e *ports*), `application/` (*use cases* SRP e `container.ts`), `infrastructure/` (*adapters* criptográficos, parsers, APIs de CVEs e 8 *Safe Probes*) e `http/` (*helpers* para Route Handlers).
-- **`src/app/api/`:** Route Handlers *stateless* finos que validam entrada com Zod, autenticam sessão OAuth e delegam aos *use cases*.
-- **`src/core/` e `src/features/` (Frontend SOLID):** `core/` (modelos, *ports*, `IndexedDbBrynjaStore` e `HttpScanGateway`), `features/` (*hooks*, *presenters* puros, *registries* OCP, exportador PDF e UI).
+## Architecture Guidelines
 
-### Como estender via Open/Closed Principle (OCP)
+- **`src/server/` (SOLID Server-Side Core):** `domain/` (pure entities, typed errors, policies, and segregated ports), `application/` (SRP use cases and `container.ts`), `infrastructure/` (cryptographic adapters, dependency parsers, CVE intelligence APIs, and 8 *Safe Probes*), and `http/` (helpers for Route Handlers).
+- **`src/app/api/`:** thin stateless Route Handlers that validate input with Zod, authenticate the ephemeral OAuth session cookie, and delegate to use cases.
+- **`src/core/` & `src/features/` (SOLID Frontend):** `core/` (models, ports, `IndexedDbBrynjaStore`, and `HttpScanGateway`), `features/` (hooks, pure presenters, OCP registries, executive PDF exporter, and UI components).
 
-- **Novo parser de dependências:** implemente `IDependencyParser` em `src/server/infrastructure/parsers/` e registre no array `parsers` em `src/server/application/container.ts`.
-- **Novo enriquecedor de vulnerabilidades:** implemente `IVulnerabilityEnricher` em `src/server/infrastructure/vuln-intel/` e registre em `enrichers` em `container.ts`.
-- **Nova sonda não destrutiva (*Safe Probe*):** implemente `IControlledProbe` em `src/server/infrastructure/pentest/probes/`, utilize exclusivamente `httpClient.executeSafeRequest` (`GET`/`HEAD`) e registre em `probes` em `container.ts`.
+### Extending via the Open/Closed Principle (OCP)
 
-## Regras Obrigatórias de Segurança para PRs
+- **New dependency parser:** implement `IDependencyParser` in `src/server/infrastructure/parsers/` and register it in the `parsers` array in `src/server/application/container.ts`.
+- **New vulnerability enricher:** implement `IVulnerabilityEnricher` in `src/server/infrastructure/vuln-intel/` and register it in `enrichers` in `container.ts`.
+- **New non-destructive probe (*Safe Probe*):** implement `IControlledProbe` in `src/server/infrastructure/pentest/probes/`, issue requests exclusively via `httpClient.executeSafeRequest` (`GET`/`HEAD`), and register it in `probes` in `container.ts`.
 
-PRs serão rejeitados se:
+## Mandatory Security Rules for Pull Requests
 
-- Enfraquecerem ou contornarem `SafeProbePolicy`, `AuthorizationPolicy`, `OwnershipCertificateService` ou `SsrfDnsGuardService`.
-- Adicionarem métodos HTTP diferentes de `GET`/`HEAD`, payloads de exploração, força bruta ou coleta de credenciais/valores sensíveis em `evidence`.
-- Persistirem tokens OAuth em banco de dados ou logs.
-- Incluírem arquivos `.env`, chaves reais, tokens pessoais ou domínios privados no código ou nos testes.
+Pull requests will be rejected if they:
 
-## Fluxo de Desenvolvimento Local
+- Weaken or bypass `SafeProbePolicy`, `AuthorizationPolicy`, `OwnershipCertificateService`, or `SsrfDnsGuardService`.
+- Introduce HTTP methods other than `GET`/`HEAD`, exploit payloads, brute-force enumeration, or collection of sensitive secret/cookie values in `evidence`.
+- Persist OAuth tokens in any database or logs.
+- Commit `.env*` files (other than `.env.example`), real keys, personal tokens, or private domains in code or tests.
+
+## Local Development Workflow
 
 ```bash
 cp .env.example .env.local
