@@ -16,3 +16,6 @@
 
 ## 3. Qualidade Obrigatória antes de Concluir Alterações
 - Executar `pnpm typecheck && pnpm test && pnpm build` e confirmar que todos os testes (incluindo guardrails anti-SSRF, certificados e 8 Safe Probes) passam sem erros.
+
+## 4. Versionamento Semântico (SemVer) & Changelog
+- Para cada nova funcionalidade (`feat:` → `minor`), correção/ajuste (`fix:` / `perf:` / `security:` → `patch`) ou mudança incompatível (`BREAKING CHANGE` → `major`), seguir a skill `.agents/skills/semantic-versioning/SKILL.md`: incrementar `"version"` em `package.json`, documentar a versão em `CHANGELOG.md` e `docs/pt-BR/CHANGELOG.md` (que alimentam automaticamente `/changelog`, o rodapé e o SBOM CycloneDX) e validar com `node .agents/skills/semantic-versioning/scripts/bump-version.mjs --check` antes de commitar.

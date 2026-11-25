@@ -83,6 +83,7 @@ pnpm dev
 | Documento | Português (Brasil) | English |
 | --- | --- | --- |
 | Visão Geral e Configuração | [README.pt-BR.md](./README.pt-BR.md) | [README.md](./README.md) |
+| Changelog (Notas de Versão) | [docs/pt-BR/CHANGELOG.md](./docs/pt-BR/CHANGELOG.md) | [CHANGELOG.md](./CHANGELOG.md) |
 | Política de Segurança e Guardrails | [docs/pt-BR/SECURITY.md](./docs/pt-BR/SECURITY.md) | [SECURITY.md](./SECURITY.md) |
 | Guia de Contribuição | [docs/pt-BR/CONTRIBUTING.md](./docs/pt-BR/CONTRIBUTING.md) | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 | Deploy na Vercel e Governança | [docs/pt-BR/OPEN_SOURCE_RELEASE.md](./docs/pt-BR/OPEN_SOURCE_RELEASE.md) | [docs/OPEN_SOURCE_RELEASE.md](./docs/OPEN_SOURCE_RELEASE.md) |

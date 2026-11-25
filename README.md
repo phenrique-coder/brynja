@@ -83,6 +83,7 @@ pnpm dev
 | Document | English | Português (Brasil) |
 | --- | --- | --- |
 | Overview & Setup | [README.md](./README.md) | [README.pt-BR.md](./README.pt-BR.md) |
+| Changelog (Release Notes) | [CHANGELOG.md](./CHANGELOG.md) | [docs/pt-BR/CHANGELOG.md](./docs/pt-BR/CHANGELOG.md) |
 | Security Policy & Guardrails | [SECURITY.md](./SECURITY.md) | [docs/pt-BR/SECURITY.md](./docs/pt-BR/SECURITY.md) |
 | Contributing Guide | [CONTRIBUTING.md](./CONTRIBUTING.md) | [docs/pt-BR/CONTRIBUTING.md](./docs/pt-BR/CONTRIBUTING.md) |
 | Vercel Deploy & Open-Source Governance | [docs/OPEN_SOURCE_RELEASE.md](./docs/OPEN_SOURCE_RELEASE.md) | [docs/pt-BR/OPEN_SOURCE_RELEASE.md](./docs/pt-BR/OPEN_SOURCE_RELEASE.md) |

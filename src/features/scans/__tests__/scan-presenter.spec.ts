@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { parseChangelogMarkdown } from '@/core/changelog/changelog.parser';
+import packageJson from '../../../../package.json';
 import {
   computeDashboardMetrics,
   filterAndSortFindings,
@@ -166,5 +170,22 @@ describe('Scan Presenter & OCP Registries', () => {
       'GitHub Commit (abcdef1)',
       'GitHub Commit (9876543)',
     ]);
+  });
+
+  it('parses bilingual Keep a Changelog files and verifies current package.json version is documented', () => {
+    const enRaw = readFileSync(join(process.cwd(), 'CHANGELOG.md'), 'utf8');
+    const ptRaw = readFileSync(
+      join(process.cwd(), 'docs', 'pt-BR', 'CHANGELOG.md'),
+      'utf8',
+    );
+
+    const enReleases = parseChangelogMarkdown(enRaw);
+    const ptReleases = parseChangelogMarkdown(ptRaw);
+
+    expect(enReleases.length).toBeGreaterThanOrEqual(2);
+    expect(ptReleases.length).toBeGreaterThanOrEqual(2);
+    expect(enReleases[0].version).toBe(packageJson.version);
+    expect(ptReleases[0].version).toBe(packageJson.version);
+    expect(ptReleases[0].sections.length).toBeGreaterThan(0);
   });
 });

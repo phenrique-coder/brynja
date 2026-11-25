@@ -1,3 +1,4 @@
+import packageJson from '../../../../package.json';
 import {
   AuthorizationStatus,
   FindingVerdict,
@@ -215,7 +216,7 @@ class CycloneDxSbomExporter implements IReportExporter {
       version: 1,
       metadata: {
         timestamp: report.completedAt ?? report.createdAt,
-        tools: [{ vendor: 'Brynja', name: 'Brynja Scanner', version: '1.0.0' }],
+        tools: [{ vendor: 'Brynja', name: 'Brynja Scanner', version: packageJson.version }],
         component: {
           type: 'application',
           name: report.repositoryUrl,
