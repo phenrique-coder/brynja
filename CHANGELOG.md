@@ -6,6 +6,11 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-11-25
+
+### Fixed
+- Fixed the **Shield Intact (100% Passed)** celebratory banner on `/scans/[id]` (`ScanReportView`) rendering with a bright light-mode gradient background in dark mode by replacing unsupported Tailwind v3 `/12` and `/8` opacity modifiers (`dark:from-emerald-500/12 dark:via-teal-500/8 dark:to-cyan-500/8`) with valid `/15` and `/10` opacity utilities (`dark:from-emerald-500/15 dark:via-teal-500/10 dark:to-cyan-500/10`).
+
 ## [1.7.0] - 2026-11-25
 
 ### Added

@@ -6,6 +6,11 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.7.1] - 2026-11-25
+
+### Corrigido
+- Corrigido o card **Escudo Íntegro (100% Aprovado)** em `/scans/[id]` (`ScanReportView`) que exibia fundo claro no tema dark com texto ilegível, substituindo os modificadores de opacidade `/12` e `/8` não suportados pelo Tailwind CSS v3 (`dark:from-emerald-500/12 dark:via-teal-500/8 dark:to-cyan-500/8`) por utilitários válidos `/15` e `/10` (`dark:from-emerald-500/15 dark:via-teal-500/10 dark:to-cyan-500/10`).
+
 ## [1.7.0] - 2026-11-25
 
 ### Adicionado

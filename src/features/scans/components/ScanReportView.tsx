@@ -487,7 +487,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
 
       {/* Celebratory All-Clear Banner when every SCA & Safe Probe check passed with zero issues */}
       {allClear ? (
-        <SurfaceCard className="border-emerald-300/80 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-cyan-50/60 p-5 sm:p-6 dark:border-emerald-500/35 dark:from-emerald-500/12 dark:via-teal-500/8 dark:to-cyan-500/8">
+        <SurfaceCard className="border-emerald-300/80 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-cyan-50/60 p-5 sm:p-6 dark:border-emerald-500/35 dark:from-emerald-500/15 dark:via-teal-500/10 dark:to-cyan-500/10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3.5">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-600 text-white shadow-sm dark:bg-emerald-500 dark:text-slate-950">
