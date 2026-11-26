@@ -185,12 +185,22 @@ export function computeOverallRisk(
  * with zero vulnerabilities, zero probe findings, and zero execution errors.
  */
 export function isScanAllClear(
-  report: Pick<ScanReport, 'status' | 'errorMessage' | 'findings' | 'probeResults'>,
+  report: Pick<
+    ScanReport,
+    'status' | 'errorMessage' | 'findings' | 'probeResults' | 'staticFindings'
+  >,
 ): boolean {
   if (report.status !== 'COMPLETED' || Boolean(report.errorMessage)) {
     return false;
   }
   if (report.findings.length > 0) {
+    return false;
+  }
+  if (
+    (report.staticFindings ?? []).some(
+      (s) => s.severity !== 'INFO',
+    )
+  ) {
     return false;
   }
   return countProbeIssues(report.probeResults) === 0;

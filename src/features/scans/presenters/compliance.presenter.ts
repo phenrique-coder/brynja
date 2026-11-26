@@ -123,6 +123,9 @@ function getLocaleCopy(locale: Locale) {
         `Safe Probe weakness(es) detected: ${titles.join('; ')}.`,
       probesPassed: (count: number) =>
         `${count} Safe Probe(s) passed without weakness findings.`,
+      staticGaps: (count: number, titles: string[]) =>
+        `${count} static analysis finding(s) detected: ${titles.join('; ')}.`,
+      staticClean: 'No secret leaks, IaC misconfigurations, or SAST risks detected in scanned files.',
       auditPresent: (count: number) =>
         `${count} immutable probe audit log event(s) recorded locally.`,
       auditEmpty: 'No probe audit events recorded for this scan.',
@@ -155,6 +158,9 @@ function getLocaleCopy(locale: Locale) {
         `Debilidad(es) detectada(s) por Safe Probes: ${titles.join('; ')}.`,
       probesPassed: (count: number) =>
         `${count} Safe Probe(s) aprobada(s) sin hallazgos.`,
+      staticGaps: (count: number, titles: string[]) =>
+        `${count} hallazgo(s) de análisis estático detectado(s): ${titles.join('; ')}.`,
+      staticClean: 'Sin fugas de secretos, fallos IaC ni patrones SAST inseguros en los archivos analizados.',
       auditPresent: (count: number) =>
         `${count} evento(s) de auditoría inmutable registrados localmente.`,
       auditEmpty: 'Sin eventos de auditoría de sondas en este escaneo.',
@@ -186,6 +192,10 @@ function getLocaleCopy(locale: Locale) {
       `Ponto(s) fraco(s) detectado(s) por Safe Probes: ${titles.join('; ')}.`,
     probesPassed: (count: number) =>
       `${count} Safe Probe(s) aprovada(s) sem falhas detectadas.`,
+    staticGaps: (count: number, titles: string[]) =>
+      `${count} achado(s) na análise estática detectado(s): ${titles.join('; ')}.`,
+    staticClean:
+      'Nenhum segredo vazado, falha de IaC/CI ou padrão SAST inseguro detectado.',
     auditPresent: (count: number) =>
       `${count} evento(s) imutável(is) na trilha de auditoria local.`,
     auditEmpty: 'Nenhum evento de trilha de auditoria registrado nesta varredura.',
@@ -350,6 +360,27 @@ function evaluateTechnicalRule(
     } else {
       hasNotEvaluated = true;
       notes.push(t.auditEmpty);
+    }
+  }
+
+  if (rule.staticCategories && rule.staticCategories.length > 0) {
+    const allStatic = report.staticFindings ?? [];
+    const matchedStatic = allStatic.filter(
+      (s) =>
+        rule.staticCategories!.includes(s.category) && s.severity !== 'INFO',
+    );
+    if (matchedStatic.length > 0) {
+      hasGap = true;
+      matchedFindingsCount += matchedStatic.length;
+      notes.push(
+        t.staticGaps(
+          matchedStatic.length,
+          matchedStatic.slice(0, 3).map((s) => s.title),
+        ),
+      );
+    } else if (report.staticFindings !== undefined) {
+      hasPass = true;
+      notes.push(t.staticClean);
     }
   }
 

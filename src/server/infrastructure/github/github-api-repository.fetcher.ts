@@ -1,5 +1,8 @@
 import * as path from 'node:path';
-import { RepositoryFile } from '../../domain/entities/scan.types';
+import {
+  RepositoryFile,
+  RepositoryPostureSignals,
+} from '../../domain/entities/scan.types';
 import { InvalidRepositoryUrlError } from '../../domain/errors/domain.errors';
 import {
   IRepositoryFetcher,
@@ -30,6 +33,61 @@ function isSupportedManifestFilename(filename: string): boolean {
     SUPPORTED_FILENAMES.has(filename) ||
     filename.toLowerCase().endsWith('.csproj')
   );
+}
+
+const STATIC_IGNORED_PREFIXES = [
+  '.git/',
+  'node_modules/',
+  '.venv/',
+  'venv/',
+  'dist/',
+  'build/',
+  '.next/',
+  'coverage/',
+  'vendor/',
+];
+
+const STATIC_LOCKFILE_SKIP = new Set([
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'go.sum',
+  'cargo.lock',
+  'composer.lock',
+  'gemfile.lock',
+]);
+
+function classifyStaticPriority(filePath: string): number {
+  const lower = filePath.toLowerCase();
+  const base = path.posix.basename(lower);
+  if (STATIC_LOCKFILE_SKIP.has(base)) return 0;
+  if (
+    base === '.env' ||
+    base === '.env.local' ||
+    base === '.env.production' ||
+    base === 'dockerfile' ||
+    base.startsWith('dockerfile.') ||
+    /^docker-compose(?:\.[^.]+)?\.ya?ml$/.test(base) ||
+    lower.endsWith('.tf') ||
+    lower.includes('.github/workflows/')
+  ) {
+    return 3;
+  }
+  if (
+    base.endsWith('.ts') ||
+    base.endsWith('.tsx') ||
+    base.endsWith('.js') ||
+    base.endsWith('.jsx') ||
+    base.endsWith('.mjs') ||
+    base.endsWith('.py') ||
+    base.endsWith('.yaml') ||
+    base.endsWith('.yml') ||
+    base === 'vercel.json' ||
+    base.startsWith('next.config.')
+  ) {
+    return 1;
+  }
+  return 0;
 }
 
 const IGNORED_SEGMENT_PREFIXES = [
@@ -257,6 +315,157 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
     }
 
     return files;
+  }
+
+  async fetchStaticFiles(context: RepositoryFetchContext): Promise<{
+    files: RepositoryFile[];
+    posture: RepositoryPostureSignals | null;
+    truncated: boolean;
+  }> {
+    const coords = this.parseGitHubCoordinates(context.repositoryUrl);
+    if (!coords) {
+      return { files: [], posture: null, truncated: false };
+    }
+
+    const token = context.accessToken ?? null;
+    const requestedBranch = context.branch?.trim() || 'main';
+    let resolvedBranch = requestedBranch;
+
+    let treeAttempt = await this.fetchTree(
+      coords.owner,
+      coords.repo,
+      resolvedBranch,
+      token,
+    );
+
+    if (!treeAttempt.ok) {
+      const metaRes = await this.fetchRepoMeta(coords.owner, coords.repo, token);
+      if (metaRes.ok) {
+        const defaultBranch = metaRes.data.default_branch?.trim();
+        const candidates =
+          defaultBranch && defaultBranch !== requestedBranch
+            ? [requestedBranch, defaultBranch]
+            : [requestedBranch];
+
+        for (const candidateBranch of candidates) {
+          const sha = await this.fetchBranchTreeSha(
+            coords.owner,
+            coords.repo,
+            candidateBranch,
+            token,
+          );
+          if (sha) {
+            const shaTree = await this.fetchTree(
+              coords.owner,
+              coords.repo,
+              sha,
+              token,
+            );
+            if (shaTree.ok) {
+              resolvedBranch = candidateBranch;
+              treeAttempt = shaTree;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!treeAttempt.ok) {
+      return { files: [], posture: null, truncated: false };
+    }
+
+    const tree = treeAttempt.data.tree ?? [];
+    const blobPaths = new Set(
+      tree.filter((e) => e.type === 'blob').map((e) => e.path.toLowerCase()),
+    );
+
+    const hasSecurityMd =
+      blobPaths.has('security.md') ||
+      blobPaths.has('.github/security.md') ||
+      blobPaths.has('docs/security.md');
+    const hasDependabotOrRenovate =
+      blobPaths.has('.github/dependabot.yml') ||
+      blobPaths.has('.github/dependabot.yaml') ||
+      blobPaths.has('renovate.json') ||
+      blobPaths.has('.github/renovate.json');
+    const hasCodeowners =
+      blobPaths.has('codeowners') ||
+      blobPaths.has('.github/codeowners') ||
+      blobPaths.has('docs/codeowners');
+
+    const defaultBranchProtected = await this.fetchBranchProtectionFlag(
+      coords.owner,
+      coords.repo,
+      resolvedBranch,
+      token,
+    );
+
+    const prioritized = tree
+      .filter((entry) => {
+        if (entry.type !== 'blob') return false;
+        if ((entry.size ?? 0) > 256 * 1024) return false;
+        if (
+          STATIC_IGNORED_PREFIXES.some(
+            (prefix) =>
+              entry.path.startsWith(prefix) ||
+              entry.path.includes(`/${prefix}`),
+          )
+        ) {
+          return false;
+        }
+        return classifyStaticPriority(entry.path) > 0;
+      })
+      .sort(
+        (a, b) =>
+          classifyStaticPriority(b.path) - classifyStaticPriority(a.path),
+      )
+      .slice(0, 60);
+
+    const files = await this.loadBlobs(
+      coords.owner,
+      coords.repo,
+      prioritized,
+      token,
+    );
+
+    return {
+      files,
+      posture: {
+        hasSecurityMd,
+        hasDependabotOrRenovate,
+        hasCodeowners,
+        defaultBranchProtected,
+      },
+      truncated: Boolean(treeAttempt.data.truncated) || prioritized.length === 60,
+    };
+  }
+
+  private async fetchBranchProtectionFlag(
+    owner: string,
+    repo: string,
+    branch: string,
+    token: string | null,
+  ): Promise<boolean | null> {
+    if (!token) return null;
+    try {
+      const encodedBranch = branch
+        .split('/')
+        .map(encodeURIComponent)
+        .join('/');
+      const res = await fetch(
+        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodedBranch}/protection`,
+        {
+          headers: this.headers(token),
+          signal: AbortSignal.timeout(4_000),
+        },
+      );
+      if (res.ok) return true;
+      if (res.status === 404) return false;
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   private async loadBlobs(

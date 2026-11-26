@@ -36,6 +36,10 @@ import { SecurityTxtRfc9116Probe } from '../infrastructure/pentest/probes/securi
 import { SourceMapExposureProbe } from '../infrastructure/pentest/probes/source-map-exposure.probe';
 import { SriIntegrityProbe } from '../infrastructure/pentest/probes/sri-integrity.probe';
 import { SsrfDnsGuardService } from '../infrastructure/pentest/ssrf-dns-guard.service';
+import { GitHubPostureAnalyzer } from '../infrastructure/static-analysis/github-posture.analyzer';
+import { IacCicdAnalyzer } from '../infrastructure/static-analysis/iac-cicd.analyzer';
+import { LightweightSastAnalyzer } from '../infrastructure/static-analysis/lightweight-sast.analyzer';
+import { SecretScannerAnalyzer } from '../infrastructure/static-analysis/secret-scanner.analyzer';
 import { CisaKevEnricher } from '../infrastructure/vuln-intel/cisa-kev-enricher.adapter';
 import { DepsDevDependencyEnricher } from '../infrastructure/vuln-intel/deps-dev-enricher.adapter';
 import { EpssVulnerabilityEnricher } from '../infrastructure/vuln-intel/epss-enricher.adapter';
@@ -43,6 +47,7 @@ import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enric
 import { OsvVulnerabilityProvider } from '../infrastructure/vuln-intel/osv-client.adapter';
 import { IControlledProbe } from '../domain/ports/server.ports';
 import { AnalyzeScaUseCase } from './analyze-sca.use-case';
+import { AnalyzeStaticUseCase } from './analyze-static.use-case';
 import { RunSafeProbesUseCase } from './run-safe-probes.use-case';
 import { TargetAuthorizationUseCase } from './target-authorization.use-case';
 
@@ -84,6 +89,7 @@ export interface ServerContainer {
   ownershipVerifier: DomainOwnershipVerifierAdapter;
   targetAuthorizations: TargetAuthorizationUseCase;
   analyzeSca: AnalyzeScaUseCase;
+  analyzeStatic: AnalyzeStaticUseCase;
   runSafeProbes: RunSafeProbesUseCase;
   aiAdvisor: NoopAgentAdvisorAdapter;
 }
@@ -140,6 +146,15 @@ export function getServerContainer(): ServerContainer {
       vulnProvider,
       enrichers,
       dependencyEnrichers,
+    ),
+    analyzeStatic: new AnalyzeStaticUseCase(
+      fetchers,
+      [
+        new SecretScannerAnalyzer(),
+        new IacCicdAnalyzer(),
+        new LightweightSastAnalyzer(),
+      ],
+      new GitHubPostureAnalyzer(),
     ),
     runSafeProbes: new RunSafeProbesUseCase(
       certificates,

@@ -6,6 +6,16 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.13.0] - 2026-11-26
+
+### Adicionado
+- Adicionada análise estática leve para Vercel Serverless de **Código, Segredos, IaC/CI-CD & Postura GitHub** (`src/server/infrastructure/static-analysis/` e rota `POST /api/analyze/static` com `maxDuration = 60`):
+  - `SecretScannerAnalyzer`: detecta chaves AWS/GitHub/Stripe/Google/Slack, credenciais em strings de banco, blocos de chave privada e arquivos `.env*` versionados com **mascaramento automático obrigatório** (`maskSecretMatch`), sem jamais gravar segredos reais em relatórios ou `IndexedDB`.
+  - `IacCicdAnalyzer`: audita `Dockerfile` (CIS Docker Benchmark `:latest`, `USER root`, `curl | sh`), `docker-compose.yml` (`privileged`, `docker.sock`), Terraform (`0.0.0.0/0`, storage sem criptografia/ACL pública), manifests Kubernetes e workflows GitHub Actions (`pull_request_target`, `write-all`, actions sem SHA e script injection `${{ github.event.* }}`).
+  - `LightweightSastAnalyzer`: regras SAST em JS/TS e Python ignorando comentários (`eval`/`new Function`, `dangerouslySetInnerHTML`, comandos shell interpolados, TLS desabilitado, SQL por concatenação e desserialização insegura em Python).
+  - `GitHubPostureAnalyzer`: avalia higiene de cadeia de suprimentos do repositório (`SECURITY.md`, Dependabot/Renovate, `CODEOWNERS` e proteção da branch padrão).
+- Adicionada a aba **Código, Segredos & IaC** (`staticFindings`) em `/scans/[id]` (`ScanReportView`), controle opcional em `/scans/new`, mapeamento automático nos scorecards CIS/NIST/OWASP/LGPD e inclusão no PDF Executivo e JSON para IA.
+
 ## [1.12.0] - 2026-11-26
 
 ### Adicionado

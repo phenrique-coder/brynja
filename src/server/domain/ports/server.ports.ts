@@ -6,6 +6,8 @@ import {
   ProbeExecutionContext,
   ProbeResult,
   RepositoryFile,
+  RepositoryPostureSignals,
+  StaticAnalysisFinding,
   TargetAuthorizationEntity,
 } from '../entities/scan.types';
 
@@ -26,6 +28,18 @@ export interface RepositoryFetchContext {
 export interface IRepositoryFetcher {
   supports(context: RepositoryFetchContext): boolean;
   fetchManifestFiles(context: RepositoryFetchContext): Promise<RepositoryFile[]>;
+  fetchStaticFiles?(context: RepositoryFetchContext): Promise<{
+    files: RepositoryFile[];
+    posture: RepositoryPostureSignals | null;
+    truncated: boolean;
+  }>;
+}
+
+// --- Lightweight Static Analysis (OCP) ---
+export interface IStaticAnalyzer {
+  readonly id: string;
+  supports(filePath: string): boolean;
+  analyze(files: RepositoryFile[]): Promise<StaticAnalysisFinding[]>;
 }
 
 // --- Vulnerability Intel & Cache (ISP + OCP) ---

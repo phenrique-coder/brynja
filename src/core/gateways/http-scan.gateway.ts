@@ -11,6 +11,7 @@ import {
   ScanDependency,
   ScanReport,
   ScanSummary,
+  StaticAnalysisFinding,
   TargetAuthorization,
   VerificationMethod,
   VulnerabilityFinding,
@@ -37,6 +38,12 @@ interface ScaApiResponse {
   ecosystems: string[];
   dependencies: ScanDependency[];
   findings: VulnerabilityFinding[];
+  warnings: string[];
+}
+
+interface StaticApiResponse {
+  staticFindings: StaticAnalysisFinding[];
+  inspectedFilesCount: number;
   warnings: string[];
 }
 
@@ -174,6 +181,7 @@ export class HttpScanGateway implements IBrynjaGateway, IGrcAssessmentPort {
       findings: [],
       probeResults: [],
       auditLogs: [],
+      staticFindings: [],
     };
 
     await this.store.putScan(owner.githubUserId, initialReport);
@@ -368,7 +376,45 @@ export class HttpScanGateway implements IBrynjaGateway, IGrcAssessmentPort {
       let findings = sca.findings;
       let probeResults: ProbeFinding[] = [];
       let auditLogs: ProbeAuditEntry[] = [];
+      let staticFindings: StaticAnalysisFinding[] = [];
       const warnings = [...sca.warnings];
+
+      const shouldRunStatic =
+        payload.enableStaticAnalysis !== false &&
+        /^https:\/\/github\.com\//i.test(current.repositoryUrl) &&
+        !(payload.manifestFiles && payload.manifestFiles.length > 0);
+
+      if (shouldRunStatic) {
+        current = {
+          ...current,
+          ecosystems: sca.ecosystems,
+          dependencies: sca.dependencies,
+          totalDependencies: sca.dependencies.length,
+          findings,
+          warnings,
+          currentStage: 'running_static_analysis',
+        };
+        await this.store.putScan(ownerId, current);
+
+        try {
+          const staticRes = await this.request<StaticApiResponse>(
+            '/analyze/static',
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                repositoryUrl: current.repositoryUrl,
+                branch: current.branch,
+              }),
+            },
+          );
+          staticFindings = staticRes.staticFindings ?? [];
+          warnings.push(...(staticRes.warnings ?? []));
+        } catch (staticErr) {
+          warnings.push(
+            `Análise estática ignorada: ${staticErr instanceof Error ? staticErr.message : 'erro'}`,
+          );
+        }
+      }
 
       current = {
         ...current,
@@ -376,6 +422,7 @@ export class HttpScanGateway implements IBrynjaGateway, IGrcAssessmentPort {
         dependencies: sca.dependencies,
         totalDependencies: sca.dependencies.length,
         findings,
+        staticFindings,
         warnings,
         currentStage: verifiedAuth ? 'running_safe_probes' : 'completed',
       };
@@ -436,6 +483,7 @@ export class HttpScanGateway implements IBrynjaGateway, IGrcAssessmentPort {
         findings,
         probeResults,
         auditLogs,
+        staticFindings,
         criticalCount,
         highCount,
         mediumCount,

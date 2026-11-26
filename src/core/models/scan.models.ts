@@ -186,11 +186,33 @@ export interface ProbeAuditEntry {
   createdAt: string;
 }
 
+export type StaticFindingCategory =
+  | 'SECRET_LEAK'
+  | 'IAC_MISCONFIG'
+  | 'CI_CD_RISK'
+  | 'SAST_PATTERN'
+  | 'REPO_POSTURE';
+
+export interface StaticAnalysisFinding {
+  id: string;
+  ruleId: string;
+  category: StaticFindingCategory;
+  severity: SeverityLevel;
+  title: string;
+  description: string;
+  filePath: string;
+  lineNumber: number | null;
+  maskedSnippet: string | null;
+  cweIds: string[];
+  recommendation: string;
+}
+
 export interface ScanReport extends ScanSummary {
   dependencies: ScanDependency[];
   findings: VulnerabilityFinding[];
   probeResults: ProbeFinding[];
   auditLogs: ProbeAuditEntry[];
+  staticFindings?: StaticAnalysisFinding[];
 }
 
 export interface CreateScanPayload {
@@ -199,6 +221,7 @@ export interface CreateScanPayload {
   targetUrl?: string | null;
   authorizationId?: string | null;
   manifestFiles?: Array<{ path: string; content: string }>;
+  enableStaticAnalysis?: boolean;
 }
 
 export interface GitHubIntegrationStatus {

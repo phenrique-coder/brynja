@@ -77,6 +77,7 @@ export function NewScanView() {
   const [manifestContent, setManifestContent] = useState('');
   const [secondaryRequirements, setSecondaryRequirements] = useState('');
   const [selectedAuthId, setSelectedAuthId] = useState<string>('');
+  const [enableStaticAnalysis, setEnableStaticAnalysis] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,6 +146,7 @@ export function NewScanView() {
         targetUrl: selectedAuth ? selectedAuth.origin : null,
         authorizationId: selectedAuth ? selectedAuth.id : null,
         manifestFiles: manifestFiles.length > 0 ? manifestFiles : undefined,
+        enableStaticAnalysis: mode !== 'manifest' ? enableStaticAnalysis : false,
       });
 
       router.push(`/scans/${created.id}`);
@@ -525,6 +527,25 @@ export function NewScanView() {
               </div>
             </div>
           )}
+
+          {mode !== 'manifest' ? (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-subtle bg-surface-subtle/60 p-3.5 text-xs">
+              <input
+                type="checkbox"
+                checked={enableStaticAnalysis}
+                onChange={(e) => setEnableStaticAnalysis(e.target.checked)}
+                className="mt-0.5 rounded border-strong"
+              />
+              <span>
+                <span className="block font-semibold text-fg">
+                  {messages.newScan.enableStaticLabel}
+                </span>
+                <span className="mt-0.5 block text-[11px] text-fg-muted">
+                  {messages.newScan.enableStaticHint}
+                </span>
+              </span>
+            </label>
+          ) : null}
 
           {error ? (
             <div className="flex items-start gap-2 rounded-xl border border-rose-300 bg-rose-50 p-3.5 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">

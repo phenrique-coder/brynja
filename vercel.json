@@ -5,6 +5,9 @@
     "src/app/api/analyze/sca/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/analyze/static/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/analyze/probes/route.ts": {
       "maxDuration": 60
     },

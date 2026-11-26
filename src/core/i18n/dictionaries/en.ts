@@ -192,6 +192,7 @@ export const EN_MESSAGES: Messages = {
       fetching_repository: 'Fetching repo',
       parsing_dependencies: 'SBOM Extraction',
       querying_vulnerability_intel: 'OSV / NVD / EPSS / KEV',
+      running_static_analysis: 'Secrets / IaC / SAST',
       running_safe_probes: 'Safe Probes',
       completed: 'Report ready',
     },
@@ -368,6 +369,9 @@ export const EN_MESSAGES: Messages = {
     submitting: 'Starting scan...',
     submitButton: 'Run Security Scan',
     startErrorFallback: 'Could not start the security scan.',
+    enableStaticLabel: 'Include Static Analysis (Secrets, IaC/CI, Lightweight SAST & Repo Posture)',
+    enableStaticHint:
+      'Inspects prioritized repository files via GitHub API with automatic secret masking.',
     probesTitle: 'Safe Probes (Optional)',
     authorizeTargetLink: 'Authorize target',
     probesDescription:
@@ -453,7 +457,18 @@ export const EN_MESSAGES: Messages = {
     tabDependencies: 'SBOM Inventory ({count})',
     tabProbes: 'Safe Probes ({count})',
     tabAudit: 'Audit Trail ({count})',
+    tabStatic: 'Code, Secrets & IaC ({count})',
     tabCompliance: 'Compliance ({score}%)',
+    noStaticFindings:
+      'No secret leaks, IaC/CI misconfigurations, or insecure SAST patterns were detected across inspected files.',
+    staticCategoryAll: 'All categories',
+    staticCategories: {
+      SECRET_LEAK: 'Secret Leak',
+      IAC_MISCONFIG: 'IaC / Container',
+      CI_CD_RISK: 'CI/CD Pipeline',
+      SAST_PATTERN: 'Code SAST',
+      REPO_POSTURE: 'GitHub Posture',
+    },
     searchPlaceholder: 'Search package, CVE, or title...',
     allSeverities: 'All Severities',
     allVerdicts: 'All Verdicts',

@@ -4,6 +4,7 @@ import {
   ScanDependency,
   ScanReport,
   SeverityLevel,
+  StaticAnalysisFinding,
   VulnerabilityFinding,
 } from '@/core/models/scan.models';
 import {
@@ -15,7 +16,7 @@ import { SEVERITY_REGISTRY } from '../registries/finding-registries';
 
 export type RemediationPriority = 'P0' | 'P1' | 'P2' | 'P3';
 
-export type RemediationKind = 'dependency' | 'runtime_config';
+export type RemediationKind = 'dependency' | 'runtime_config' | 'static_code';
 
 export interface RemediationItem {
   id: string;
@@ -60,6 +61,7 @@ export interface RemediationPlanCounts {
   p3: number;
   dependency: number;
   runtimeConfig: number;
+  staticCode: number;
   kev: number;
   confirmedRuntime: number;
 }
@@ -556,6 +558,41 @@ function buildProbeItem(probe: ProbeFinding): Omit<RemediationItem, 'id'> {
   };
 }
 
+function buildStaticItem(
+  finding: StaticAnalysisFinding,
+): Omit<RemediationItem, 'id'> {
+  const priority = computeProbePriority(finding.severity);
+  const location = finding.lineNumber
+    ? `${finding.filePath}:${finding.lineNumber}`
+    : finding.filePath;
+  const cleanTitle = normalizeSentence(finding.title, 140);
+  const cleanRec = normalizeSentence(finding.recommendation, 220);
+  const snippetNote = finding.maskedSnippet
+    ? ` (${normalizeSentence(finding.maskedSnippet, 100)})`
+    : '';
+
+  return {
+    priority,
+    slaWindow: PRIORITY_SLA[priority],
+    kind: 'static_code',
+    severity: finding.severity,
+    title: cleanTitle,
+    where: location,
+    problemSummary: `${cleanTitle} at ${location}`,
+    executiveProblem: `${cleanTitle} em ${location}${snippetNote}. ${normalizeSentence(finding.description, 180)}`,
+    executiveImpact:
+      finding.category === 'SECRET_LEAK'
+        ? 'Credenciais ou chaves expostas no repositório podem conceder acesso direto a serviços de nuvem, bancos de dados ou integrações.'
+        : 'Fragilidade estática em código, IaC ou pipeline CI/CD amplia risco de comprometimento de execução ou cadeia de suprimentos.',
+    solutionAction: cleanRec,
+    executiveSolution: cleanRec,
+    verificationStep: `Inspect ${location}, apply the remediation, and re-run static analysis to confirm ${finding.ruleId} is resolved.`,
+    executiveValidation: `Revisar ${location} após o ajuste e confirmar na nova varredura que a regra ${finding.ruleId} foi encerrada.`,
+    probeId: finding.ruleId,
+    evidence: finding.maskedSnippet ?? undefined,
+  };
+}
+
 /**
  * Pure SRP planner transforming a ScanReport into a deduplicated, priority-ordered
  * remediation plan consumed by both the AI Remediation JSON exporter and the
@@ -638,11 +675,16 @@ export function buildRemediationPlan(report: ScanReport): RemediationPlan {
     standaloneProbeFindings.push(probe);
   }
 
+  const staticItems = (report.staticFindings ?? [])
+    .filter((s) => s.severity !== 'INFO')
+    .map((s) => buildStaticItem(s));
+
   const rawItems: Array<Omit<RemediationItem, 'id'>> = [
     ...Array.from(groups.values()).map((g) =>
       buildDependencyItem(g, repoUsesPnpm),
     ),
     ...standaloneProbeFindings.map((p) => buildProbeItem(p)),
+    ...staticItems,
   ];
 
   // Deterministic priority sorting: Priority (P0->P3) > KEV > Confirmed Runtime > Severity > Kind
@@ -680,23 +722,24 @@ export function buildRemediationPlan(report: ScanReport): RemediationPlan {
     p3: items.filter((i) => i.priority === 'P3').length,
     dependency: items.filter((i) => i.kind === 'dependency').length,
     runtimeConfig: items.filter((i) => i.kind === 'runtime_config').length,
+    staticCode: items.filter((i) => i.kind === 'static_code').length,
     kev: items.filter((i) => Boolean(i.isKnownExploited)).length,
     confirmedRuntime: items.filter((i) => Boolean(i.isConfirmedRuntime)).length,
   };
 
-  // Include active high/critical runtime probe findings when classifying overall executive risk
-  const probeCritical = standaloneProbeFindings.filter(
-    (p) => p.severity === 'CRITICAL',
-  ).length;
-  const probeHigh = standaloneProbeFindings.filter(
-    (p) => p.severity === 'HIGH',
-  ).length;
-  const probeMedium = standaloneProbeFindings.filter(
-    (p) => p.severity === 'MEDIUM',
-  ).length;
-  const probeLow = standaloneProbeFindings.filter(
-    (p) => p.severity === 'LOW',
-  ).length;
+  // Include active high/critical runtime probe & static findings when classifying overall executive risk
+  const probeCritical =
+    standaloneProbeFindings.filter((p) => p.severity === 'CRITICAL').length +
+    staticItems.filter((s) => s.severity === 'CRITICAL').length;
+  const probeHigh =
+    standaloneProbeFindings.filter((p) => p.severity === 'HIGH').length +
+    staticItems.filter((s) => s.severity === 'HIGH').length;
+  const probeMedium =
+    standaloneProbeFindings.filter((p) => p.severity === 'MEDIUM').length +
+    staticItems.filter((s) => s.severity === 'MEDIUM').length;
+  const probeLow =
+    standaloneProbeFindings.filter((p) => p.severity === 'LOW').length +
+    staticItems.filter((s) => s.severity === 'LOW').length;
 
   const overallRisk = computeOverallRisk({
     criticalCount: report.criticalCount + probeCritical,

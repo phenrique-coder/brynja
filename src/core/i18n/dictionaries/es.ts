@@ -192,6 +192,7 @@ export const ES_MESSAGES: Messages = {
       fetching_repository: 'Lectura del repo',
       parsing_dependencies: 'Extracción SBOM',
       querying_vulnerability_intel: 'OSV / NVD / EPSS / KEV',
+      running_static_analysis: 'Secretos / IaC / SAST',
       running_safe_probes: 'Safe Probes',
       completed: 'Informe listo',
     },
@@ -368,6 +369,9 @@ export const ES_MESSAGES: Messages = {
     submitting: 'Iniciando escaneo...',
     submitButton: 'Ejecutar Escaneo',
     startErrorFallback: 'No se pudo iniciar el escaneo.',
+    enableStaticLabel: 'Incluir Análisis Estático (Secretos, IaC/CI, SAST Ligero y Postura GitHub)',
+    enableStaticHint:
+      'Inspecciona archivos prioritarios vía GitHub API con enmascaramiento automático de secretos.',
     probesTitle: 'Safe Probes (Opcional)',
     authorizeTargetLink: 'Autorizar objetivo',
     probesDescription:
@@ -454,7 +458,18 @@ export const ES_MESSAGES: Messages = {
     tabDependencies: 'Inventario SBOM ({count})',
     tabProbes: 'Safe Probes ({count})',
     tabAudit: 'Auditoría ({count})',
+    tabStatic: 'Código, Secretos e IaC ({count})',
     tabCompliance: 'Cumplimiento ({score}%)',
+    noStaticFindings:
+      'No se detectaron fugas de secretos, fallos IaC/CI ni patrones SAST inseguros en los archivos analizados.',
+    staticCategoryAll: 'Todas las categorías',
+    staticCategories: {
+      SECRET_LEAK: 'Secreto Expuesto',
+      IAC_MISCONFIG: 'IaC / Contenedor',
+      CI_CD_RISK: 'CI/CD Pipeline',
+      SAST_PATTERN: 'SAST Código',
+      REPO_POSTURE: 'Postura GitHub',
+    },
     searchPlaceholder: 'Buscar paquete, CVE o título...',
     allSeverities: 'Todas las Severidades',
     allVerdicts: 'Todos los Veredictos',

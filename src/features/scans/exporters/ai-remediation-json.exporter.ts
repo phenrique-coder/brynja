@@ -47,6 +47,7 @@ export interface AiRemediationJsonPayload {
     byPriority: Record<RemediationPriority, number>;
     dependencyUpgrades: number;
     runtimeHardening: number;
+    staticCodeIssues?: number;
   };
   tasks: AiRemediationTask[];
 }
@@ -119,6 +120,9 @@ export function buildAiRemediationPayload(
       },
       dependencyUpgrades: plan.counts.dependency,
       runtimeHardening: plan.counts.runtimeConfig,
+      ...(plan.counts.staticCode > 0
+        ? { staticCodeIssues: plan.counts.staticCode }
+        : {}),
     },
     tasks: plan.items.map(toAiTask),
   };

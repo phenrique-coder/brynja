@@ -26,6 +26,7 @@ import {
   FindingVerdict,
   ScanReport,
   SeverityLevel,
+  StaticFindingCategory,
   countProbeIssues,
 } from '@/core/models/scan.models';
 import { IReportExporter } from '@/core/ports/scan-gateway.port';
@@ -57,13 +58,22 @@ import {
   SurfaceCard,
 } from './ui/PagePrimitives';
 
-type ReportTab = 'findings' | 'dependencies' | 'probes' | 'compliance' | 'audit';
+type ReportTab =
+  | 'findings'
+  | 'dependencies'
+  | 'probes'
+  | 'static'
+  | 'compliance'
+  | 'audit';
 
 export function ScanReportView({ scanId }: { scanId: string }) {
   const { report, loading, authRequired, error } = useScanReport(scanId);
   const { assessments } = useGrcAssessments();
   const { messages, locale, intlLocale, t } = useI18n();
   const [tab, setTab] = useState<ReportTab>('findings');
+  const [staticCatFilter, setStaticCatFilter] = useState<
+    StaticFindingCategory | 'ALL'
+  >('ALL');
   const [severityFilter, setSeverityFilter] = useState<SeverityLevel | 'ALL'>(
     'ALL',
   );
@@ -535,7 +545,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
 
       {/* Pipeline stepper */}
       <SurfaceCard className="p-4 sm:p-5">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
           {PIPELINE_STAGES.map((stage, idx) => {
             const isDone =
               report.status === 'COMPLETED' ||
@@ -638,6 +648,12 @@ export function ScanReportView({ scanId }: { scanId: string }) {
               'probes',
               t(messages.scanReport.tabProbes, {
                 count: report.probeResults.length,
+              }),
+            ],
+            [
+              'static',
+              t(messages.scanReport.tabStatic, {
+                count: (report.staticFindings ?? []).length,
               }),
             ],
             [
@@ -947,6 +963,89 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                 </p>
               </SurfaceCard>
             ))
+          )}
+        </div>
+      ) : null}
+
+      {tab === 'static' ? (
+        <div className="space-y-4">
+          <SurfaceCard className="flex flex-wrap items-center gap-2 p-3.5">
+            <button
+              type="button"
+              onClick={() => setStaticCatFilter('ALL')}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                staticCatFilter === 'ALL'
+                  ? 'border-cyan-500/50 bg-cyan-50 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-200'
+                  : 'border-subtle bg-surface-subtle text-fg-secondary hover:text-fg'
+              }`}
+            >
+              {messages.scanReport.staticCategoryAll}
+            </button>
+            {(
+              Object.keys(
+                messages.scanReport.staticCategories,
+              ) as StaticFindingCategory[]
+            ).map((catKey) => (
+              <button
+                key={catKey}
+                type="button"
+                onClick={() => setStaticCatFilter(catKey)}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                  staticCatFilter === catKey
+                    ? 'border-cyan-500/50 bg-cyan-50 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-200'
+                    : 'border-subtle bg-surface-subtle text-fg-secondary hover:text-fg'
+                }`}
+              >
+                {messages.scanReport.staticCategories[catKey]}
+              </button>
+            ))}
+          </SurfaceCard>
+
+          {(report.staticFindings ?? []).filter(
+            (s) => staticCatFilter === 'ALL' || s.category === staticCatFilter,
+          ).length === 0 ? (
+            <SurfaceCard className="p-8 text-center text-sm text-fg-secondary">
+              {messages.scanReport.noStaticFindings}
+            </SurfaceCard>
+          ) : (
+            (report.staticFindings ?? [])
+              .filter(
+                (s) =>
+                  staticCatFilter === 'ALL' || s.category === staticCatFilter,
+              )
+              .map((sf) => (
+                <SurfaceCard key={sf.id} className="space-y-2 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusPill
+                        meta={SEVERITY_REGISTRY[sf.severity]}
+                        label={messages.enums.severity[sf.severity]}
+                      />
+                      <span className="rounded-md border border-subtle bg-surface-subtle px-2 py-0.5 text-[11px] font-semibold text-fg-secondary">
+                        {messages.scanReport.staticCategories[sf.category]}
+                      </span>
+                      <span className="font-mono text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                        {sf.filePath}
+                        {sf.lineNumber ? `:${sf.lineNumber}` : ''}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] text-fg-muted">
+                      {sf.ruleId}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-fg">{sf.title}</h3>
+                  <p className="text-xs text-fg-secondary">{sf.description}</p>
+                  {sf.maskedSnippet ? (
+                    <pre className="overflow-x-auto rounded-xl border border-subtle bg-surface-subtle p-2.5 font-mono text-[11px] text-fg">
+                      {sf.maskedSnippet}
+                    </pre>
+                  ) : null}
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                    <strong>{messages.scanReport.recommendationLabel}</strong>{' '}
+                    {sf.recommendation}
+                  </p>
+                </SurfaceCard>
+              ))
           )}
         </div>
       ) : null}

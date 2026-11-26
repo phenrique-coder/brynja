@@ -2,6 +2,7 @@ import type { Locale } from '../i18n/types';
 import type {
   CisImplementationGroup,
   ComplianceFrameworkId,
+  StaticFindingCategory,
 } from '../models/scan.models';
 import type { SafeProbeId } from './safe-probes.catalog';
 
@@ -12,6 +13,7 @@ export interface ComplianceEvidenceRule {
   readonly sbomCheckMode?: 'SCAN_EXECUTED' | 'NO_CRITICAL_HIGH_KEV' | 'NO_KEV_OR_ACTIVE';
   readonly checkCweIds?: readonly string[];
   readonly probeIds?: readonly SafeProbeId[];
+  readonly staticCategories?: readonly StaticFindingCategory[];
   readonly requireAuditTrail?: boolean;
 }
 
@@ -281,6 +283,7 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
         'safe-probe:cache-security',
         'safe-probe:cross-origin-isolation',
       ],
+      staticCategories: ['IAC_MISCONFIG', 'CI_CD_RISK'],
     },
     copy: {
       'pt-BR': {
@@ -589,6 +592,7 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
       sbomCheckMode: 'NO_KEV_OR_ACTIVE',
       checkCweIds: ['CWE-79', 'CWE-89', 'CWE-94', 'CWE-327', 'CWE-502', 'CWE-601'],
       probeIds: ['safe-probe:runtime-fingerprint', 'safe-probe:cookie-security'],
+      staticCategories: ['SECRET_LEAK', 'SAST_PATTERN'],
     },
     copy: {
       'pt-BR': {
@@ -886,6 +890,7 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
         'safe-probe:debug-error-leakage',
         'safe-probe:source-maps',
       ],
+      staticCategories: ['IAC_MISCONFIG', 'CI_CD_RISK', 'SECRET_LEAK'],
     },
     copy: {
       'pt-BR': {
@@ -1146,6 +1151,7 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
     evidenceRule: {
       probeIds: ['safe-probe:security-headers', 'safe-probe:csp-permissions'],
       checkCweIds: ['CWE-79', 'CWE-89', 'CWE-94', 'CWE-78'],
+      staticCategories: ['SAST_PATTERN'],
     },
     copy: {
       'pt-BR': {
@@ -1383,6 +1389,7 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
         'safe-probe:backup-config-exposure',
         'safe-probe:debug-error-leakage',
       ],
+      staticCategories: ['SECRET_LEAK', 'IAC_MISCONFIG', 'SAST_PATTERN'],
     },
     copy: {
       'pt-BR': {

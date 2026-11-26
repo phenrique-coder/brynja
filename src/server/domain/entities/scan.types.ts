@@ -131,3 +131,31 @@ export interface RepositoryFile {
   path: string;
   content: string;
 }
+
+export type StaticFindingCategory =
+  | 'SECRET_LEAK'
+  | 'IAC_MISCONFIG'
+  | 'CI_CD_RISK'
+  | 'SAST_PATTERN'
+  | 'REPO_POSTURE';
+
+export interface StaticAnalysisFinding {
+  id: string;
+  ruleId: string;
+  category: StaticFindingCategory;
+  severity: SeverityLevel;
+  title: string;
+  description: string;
+  filePath: string;
+  lineNumber: number | null;
+  maskedSnippet: string | null;
+  cweIds: string[];
+  recommendation: string;
+}
+
+export interface RepositoryPostureSignals {
+  hasSecurityMd: boolean;
+  hasDependabotOrRenovate: boolean;
+  hasCodeowners: boolean;
+  defaultBranchProtected: boolean | null;
+}

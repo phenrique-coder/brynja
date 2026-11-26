@@ -203,6 +203,7 @@ export const PIPELINE_STAGES: Array<{ key: string; label: string }> = [
   { key: 'fetching_repository', label: 'Leitura do repositório' },
   { key: 'parsing_dependencies', label: 'Extração SBOM' },
   { key: 'querying_vulnerability_intel', label: 'OSV / NVD / EPSS / KEV' },
+  { key: 'running_static_analysis', label: 'Segredos / IaC / SAST' },
   { key: 'running_safe_probes', label: 'Safe Probes' },
   { key: 'completed', label: 'Relatório concluído' },
 ];

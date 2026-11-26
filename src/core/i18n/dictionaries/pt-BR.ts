@@ -191,6 +191,7 @@ export const PT_BR_MESSAGES = {
       fetching_repository: 'Leitura do repositório',
       parsing_dependencies: 'Extração SBOM',
       querying_vulnerability_intel: 'OSV / NVD / EPSS / KEV',
+      running_static_analysis: 'Segredos / IaC / SAST',
       running_safe_probes: 'Safe Probes',
       completed: 'Relatório concluído',
     },
@@ -367,6 +368,9 @@ export const PT_BR_MESSAGES = {
     submitting: 'Iniciando varredura...',
     submitButton: 'Executar Varredura',
     startErrorFallback: 'Não foi possível iniciar a varredura.',
+    enableStaticLabel: 'Incluir Análise Estática (Segredos, IaC/CI, SAST & Postura GitHub)',
+    enableStaticHint:
+      'Inspeciona arquivos prioritários via GitHub API com mascaramento automático de segredos.',
     probesTitle: 'Safe Probes (Opcional)',
     authorizeTargetLink: 'Autorizar alvo',
     probesDescription:
@@ -453,7 +457,18 @@ export const PT_BR_MESSAGES = {
     tabDependencies: 'Inventário SBOM ({count})',
     tabProbes: 'Safe Probes ({count})',
     tabAudit: 'Auditoria ({count})',
+    tabStatic: 'Código, Segredos & IaC ({count})',
     tabCompliance: 'Conformidade ({score}%)',
+    noStaticFindings:
+      'Nenhum vazamento de segredo, falha IaC/CI ou padrão SAST inseguro detectado nos arquivos inspecionados.',
+    staticCategoryAll: 'Todas categorias',
+    staticCategories: {
+      SECRET_LEAK: 'Segredo Exposto',
+      IAC_MISCONFIG: 'IaC / Container',
+      CI_CD_RISK: 'CI/CD Pipeline',
+      SAST_PATTERN: 'SAST Código',
+      REPO_POSTURE: 'Postura GitHub',
+    },
     searchPlaceholder: 'Buscar pacote, CVE ou título...',
     allSeverities: 'Todas Severidades',
     allVerdicts: 'Todos Vereditos',
