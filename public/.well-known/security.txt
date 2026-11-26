@@ -1,0 +1,3 @@
+Contact: mailto:security@brynja-sec.vercel.app
+Expires: 2027-05-25T23:59:59Z
+# Brynja-Verification: brynja-verify-d88f9bfe174b144f5e2b950ba3b64a29
