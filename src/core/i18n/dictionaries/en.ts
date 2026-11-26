@@ -864,6 +864,20 @@ export const EN_MESSAGES: Messages = {
       confirmDeleteBtn: 'Confirm delete',
       cancelBtn: 'Cancel',
       exportBtn: 'Export',
+      exportMenuAria: 'Governance assessment export options',
+      exportAiGapsOption: 'AI Gaps JSON (Failures Only)',
+      exportAiGapsCountBadge: '{count} failure(s)',
+      exportAiGapsHint:
+        'Failing and gap controls only across all 4 frameworks (zero bloat)',
+      copyAiGapsOption: 'Copy AI Gaps JSON',
+      copiedAiGapsOption: 'AI Gaps JSON copied!',
+      copyAiGapsHint: 'Copy gaps directly to paste into an AI chat or agent',
+      noGapsBadge: 'No gaps',
+      noGapsHint:
+        'No failures or gaps detected in this assessment — export the Excel workbook (.xlsx) for full audit records.',
+      exportExcelOption: 'Excel Workbook (.xlsx)',
+      exportExcelHint:
+        'Full matrix with executive summary and sheets for all frameworks',
       ownerLabel: 'Owner',
       ownerPlaceholder: 'e.g., AppSec Team / DPO',
       noteLabel: 'GRC Evidence / Notes',

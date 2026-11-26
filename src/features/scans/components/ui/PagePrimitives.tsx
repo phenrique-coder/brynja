@@ -19,7 +19,7 @@ export function PageHeader({
   topActions,
 }: PageHeaderProps) {
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-subtle bg-surface p-5 shadow-sm transition-colors sm:p-6">
+    <section className="relative flex flex-col gap-3 overflow-visible rounded-2xl border border-subtle bg-surface p-5 shadow-sm transition-colors sm:p-6">
       {topSlot || topActions ? (
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="min-w-0 space-y-1.5">

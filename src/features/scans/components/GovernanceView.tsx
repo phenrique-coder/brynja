@@ -1,13 +1,18 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Check,
   CheckCircle2,
+  ChevronDown,
   ClipboardCheck,
+  Copy,
   Download,
+  FileSpreadsheet,
   HelpCircle,
   Plus,
   Save,
+  Sparkles,
   Trash2,
 } from 'lucide-react';
 import {
@@ -26,6 +31,10 @@ import { useScanReader } from '@/core/providers/gateway-provider';
 import { useI18n } from '@/core/providers/i18n-provider';
 import { useGrcAssessments, useScanList } from '../hooks/use-scans';
 import {
+  buildGovernanceAiGapsFile,
+  buildGovernanceAiGapsPayload,
+} from '../exporters/ai-governance-gaps-json.exporter';
+import {
   buildComplianceMatrixExcel,
   evaluateComplianceFramework,
 } from '../presenters/compliance.presenter';
@@ -39,6 +48,10 @@ import {
   PageLoadingState,
   SurfaceCard,
 } from './ui/PagePrimitives';
+import {
+  downloadBrowserFile,
+  useDismissibleMenu,
+} from './ui/export-helpers';
 
 function makeLocalId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -87,6 +100,11 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
   const [savedNotice, setSavedNotice] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [copiedAiJson, setCopiedAiJson] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const dismissExportMenu = useCallback(() => setExportMenuOpen(false), []);
+  useDismissibleMenu(exportMenuOpen, exportMenuRef, dismissExportMenu);
 
   // Initialize active assessment once assessments or initialScanId load
   useEffect(() => {
@@ -158,6 +176,13 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
       }),
     [linkedReport, frameworkId, locale, draft],
   );
+
+  const aiGapsPayload = useMemo(
+    () =>
+      draft ? buildGovernanceAiGapsPayload(linkedReport, locale, draft) : null,
+    [draft, linkedReport, locale],
+  );
+  const noGapsDetected = (aiGapsPayload?.summary.totalGaps ?? 0) === 0;
 
   if (authRequired) {
     return (
@@ -247,13 +272,23 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
       locale,
       draft,
     );
-    const blob = new Blob([new Uint8Array(bytes)], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(filename, mimeType, bytes);
+  }
+
+  function handleExportAiGapsJson() {
+    const file = buildGovernanceAiGapsFile(linkedReport, locale, draft);
+    downloadBrowserFile(file.filename, file.mimeType, file.content);
+  }
+
+  async function handleCopyAiGapsJson() {
+    try {
+      const file = buildGovernanceAiGapsFile(linkedReport, locale, draft);
+      await navigator.clipboard.writeText(file.content);
+      setCopiedAiJson(true);
+      window.setTimeout(() => setCopiedAiJson(false), 1800);
+    } catch {
+      // ignore clipboard errors
+    }
   }
 
   return (
@@ -280,14 +315,129 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
         actions={
           <>
             {draft ? (
-              <button
-                type="button"
-                onClick={handleExportExcel}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2.5 text-xs font-semibold text-fg-secondary transition hover:border-strong hover:text-fg sm:text-sm"
-              >
-                <Download className="h-4 w-4" />
-                {messages.compliance.governance.exportBtn}
-              </button>
+              <div ref={exportMenuRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={exportMenuOpen}
+                  onClick={() => setExportMenuOpen((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2.5 text-xs font-semibold text-fg-secondary transition hover:border-strong hover:text-fg sm:text-sm"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>{messages.compliance.governance.exportBtn}</span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform ${
+                      exportMenuOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {exportMenuOpen ? (
+                  <div
+                    role="menu"
+                    aria-label={messages.compliance.governance.exportMenuAria}
+                    className="absolute right-0 z-30 mt-2 w-72 rounded-2xl border border-subtle bg-surface p-1.5 shadow-xl sm:w-80"
+                  >
+                    {noGapsDetected ? (
+                      <div className="mb-1.5 rounded-xl border border-emerald-500/30 bg-emerald-50 px-3 py-2 text-[11px] font-medium leading-snug text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200">
+                        {messages.compliance.governance.noGapsHint}
+                      </div>
+                    ) : null}
+
+                    {/* 1. AI Gaps JSON (failures only) */}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={noGapsDetected}
+                      onClick={() => {
+                        if (noGapsDetected) return;
+                        setExportMenuOpen(false);
+                        handleExportAiGapsJson();
+                      }}
+                      className="flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent dark:hover:bg-emerald-500/10"
+                    >
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center justify-between gap-2 text-xs font-semibold text-fg">
+                          <span>
+                            {messages.compliance.governance.exportAiGapsOption}
+                          </span>
+                          {noGapsDetected ? (
+                            <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">
+                              {messages.compliance.governance.noGapsBadge}
+                            </span>
+                          ) : (
+                            <span className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">
+                              {t(
+                                messages.compliance.governance
+                                  .exportAiGapsCountBadge,
+                                { count: aiGapsPayload?.summary.totalGaps ?? 0 },
+                              )}
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-[11px] leading-snug text-fg-muted">
+                          {messages.compliance.governance.exportAiGapsHint}
+                        </span>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={noGapsDetected}
+                      onClick={() => {
+                        if (noGapsDetected) return;
+                        void handleCopyAiGapsJson();
+                      }}
+                      className="mt-0.5 flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+                    >
+                      {copiedAiJson ? (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5 shrink-0 text-fg-muted" />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold text-fg">
+                          {copiedAiJson
+                            ? messages.compliance.governance.copiedAiGapsOption
+                            : messages.compliance.governance.copyAiGapsOption}
+                        </span>
+                        <span className="block text-[11px] text-fg-muted">
+                          {messages.compliance.governance.copyAiGapsHint}
+                        </span>
+                      </span>
+                    </button>
+
+                    <div className="my-1.5 border-t border-subtle" />
+
+                    {/* 2. Complete Excel Workbook (.xlsx) */}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        handleExportExcel();
+                      }}
+                      className="flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition hover:bg-cyan-50 dark:hover:bg-cyan-500/10"
+                    >
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-600 text-white dark:bg-cyan-500 dark:text-slate-950">
+                        <FileSpreadsheet className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold text-fg">
+                          {messages.compliance.governance.exportExcelOption}
+                        </span>
+                        <span className="block text-[11px] leading-snug text-fg-muted">
+                          {messages.compliance.governance.exportExcelHint}
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
             <button
               type="button"
@@ -330,52 +480,46 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
           </button>
         </SurfaceCard>
       ) : (
-        <div className="grid items-start gap-6 lg:grid-cols-12">
-          {/* Sidebar: Saved Assessments + Metadata Editor */}
-          <div className="space-y-4 lg:col-span-4">
+        <div className="space-y-4">
+          {/* Horizontal Assessment Switcher + Options Bar (stacks cleanly on mobile) */}
+          <SurfaceCard className="space-y-4 p-4 sm:p-5">
             {assessments.length > 0 ? (
-              <SurfaceCard className="p-4">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-fg-muted">
+              <div className="flex flex-wrap items-center gap-2 border-b border-subtle pb-3.5">
+                <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
                   {t(messages.compliance.governance.assessmentsListTitle, {
                     count: assessments.length,
                   })}
-                </h2>
-                <div className="mt-2.5 space-y-2">
-                  {assessments.map((item) => {
-                    const selected = item.id === draft.id;
-                    return (
-                      <div
-                        key={item.id}
-                        className={`rounded-xl border p-3 transition ${
-                          selected
-                            ? 'border-cyan-500/50 bg-cyan-50/70 dark:bg-cyan-500/10'
-                            : 'border-subtle bg-surface-subtle/50 hover:border-strong'
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleSelectAssessment(item)}
-                          className="w-full text-left"
-                        >
-                          <p className="truncate text-xs font-semibold text-fg">
-                            {item.name}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-fg-muted">
-                            {t(messages.compliance.governance.lastUpdated, {
-                              date: new Date(item.updatedAt).toLocaleDateString(
-                                intlLocale,
-                              ),
-                            })}
-                          </p>
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </SurfaceCard>
+                </span>
+                {assessments.map((item) => {
+                  const selected = item.id === draft.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectAssessment(item)}
+                      className={`inline-flex max-w-full items-center gap-2 rounded-xl border px-3 py-1.5 text-left transition ${
+                        selected
+                          ? 'border-cyan-500/50 bg-cyan-50/70 text-cyan-900 dark:bg-cyan-500/15 dark:text-cyan-100'
+                          : 'border-subtle bg-surface-subtle/60 text-fg-secondary hover:border-strong hover:text-fg'
+                      }`}
+                    >
+                      <span className="truncate text-xs font-semibold text-fg">
+                        {item.name}
+                      </span>
+                      <span className="shrink-0 text-[11px] text-fg-muted">
+                        {t(messages.compliance.governance.lastUpdated, {
+                          date: new Date(item.updatedAt).toLocaleDateString(
+                            intlLocale,
+                          ),
+                        })}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             ) : null}
 
-            <SurfaceCard className="space-y-4 p-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_auto] lg:items-end">
               <div>
                 <label
                   htmlFor="grc-name"
@@ -464,12 +608,12 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
                 </select>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 sm:self-end sm:justify-end">
                 <button
                   type="button"
                   disabled={saving}
                   onClick={() => void handleSave()}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950"
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-500 disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 sm:flex-initial"
                 >
                   {savedNotice ? (
                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -489,14 +633,14 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
                       <button
                         type="button"
                         onClick={() => void handleDelete(draft.id)}
-                        className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-500"
+                        className="whitespace-nowrap rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-500"
                       >
                         {messages.compliance.governance.confirmDeleteBtn}
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(null)}
-                        className="rounded-xl border border-subtle px-2.5 py-2 text-xs text-fg-secondary"
+                        className="whitespace-nowrap rounded-xl border border-subtle px-2.5 py-2 text-xs text-fg-secondary"
                       >
                         {messages.compliance.governance.cancelBtn}
                       </button>
@@ -505,7 +649,7 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
                     <button
                       type="button"
                       onClick={() => setConfirmDeleteId(draft.id)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                      className="inline-flex items-center gap-1 whitespace-nowrap rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       {messages.compliance.governance.deleteBtn}
@@ -513,11 +657,11 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
                   )
                 ) : null}
               </div>
-            </SurfaceCard>
-          </div>
+            </div>
+          </SurfaceCard>
 
-          {/* Main GRC Control Editor */}
-          <div className="space-y-4 lg:col-span-8">
+          {/* Main Full-Width GRC Control Editor */}
+          <div className="space-y-4">
             <SurfaceCard className="space-y-4 p-5">
               <div
                 role="tablist"

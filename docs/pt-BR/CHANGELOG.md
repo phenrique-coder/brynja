@@ -6,6 +6,16 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.18.0] - 2026-11-26
+
+### Adicionado
+- Adicionado exportador JSON dedicado e sem ruído para IA na Governança (`brynja.ai-governance-gaps.v1` em `ai-governance-gaps-json.exporter.ts`, `buildGovernanceAiGapsPayload` e `buildGovernanceAiGapsFile`), exportando exclusivamente os pontos de falha (`GAP_DETECTED` e controles atestados manualmente como `PARTIAL` em CIS Controls v8, NIST CSF 2.0, OWASP ASVS / Top 10 e LGPD & ISO 27001) separado do JSON técnico de `/scans` (`brynja.ai-remediation.v1`).
+- Adicionado campo `technicalSignals` em `compliance.presenter.ts` com referências técnicas objetivas (CVEs bloqueadores, Safe Probes com falha e regras estáticas sem expor segredos) para enriquecer os controles em falha.
+
+### Alterado
+- Atualizado o botão **"Exportar"** em `/governance` (`GovernanceView`) para um menu dropdown com **JSON para IA (Lacunas)**, **Copiar JSON para IA** e **Planilha Excel (.xlsx)** (desabilitando os itens de IA automaticamente quando não houver falhas), com helpers compartilhados em `export-helpers.ts` reutilizados com `ScanReportView`.
+- Reorganizado o layout de `/governance` colocando a seleção de avaliações e os campos de configuração em uma barra horizontal acima dos resultados (empilhada no mobile), liberando 100% da largura da tela para os painéis e controles.
+
 ## [1.17.0] - 2026-11-26
 
 ### Adicionado

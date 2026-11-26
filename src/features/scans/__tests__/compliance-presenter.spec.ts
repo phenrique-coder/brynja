@@ -6,6 +6,10 @@ import {
 import { SUPPORTED_LOCALES } from '@/core/i18n';
 import { GrcAssessment, ScanReport } from '@/core/models/scan.models';
 import {
+  buildGovernanceAiGapsFile,
+  buildGovernanceAiGapsPayload,
+} from '../exporters/ai-governance-gaps-json.exporter';
+import {
   buildComplianceMatrixCsv,
   buildComplianceMatrixExcel,
   evaluateComplianceFramework,
@@ -445,5 +449,163 @@ describe('Compliance Frameworks Catalog & Evaluator', () => {
     expect(rawZipXml).toContain('xl/worksheets/sheet5.xml');
     expect(rawZipXml).toContain('&apos;=SecOps');
     expect(rawZipXml).toContain('&apos;+Okta MFA enforced');
+  });
+
+  it('builds a dedicated brynja.ai-governance-gaps.v1 JSON with failures only and zero non-failing bloat', () => {
+    const reportWithFailures = makeBaseReport({
+      criticalCount: 1,
+      findings: [
+        {
+          id: 'f-1',
+          dependencyId: 'dep-1',
+          advisoryId: 'GHSA-5555',
+          cveId: 'CVE-2026-0001',
+          packageName: 'next',
+          packageVersion: '15.0.0',
+          ecosystem: 'npm',
+          title: 'Critical auth bypass',
+          description: 'Critical flaw',
+          severity: 'CRITICAL',
+          cvssScore: 9.8,
+          cvssVector: null,
+          cweIds: ['CWE-287'],
+          epssScore: 0.9,
+          epssPercentile: 0.98,
+          isKnownExploited: true,
+          fixedVersion: '15.2.3',
+          references: ['https://osv.dev'],
+          verdict: 'CONFIRMED_ACTIVE',
+          source: 'OSV.dev',
+        },
+      ],
+      probeResults: [
+        {
+          id: 'p-hsts',
+          probeId: 'safe-probe:hsts-tls',
+          title: 'HSTS Missing',
+          severity: 'MEDIUM',
+          status: 'FINDING',
+          targetUrl: 'https://staging.acme.io',
+          evidence: 'Strict-Transport-Security absent',
+          recommendation: 'Add HSTS header',
+          matchedPackage: null,
+          createdAt: '2026-11-26T12:00:00.000Z',
+        },
+      ],
+      staticFindings: [
+        {
+          id: 'st-1',
+          category: 'SECRET_LEAK',
+          ruleId: 'secret:db-url',
+          title: 'Embedded database password',
+          description: 'Credential found',
+          severity: 'HIGH',
+          filePath: 'src/lib/db.ts',
+          lineNumber: 12,
+          maskedSnippet: 'postgres://user:**********@db:5432/app',
+          cweIds: ['CWE-798'],
+          recommendation: 'Use env var',
+        },
+      ],
+    });
+
+    const assessment: GrcAssessment = {
+      id: 'grc-gaps-1',
+      name: 'Portal Produção',
+      repositoryUrl: 'https://github.com/acme/web-portal',
+      linkedScanId: reportWithFailures.id,
+      targetIg: 'IG2',
+      createdAt: '2026-11-26T12:00:00.000Z',
+      updatedAt: '2026-11-26T12:00:00.000Z',
+      responses: {
+        // Manual COMPLIANT -> excluded from AI gaps
+        'cis-v8:6.3': {
+          controlId: 'cis-v8:6.3',
+          status: 'COMPLIANT',
+          ownerName: 'IAM Team',
+          evidenceNote: 'SSO + MFA active',
+          updatedAt: '2026-11-26T12:00:00.000Z',
+        },
+        // Explicit PARTIAL -> included in AI gaps
+        'cis-v8:11.2': {
+          controlId: 'cis-v8:11.2',
+          status: 'PARTIAL',
+          ownerName: 'SRE',
+          evidenceNote: 'Restores tested quarterly only for primary DB',
+          updatedAt: '2026-11-26T12:00:00.000Z',
+        },
+        // Explicit NON_COMPLIANT -> included as GAP_DETECTED
+        'cis-v8:17.1': {
+          controlId: 'cis-v8:17.1',
+          status: 'NON_COMPLIANT',
+          ownerName: 'SecOps',
+          evidenceNote: 'No IR tabletop exercise in 2026',
+          updatedAt: '2026-11-26T12:00:00.000Z',
+        },
+        // Explicitly Not Applicable -> excluded
+        'nist-csf-2:GV.RM-01': {
+          controlId: 'nist-csf-2:GV.RM-01',
+          status: 'NOT_APPLICABLE',
+          ownerName: '',
+          evidenceNote: 'Handled at parent holding level',
+          updatedAt: '2026-11-26T12:00:00.000Z',
+        },
+      },
+    };
+
+    const payload = buildGovernanceAiGapsPayload(
+      reportWithFailures,
+      'pt-BR',
+      assessment,
+    );
+
+    expect(payload.schema).toBe('brynja.ai-governance-gaps.v1');
+    expect(payload.context).toEqual({
+      assessmentName: 'Portal Produção',
+      targetIg: 'IG2',
+      repository: 'acme/web-portal',
+      linkedScanId: 'scan-com',
+      targetUrl: 'https://staging.acme.io',
+    });
+    expect(payload.summary.totalGaps).toBe(payload.gaps.length);
+    expect(payload.gaps.length).toBeGreaterThanOrEqual(5);
+
+    // Every single exported gap must be GAP_DETECTED or explicit PARTIAL — zero passing/unanswered bloat
+    expect(
+      payload.gaps.every(
+        (g) => g.status === 'GAP_DETECTED' || g.status === 'PARTIAL',
+      ),
+    ).toBe(true);
+
+    const ids = new Set(payload.gaps.map((g) => g.controlId));
+    expect(ids.has('cis-v8:6.3')).toBe(false); // MANUAL_ATTESTED excluded
+    expect(ids.has('cis-v8:2.1')).toBe(false); // COMPLIANT_EVIDENCE excluded
+    expect(ids.has('nist-csf-2:GV.OC-03')).toBe(false); // UNANSWERED MANUAL_REQUIRED excluded
+    expect(ids.has('nist-csf-2:GV.RM-01')).toBe(false); // NOT_APPLICABLE excluded
+    expect(ids.has('cis-v8:8.2')).toBe(false); // Untouched HYBRID awaiting attestation excluded
+
+    expect(ids.has('cis-v8:11.2')).toBe(true); // Explicit PARTIAL included
+    expect(ids.has('cis-v8:17.1')).toBe(true); // Explicit NON_COMPLIANT included
+    expect(ids.has('cis-v8:3.10')).toBe(true); // Technical HSTS finding included
+
+    const hstsGap = payload.gaps.find((g) => g.controlId === 'cis-v8:3.10');
+    expect(hstsGap?.origin).toBe('TECHNICAL_SCAN');
+    expect(hstsGap?.technicalSignals?.some((s) => s.includes('safe-probe:hsts-tls'))).toBe(true);
+
+    // Must expose static rule path/ID WITHOUT leaking secret snippet
+    const file = buildGovernanceAiGapsFile(reportWithFailures, 'pt-BR', assessment);
+    expect(file.filename).toBe('brynja-ai-governance-gaps-portal-producao.json');
+    expect(file.mimeType).toBe('application/json');
+    expect(file.content).toContain('secret:db-url');
+    expect(file.content).not.toContain('postgres://user');
+
+    // Clean report with no manual PARTIAL/NON_COMPLIANT yields zero actionable failure gaps
+    const cleanReport = makeBaseReport();
+    const emptyPayload = buildGovernanceAiGapsPayload(cleanReport, 'en', {
+      ...assessment,
+      responses: {},
+    });
+    expect(emptyPayload.summary.totalGaps).toBe(0);
+    expect(emptyPayload.gaps).toEqual([]);
   });
 });

@@ -865,6 +865,20 @@ export const ES_MESSAGES: Messages = {
       confirmDeleteBtn: 'Confirmar eliminación',
       cancelBtn: 'Cancelar',
       exportBtn: 'Exportar',
+      exportMenuAria: 'Opciones de exportación de evaluación GRC',
+      exportAiGapsOption: 'JSON para IA (Brechas)',
+      exportAiGapsCountBadge: '{count} fallo(s)',
+      exportAiGapsHint:
+        'Solo controles con fallos o brechas en los 4 marcos (sin ruido)',
+      copyAiGapsOption: 'Copiar JSON para IA',
+      copiedAiGapsOption: '¡JSON de brechas copiado!',
+      copyAiGapsHint: 'Copiar brechas directo para pegar en chat o agente IA',
+      noGapsBadge: 'Sin brechas',
+      noGapsHint:
+        'Ningún fallo o brecha detectada en esta evaluación — exporta Excel (.xlsx) para el registro completo.',
+      exportExcelOption: 'Libro Excel (.xlsx)',
+      exportExcelHint:
+        'Matriz completa con resumen ejecutivo y hojas para todos los marcos',
       ownerLabel: 'Responsable',
       ownerPlaceholder: 'Ej.: Equipo AppSec / DPO',
       noteLabel: 'Evidencia / Notas GRC',

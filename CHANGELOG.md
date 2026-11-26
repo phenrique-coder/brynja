@@ -6,6 +6,16 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-11-26
+
+### Added
+- Added a dedicated, zero-bloat AI export schema (`brynja.ai-governance-gaps.v1` via `ai-governance-gaps-json.exporter.ts`, `buildGovernanceAiGapsPayload`, and `buildGovernanceAiGapsFile`) engineered strictly for `/governance` failures (`GAP_DETECTED` and explicitly attested `PARTIAL` controls across CIS Controls v8, NIST CSF 2.0, OWASP ASVS / Top 10, and LGPD & ISO 27001), keeping the `/scans` code-remediation payload (`brynja.ai-remediation.v1`) focused and separate.
+- Exposed concise redacted `technicalSignals` (blocking CVEs, failed Safe Probes, and non-sensitive static rule references) on failing `ComplianceControlEvaluation` items in `compliance.presenter.ts`.
+
+### Changed
+- Upgraded the **"Export"** button on `/governance` (`GovernanceView`) into a dropdown menu offering **AI Gaps JSON (Failures Only)** download, one-click **Copy AI Gaps JSON**, and **Excel Workbook (`.xlsx`)** export, disabling AI JSON actions cleanly when zero failures exist, while extracting shared menu dismissal and download helpers (`export-helpers.ts`) reused with `ScanReportView`.
+- Redesigned `/governance` layout by moving assessment options and saved assessment selection into a responsive horizontal toolbar above the scorecards (stacking cleanly on mobile) so framework scorecards and controls occupy 100% of screen width.
+
 ## [1.17.0] - 2026-11-26
 
 ### Added

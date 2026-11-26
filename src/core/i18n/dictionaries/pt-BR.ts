@@ -866,6 +866,20 @@ export const PT_BR_MESSAGES = {
       confirmDeleteBtn: 'Confirmar exclusão',
       cancelBtn: 'Cancelar',
       exportBtn: 'Exportar',
+      exportMenuAria: 'Opções de exportação da avaliação de governança',
+      exportAiGapsOption: 'JSON para IA (Lacunas)',
+      exportAiGapsCountBadge: '{count} falha(s)',
+      exportAiGapsHint:
+        'Apenas os controles com falhas ou lacunas nos 4 frameworks (zero ruído)',
+      copyAiGapsOption: 'Copiar JSON para IA',
+      copiedAiGapsOption: 'JSON de lacunas copiado!',
+      copyAiGapsHint: 'Copiar lacunas direto para colar em chat ou agente IA',
+      noGapsBadge: 'Sem falhas',
+      noGapsHint:
+        'Nenhuma lacuna ou falha detectada nesta avaliação — use a planilha Excel (.xlsx) para auditoria completa.',
+      exportExcelOption: 'Planilha Excel (.xlsx)',
+      exportExcelHint:
+        'Matriz completa com resumo executivo e abas para todos os frameworks',
       ownerLabel: 'Responsável',
       ownerPlaceholder: 'Ex.: Time AppSec / DPO',
       noteLabel: 'Evidência / Observação GRC',

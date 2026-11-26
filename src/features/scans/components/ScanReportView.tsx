@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -58,6 +58,10 @@ import {
   PageLoadingState,
   SurfaceCard,
 } from './ui/PagePrimitives';
+import {
+  downloadBrowserFile,
+  useDismissibleMenu,
+} from './ui/export-helpers';
 
 type ReportTab =
   | 'findings'
@@ -90,31 +94,8 @@ export function ScanReportView({ scanId }: { scanId: string }) {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!exportMenuOpen) return;
-
-    function handleOutsideClick(event: MouseEvent) {
-      if (
-        exportMenuRef.current &&
-        !exportMenuRef.current.contains(event.target as Node)
-      ) {
-        setExportMenuOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setExportMenuOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [exportMenuOpen]);
+  const dismissExportMenu = useCallback(() => setExportMenuOpen(false), []);
+  useDismissibleMenu(exportMenuOpen, exportMenuRef, dismissExportMenu);
 
   const linkedAssessment = useMemo(() => {
     if (!report) return null;
@@ -142,16 +123,11 @@ export function ScanReportView({ scanId }: { scanId: string }) {
 
   function triggerDownload(exporter: IReportExporter, current: ScanReport) {
     const file = exporter.export(current);
-    const payload: BlobPart = file.binaryContent
-      ? new Uint8Array(file.binaryContent)
-      : file.content;
-    const blob = new Blob([payload], { type: file.mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.filename;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(
+      file.filename,
+      file.mimeType,
+      file.binaryContent ?? file.content,
+    );
   }
 
   async function handleDownloadPdf(current: ScanReport) {

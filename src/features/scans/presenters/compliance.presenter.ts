@@ -49,6 +49,7 @@ export interface ComplianceControlEvaluation {
   evidenceSummary: string;
   matchedFindingsCount: number;
   matchedProbeFindingsCount: number;
+  technicalSignals: string[];
 }
 
 export interface ComplianceDomainBreakdown {
@@ -90,6 +91,7 @@ interface TechnicalEvaluationResult {
   evidenceSummary: string;
   matchedFindingsCount: number;
   matchedProbeFindingsCount: number;
+  technicalSignals: string[];
 }
 
 const IG_ORDER: Record<CisImplementationGroup, number> = {
@@ -245,6 +247,7 @@ function evaluateTechnicalRule(
       evidenceSummary: t.organizationalOnly,
       matchedFindingsCount: 0,
       matchedProbeFindingsCount: 0,
+      technicalSignals: [],
     };
   }
 
@@ -254,16 +257,37 @@ function evaluateTechnicalRule(
       evidenceSummary: t.probesNotRun,
       matchedFindingsCount: 0,
       matchedProbeFindingsCount: 0,
+      technicalSignals: [],
     };
   }
 
   const rule: ComplianceEvidenceRule = control.evidenceRule;
   const notes: string[] = [];
+  const signals: string[] = [];
   let hasGap = false;
   let hasPass = false;
   let hasNotEvaluated = false;
   let matchedFindingsCount = 0;
   let matchedProbeFindingsCount = 0;
+
+  const pushBlockingVulnSignals = (blocking: VulnerabilityFinding[]) => {
+    for (const f of blocking.slice(0, 8)) {
+      const flags = [
+        f.isKnownExploited ? 'KEV' : null,
+        f.verdict === 'CONFIRMED_ACTIVE' ? 'ACTIVE' : null,
+      ]
+        .filter(Boolean)
+        .join(',');
+      const ref = f.cveId ?? f.advisoryId;
+      const upgrade = f.fixedVersion ? ` -> ${f.fixedVersion}` : '';
+      signals.push(
+        `${ref} (${f.packageName}@${f.packageVersion}${upgrade})${flags ? ` [${flags}]` : ''}`,
+      );
+    }
+    if (blocking.length > 8) {
+      signals.push(`+${blocking.length - 8} more blocking dependency finding(s)`);
+    }
+  };
 
   if (rule.requireSbom) {
     if (report.totalDependencies === 0) {
@@ -284,6 +308,7 @@ function evaluateTechnicalRule(
         hasGap = true;
         matchedFindingsCount += blocking.length;
         notes.push(t.sbomGaps(blocking.length, kevCount));
+        pushBlockingVulnSignals(blocking);
       } else {
         hasPass = true;
         notes.push(t.sbomClean);
@@ -300,6 +325,7 @@ function evaluateTechnicalRule(
         hasGap = true;
         matchedFindingsCount += blocking.length;
         notes.push(t.sbomGaps(blocking.length, kevCount));
+        pushBlockingVulnSignals(blocking);
       } else {
         hasPass = true;
         notes.push(t.sbomClean);
@@ -315,14 +341,25 @@ function evaluateTechnicalRule(
     if (cweMatches.length > 0) {
       hasGap = true;
       matchedFindingsCount += cweMatches.length;
+      const upperTargetCwes = new Set(
+        rule.checkCweIds.map((c) => c.toUpperCase()),
+      );
       const foundCwes = Array.from(
         new Set(
           cweMatches.flatMap((f) =>
-            f.cweIds.filter((c) => rule.checkCweIds!.includes(c.toUpperCase())),
+            f.cweIds.filter((c) => upperTargetCwes.has(c.toUpperCase())),
           ),
         ),
       );
       notes.push(t.cweHits(cweMatches.length, foundCwes));
+      for (const f of cweMatches.slice(0, 6)) {
+        const hitCwes = f.cweIds
+          .filter((c) => upperTargetCwes.has(c.toUpperCase()))
+          .join(',');
+        signals.push(
+          `[${hitCwes}] ${f.cveId ?? f.advisoryId} (${f.packageName}@${f.packageVersion})`,
+        );
+      }
     }
   }
 
@@ -342,11 +379,21 @@ function evaluateTechnicalRule(
         hasGap = true;
         matchedProbeFindingsCount += probeFindings.length;
         notes.push(t.probesFindings(probeFindings.map((p) => p.title)));
+        for (const p of probeFindings) {
+          const shortEv =
+            p.evidence.length > 140
+              ? `${p.evidence.slice(0, 137)}...`
+              : p.evidence;
+          signals.push(`[FINDING] ${p.probeId}: ${p.title} — ${shortEv}`);
+        }
       }
       if (probeAborted.length > 0) {
         hasGap = true;
         matchedProbeFindingsCount += probeAborted.length;
         notes.push(t.probesAborted(probeAborted.map((p) => p.title)));
+        for (const p of probeAborted) {
+          signals.push(`[ABORTED] ${p.probeId}: ${p.title}`);
+        }
       }
       if (probeFindings.length === 0 && probeAborted.length === 0) {
         if (probePassed.length > 0) {
@@ -385,6 +432,13 @@ function evaluateTechnicalRule(
           matchedStatic.slice(0, 3).map((s) => s.title),
         ),
       );
+      for (const s of matchedStatic.slice(0, 8)) {
+        const loc = s.lineNumber ? `${s.filePath}:${s.lineNumber}` : s.filePath;
+        signals.push(`[${s.severity}] ${loc} — ${s.ruleId}: ${s.title}`);
+      }
+      if (matchedStatic.length > 8) {
+        signals.push(`+${matchedStatic.length - 8} more static finding(s)`);
+      }
     } else if (report.staticFindings !== undefined) {
       hasPass = true;
       notes.push(t.staticClean);
@@ -408,6 +462,7 @@ function evaluateTechnicalRule(
     evidenceSummary: notes.join(' '),
     matchedFindingsCount,
     matchedProbeFindingsCount,
+    technicalSignals: Array.from(new Set(signals)).slice(0, 12),
   };
 }
 
@@ -530,6 +585,7 @@ export function evaluateComplianceFramework(
       evidenceSummary: combined.evidenceSummary,
       matchedFindingsCount: technical.matchedFindingsCount,
       matchedProbeFindingsCount: technical.matchedProbeFindingsCount,
+      technicalSignals: technical.technicalSignals,
     };
   });
 
@@ -633,11 +689,13 @@ function escapeCsvCell(value: string): string {
   return `"${neutralizeSpreadsheetFormula(value).replace(/"/g, '""')}"`;
 }
 
-function resolveComplianceSlug(
+export function resolveComplianceSlug(
   report: ScanReport | null,
   assessment?: GrcAssessment | null,
 ): string {
   return (assessment?.name || report?.id.slice(0, 8) || 'brynja')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/^-+|-+$/g, '')

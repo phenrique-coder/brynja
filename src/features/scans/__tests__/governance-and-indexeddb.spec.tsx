@@ -11,6 +11,7 @@ import { HttpScanGateway } from '@/core/gateways/http-scan.gateway';
 import { LocalBackupBundle, ScanReport } from '@/core/models/scan.models';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
 import { InMemoryBrynjaStore } from '@/core/storage/brynja-indexeddb.store';
+import { AiGovernanceGapsJsonPayload } from '../exporters/ai-governance-gaps-json.exporter';
 import { GovernanceView } from '../components/GovernanceView';
 import { ScanReportView } from '../components/ScanReportView';
 import { buildScanReportPdf } from '../exporters/scan-pdf.exporter';
@@ -241,10 +242,24 @@ describe('Governance GRC Local-First Storage & UI', () => {
       });
       expect(createButtons.length).toBeGreaterThanOrEqual(1);
 
-      // Verify Export button exists with new concise label "Exportar" once an assessment is created
+      // Verify Export dropdown opens cleanly and disables AI Gaps JSON when assessment has zero gaps
       fireEvent.click(createButtons[0]);
-      expect(screen.getByRole('button', { name: /^Exportar$/i })).toBeTruthy();
+      const exportBtn = screen.getByRole('button', { name: /^Exportar$/i });
+      expect(exportBtn).toBeTruthy();
       expect(screen.queryByText(/Exportar Matriz CSV/i)).toBeNull();
+
+      fireEvent.click(exportBtn);
+      const menuItems = screen.getAllByRole('menuitem');
+      expect(menuItems.map((el) => el.textContent ?? '')).toEqual([
+        expect.stringContaining('JSON para IA (Lacunas)'),
+        expect.stringContaining('Copiar JSON para IA'),
+        expect.stringContaining('Planilha Excel (.xlsx)'),
+      ]);
+      expect((menuItems[0] as HTMLButtonElement).disabled).toBe(true);
+      expect((menuItems[1] as HTMLButtonElement).disabled).toBe(true);
+      expect((menuItems[2] as HTMLButtonElement).disabled).toBe(false);
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.queryByRole('menu')).toBeNull();
 
       fireEvent.click(guideBtn);
 
@@ -296,6 +311,73 @@ describe('Governance GRC Local-First Storage & UI', () => {
       // Close modal
       fireEvent.click(within(dialog).getAllByRole('button', { name: /Fechar guia/i })[0]);
       expect(screen.queryByRole('dialog')).toBeNull();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('copies failures-only Governance AI Gaps JSON from the Exportar dropdown when a linked scan has gaps', async () => {
+    const store = new InMemoryBrynjaStore();
+    const scanWithGap = makeSampleReport('scan-gaps-export-1');
+    await store.putScan('gh-user-1', scanWithGap);
+
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeTextMock },
+      configurable: true,
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          configured: true,
+          connected: true,
+          githubUserId: 'gh-user-1',
+          login: 'pedro',
+          avatarUrl: null,
+          callbackUrl: 'http://localhost:3000/api/integrations/github/callback',
+          scopes: 'repo',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    try {
+      const gateway = new HttpScanGateway('/api', store);
+      render(
+        <GatewayProvider gateway={gateway}>
+          <GovernanceView initialScanId={scanWithGap.id} />
+        </GatewayProvider>,
+      );
+
+      const exportTrigger = await screen.findByRole('button', {
+        name: /^Exportar$/i,
+      });
+      fireEvent.click(exportTrigger);
+
+      const copyAiItem = screen.getByRole('menuitem', {
+        name: /Copiar JSON para IA/i,
+      }) as HTMLButtonElement;
+      expect(copyAiItem.disabled).toBe(false);
+
+      fireEvent.click(copyAiItem);
+
+      await waitFor(() => {
+        expect(writeTextMock).toHaveBeenCalledTimes(1);
+      });
+
+      const copied = JSON.parse(
+        writeTextMock.mock.calls[0][0],
+      ) as AiGovernanceGapsJsonPayload;
+      expect(copied.schema).toBe('brynja.ai-governance-gaps.v1');
+      expect(copied.summary.totalGaps).toBe(copied.gaps.length);
+      expect(copied.gaps.length).toBeGreaterThanOrEqual(1);
+      expect(copied.gaps.every((g) => g.status === 'GAP_DETECTED')).toBe(true);
+      expect(
+        copied.gaps.some((g) =>
+          g.technicalSignals?.some((s) => s.includes('safe-probe:hsts-tls')),
+        ),
+      ).toBe(true);
     } finally {
       fetchSpy.mockRestore();
     }
