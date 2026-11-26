@@ -9,10 +9,18 @@ import React, {
   useState,
 } from 'react';
 import { HttpScanGateway } from '../gateways/http-scan.gateway';
-import { GitHubIntegrationStatus, GrcAssessment } from '../models/scan.models';
 import {
+  AgentRemediationPlan,
+  ByokAiConfig,
+  GitHubIntegrationStatus,
+  GrcAssessment,
+  ScanSummary,
+} from '../models/scan.models';
+import {
+  IAiAdvisorGatewayPort,
   IAuditLogReader,
   IBrynjaGateway,
+  IExternalReportImporterPort,
   IGitHubIntegrationPort,
   IGrcAssessmentPort,
   IScanCreator,
@@ -166,6 +174,40 @@ export function useGrcAssessmentPort(): IGrcAssessmentPort {
         gateway.deleteGrcAssessment
           ? gateway.deleteGrcAssessment(id)
           : Promise.resolve(),
+    }),
+    [gateway],
+  );
+}
+
+export function useAiAdvisorPort(): IAiAdvisorGatewayPort {
+  const gateway = useGateway();
+  return useMemo<IAiAdvisorGatewayPort>(
+    () => ({
+      requestAiAdvice: (scanId: string, byok?: ByokAiConfig | null) =>
+        gateway.requestAiAdvice
+          ? gateway.requestAiAdvice(scanId, byok)
+          : Promise.resolve<AgentRemediationPlan>({
+              summary: 'IA indisponível neste gateway.',
+              prioritizedSteps: [],
+              generatedBy: 'noop',
+            }),
+    }),
+    [gateway],
+  );
+}
+
+export function useExternalReportImporterPort(): IExternalReportImporterPort {
+  const gateway = useGateway();
+  return useMemo<IExternalReportImporterPort>(
+    () => ({
+      importExternalReport: (rawJsonText: string, sourceLabel?: string) => {
+        if (!gateway.importExternalReport) {
+          return Promise.reject(
+            new Error('Importação externa não suportada neste gateway.'),
+          ) as Promise<ScanSummary>;
+        }
+        return gateway.importExternalReport(rawJsonText, sourceLabel);
+      },
     }),
     [gateway],
   );

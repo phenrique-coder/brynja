@@ -1,3 +1,4 @@
+import { ByokAgentAdvisorAdapter } from '../infrastructure/ai-agents/byok-agent-advisor.adapter';
 import { NoopAgentAdvisorAdapter } from '../infrastructure/ai-agents/noop-agent-advisor.adapter';
 import { MemoryVulnerabilityCacheService } from '../infrastructure/cache/memory-vuln-cache.service';
 import { AesTokenCipherService } from '../infrastructure/crypto/aes-token-cipher.service';
@@ -46,6 +47,7 @@ import { EpssVulnerabilityEnricher } from '../infrastructure/vuln-intel/epss-enr
 import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enricher.adapter';
 import { OsvVulnerabilityProvider } from '../infrastructure/vuln-intel/osv-client.adapter';
 import { IControlledProbe } from '../domain/ports/server.ports';
+import { AnalyzeAdviseUseCase } from './analyze-advise.use-case';
 import { AnalyzeScaUseCase } from './analyze-sca.use-case';
 import { AnalyzeStaticUseCase } from './analyze-static.use-case';
 import { RunSafeProbesUseCase } from './run-safe-probes.use-case';
@@ -90,6 +92,7 @@ export interface ServerContainer {
   targetAuthorizations: TargetAuthorizationUseCase;
   analyzeSca: AnalyzeScaUseCase;
   analyzeStatic: AnalyzeStaticUseCase;
+  analyzeAdvise: AnalyzeAdviseUseCase;
   runSafeProbes: RunSafeProbesUseCase;
   aiAdvisor: NoopAgentAdvisorAdapter;
 }
@@ -155,6 +158,10 @@ export function getServerContainer(): ServerContainer {
         new LightweightSastAnalyzer(),
       ],
       new GitHubPostureAnalyzer(),
+    ),
+    analyzeAdvise: new AnalyzeAdviseUseCase(
+      fetchers,
+      new ByokAgentAdvisorAdapter(ssrfGuard),
     ),
     runSafeProbes: new RunSafeProbesUseCase(
       certificates,

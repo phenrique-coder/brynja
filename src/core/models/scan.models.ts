@@ -207,12 +207,29 @@ export interface StaticAnalysisFinding {
   recommendation: string;
 }
 
+export type AiProviderType = 'openai' | 'gemini' | 'custom';
+
+export interface ByokAiConfig {
+  provider: AiProviderType;
+  apiKey: string;
+  model?: string;
+  endpointUrl?: string;
+}
+
+export interface AgentRemediationPlan {
+  summary: string;
+  prioritizedSteps: string[];
+  reachabilityHits?: string[];
+  generatedBy: string;
+}
+
 export interface ScanReport extends ScanSummary {
   dependencies: ScanDependency[];
   findings: VulnerabilityFinding[];
   probeResults: ProbeFinding[];
   auditLogs: ProbeAuditEntry[];
   staticFindings?: StaticAnalysisFinding[];
+  aiRemediationPlan?: AgentRemediationPlan | null;
 }
 
 export interface CreateScanPayload {

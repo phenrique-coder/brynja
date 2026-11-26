@@ -1,4 +1,6 @@
 import {
+  AgentRemediationPlan,
+  ByokAiConfig,
   ChallengeTokenPreview,
   CreateAuthorizationResponse,
   CreateScanPayload,
@@ -51,6 +53,20 @@ export interface IGrcAssessmentPort {
   deleteGrcAssessment(id: string): Promise<void>;
 }
 
+export interface IAiAdvisorGatewayPort {
+  requestAiAdvice(
+    scanId: string,
+    byok?: ByokAiConfig | null,
+  ): Promise<AgentRemediationPlan>;
+}
+
+export interface IExternalReportImporterPort {
+  importExternalReport(
+    rawJsonText: string,
+    sourceLabel?: string,
+  ): Promise<ScanSummary>;
+}
+
 export interface ExportedReportFile {
   filename: string;
   mimeType: string;
@@ -69,4 +85,6 @@ export interface IBrynjaGateway
     ITargetAuthorizer,
     IAuditLogReader,
     IGitHubIntegrationPort,
-    Partial<IGrcAssessmentPort> {}
+    Partial<IGrcAssessmentPort>,
+    Partial<IAiAdvisorGatewayPort>,
+    Partial<IExternalReportImporterPort> {}

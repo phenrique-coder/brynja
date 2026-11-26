@@ -6,6 +6,16 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.14.0] - 2026-11-26
+
+### Adicionado
+- Adicionado **Consultor de Triagem & Reachability por IA (BYOK)** configurável pelo usuário (`ByokAgentAdvisorAdapter`, `AnalyzeAdviseUseCase`, rota `POST /api/analyze/advise` com `maxDuration = 60` e painel `AiAdvisorPanel` em `/scans/[id]`):
+  - Suporta **OpenAI**, **Google Gemini** e **endpoints customizados compatíveis com OpenAI**, com validação obrigatória de URLs externas pelo `SsrfDnsGuardService`.
+  - Mantém a chave BYOK estritamente no navegador (opt-in em `localStorage`, nunca em cookies ou banco na nuvem) e envia somente metadados sanitizados e indícios de *reachability* (`computeReachabilityHints`), jamais segredos crus.
+- Adicionada **Ingestão de Relatórios Externos** (`parseExternalSecurityReport` e ação **Importar SARIF / Trivy / Semgrep** em `/history`) convertendo arquivos **OASIS SARIF 2.1.0**, **Trivy JSON**, **Semgrep JSON** e **Prowler OCSF/JSON** para o histórico local no `IndexedDB`.
+- Adicionados **Exportadores Corporativos** em `REPORT_EXPORTERS`: **SARIF 2.1.0** (`SarifReportExporter`), **SBOM SPDX 2.3** (`SpdxSbomExporter`) e **Matriz de Conformidade CSV** (`ComplianceCsvReportExporter`).
+- Adicionado **Comparador entre Varreduras (Scan Diff)** em `/history` (`computeScanDiff`) exibindo CVEs novos/resolvidos/persistentes, deltas de Safe Probes e achados estáticos e evolução de aderência CIS v8 / NIST CSF 2.0.
+
 ## [1.13.0] - 2026-11-26
 
 ### Adicionado

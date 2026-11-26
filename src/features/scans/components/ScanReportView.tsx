@@ -50,6 +50,7 @@ import {
   VERDICT_REGISTRY,
 } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
+import { AiAdvisorPanel } from './AiAdvisorPanel';
 import { ComplianceScorecardTab } from './ComplianceScorecardTab';
 import { StatusPill } from './StatusPill';
 import {
@@ -67,7 +68,8 @@ type ReportTab =
   | 'audit';
 
 export function ScanReportView({ scanId }: { scanId: string }) {
-  const { report, loading, authRequired, error } = useScanReport(scanId);
+  const { report, loading, authRequired, error, refresh } =
+    useScanReport(scanId);
   const { assessments } = useGrcAssessments();
   const { messages, locale, intlLocale, t } = useI18n();
   const [tab, setTab] = useState<ReportTab>('findings');
@@ -224,6 +226,9 @@ export function ScanReportView({ scanId }: { scanId: string }) {
     json: messages.scanReport.rawJsonLabel,
     markdown: messages.scanReport.markdownLabel,
     cyclonedx: messages.scanReport.sbomLabel,
+    sarif: messages.scanReport.sarifLabel,
+    spdx: messages.scanReport.spdxLabel,
+    'compliance-csv': messages.scanReport.complianceCsvLabel,
   };
   const allClear = isScanAllClear(report);
   const probeIssuesCount = countProbeIssues(report.probeResults);
@@ -599,6 +604,9 @@ export function ScanReportView({ scanId }: { scanId: string }) {
           </div>
         ) : null}
       </SurfaceCard>
+
+      {/* BYOK AI Triage & Reachability Advisor */}
+      <AiAdvisorPanel report={report} onPlanGenerated={() => void refresh()} />
 
       {/* Summary KPI Grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">

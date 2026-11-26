@@ -1,4 +1,6 @@
 import {
+  AgentRemediationPlan,
+  ByokAiConfig,
   ChallengeTokenPreview,
   CreateAuthorizationResponse,
   CreateScanPayload,
@@ -17,7 +19,13 @@ import {
   VulnerabilityFinding,
   countProbeIssues,
 } from '../models/scan.models';
-import { IBrynjaGateway, IGrcAssessmentPort } from '../ports/scan-gateway.port';
+import {
+  IAiAdvisorGatewayPort,
+  IBrynjaGateway,
+  IExternalReportImporterPort,
+  IGrcAssessmentPort,
+} from '../ports/scan-gateway.port';
+import { parseExternalSecurityReport } from '@/features/scans/importers/external-report.importer';
 import {
   ILocalBrynjaStore,
   IndexedDbBrynjaStore,
@@ -82,7 +90,13 @@ function summarizeReport(report: ScanReport): ScanSummary {
   };
 }
 
-export class HttpScanGateway implements IBrynjaGateway, IGrcAssessmentPort {
+export class HttpScanGateway
+  implements
+    IBrynjaGateway,
+    IGrcAssessmentPort,
+    IAiAdvisorGatewayPort,
+    IExternalReportImporterPort
+{
   private cachedOwner: { githubUserId: string; login: string | null } | null =
     null;
 
@@ -348,6 +362,45 @@ export class HttpScanGateway implements IBrynjaGateway, IGrcAssessmentPort {
   async deleteGrcAssessment(id: string): Promise<void> {
     const owner = await this.requireOwner();
     await this.store.deleteGrcAssessment(owner.githubUserId, id);
+  }
+
+  async requestAiAdvice(
+    scanId: string,
+    byok?: ByokAiConfig | null,
+  ): Promise<AgentRemediationPlan> {
+    const owner = await this.requireOwner();
+    const report = await this.getScanReport(scanId);
+    const res = await this.request<{ plan: AgentRemediationPlan }>(
+      '/analyze/advise',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          repositoryUrl: report.repositoryUrl,
+          branch: report.branch,
+          advisories: report.findings.slice(0, 200),
+          probeResults: report.probeResults.slice(0, 200),
+          staticFindings: (report.staticFindings ?? []).slice(0, 200),
+          byok: byok ?? null,
+        }),
+      },
+    );
+    const updated: ScanReport = {
+      ...report,
+      aiRemediationPlan: res.plan,
+    };
+    await this.store.putScan(owner.githubUserId, updated);
+    return res.plan;
+  }
+
+  async importExternalReport(
+    rawJsonText: string,
+    sourceLabel?: string,
+  ): Promise<ScanSummary> {
+    const owner = await this.requireOwner();
+    const report = parseExternalSecurityReport(rawJsonText, sourceLabel);
+    report.ownerLogin = owner.login;
+    await this.store.putScan(owner.githubUserId, report);
+    return summarizeReport(report);
   }
 
   private async runPipeline(

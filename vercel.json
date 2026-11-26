@@ -8,6 +8,9 @@
     "src/app/api/analyze/static/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/analyze/advise/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/analyze/probes/route.ts": {
       "maxDuration": 60
     },

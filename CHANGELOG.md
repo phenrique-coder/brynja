@@ -6,6 +6,16 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-11-26
+
+### Added
+- Added user-configurable **BYOK AI Triage & Reachability Advisor** (`ByokAgentAdvisorAdapter`, `AnalyzeAdviseUseCase`, `POST /api/analyze/advise` with `maxDuration = 60`, and `AiAdvisorPanel` in `/scans/[id]`):
+  - Supports **OpenAI**, **Google Gemini**, and **OpenAI-compatible custom endpoints** validated through `SsrfDnsGuardService` against private networks/cloud metadata.
+  - Stores user API keys strictly opt-in inside browser `localStorage` (`brynja-ai-byok-v1`) — never persisted in cookies or cloud databases — and transmits only sanitized CVE, Safe Probe, static rule metadata, and repository import reachability hints (`computeReachabilityHints`).
+- Added **External Security Report Importers** (`parseExternalSecurityReport` and **Import SARIF / Trivy / Semgrep** action on `/history`) normalizing **OASIS SARIF 2.1.0**, **Trivy JSON**, **Semgrep JSON**, and **Prowler OCSF/JSON** reports into local `IndexedDB` scans.
+- Added **Enterprise Interoperability Exporters** registered via OCP in `REPORT_EXPORTERS`: **SARIF 2.1.0** (`SarifReportExporter`), **SPDX 2.3 SBOM** (`SpdxSbomExporter`), and **Compliance Matrix CSV** (`ComplianceCsvReportExporter`).
+- Added **Scan Comparison (Diff)** on `/history` (`computeScanDiff`) comparing any two local scans for new, resolved, and persistent CVEs, Safe Probe deltas, static finding deltas, and CIS v8 / NIST CSF 2.0 adherence progression.
+
 ## [1.13.0] - 2026-11-26
 
 ### Added

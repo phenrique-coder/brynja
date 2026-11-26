@@ -198,10 +198,20 @@ export interface IGitHubOAuthClient {
   listRepositories(accessToken: string): Promise<GitHubRepoSummary[]>;
 }
 
-// --- Future AI Agents Extension Port ---
+// --- AI Agents Extension Port (BYOK / Reachability) ---
+export type AiProviderType = 'openai' | 'gemini' | 'custom';
+
+export interface ByokAiConfig {
+  provider: AiProviderType;
+  apiKey: string;
+  model?: string;
+  endpointUrl?: string;
+}
+
 export interface AgentRemediationPlan {
   summary: string;
   prioritizedSteps: string[];
+  reachabilityHits?: string[];
   generatedBy: string;
 }
 

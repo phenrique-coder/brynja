@@ -12,7 +12,10 @@ import {
   IReportExporter,
 } from '@/core/ports/scan-gateway.port';
 import { AiRemediationJsonExporter } from '../exporters/ai-remediation-json.exporter';
-import { ComplianceControlStatus } from '../presenters/compliance.presenter';
+import {
+  ComplianceControlStatus,
+  buildComplianceMatrixCsv,
+} from '../presenters/compliance.presenter';
 
 export interface BadgeMeta {
   label: string;
@@ -289,9 +292,231 @@ class CycloneDxSbomExporter implements IReportExporter {
   }
 }
 
+function severityToSarifLevel(
+  severity: SeverityLevel,
+): 'error' | 'warning' | 'note' {
+  if (severity === 'CRITICAL' || severity === 'HIGH') return 'error';
+  if (severity === 'MEDIUM') return 'warning';
+  return 'note';
+}
+
+class SarifReportExporter implements IReportExporter {
+  readonly format = 'sarif';
+  readonly label = 'Exportar SARIF 2.1.0';
+
+  export(report: ScanReport): ExportedReportFile {
+    const rulesMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        shortDescription: { text: string };
+        helpUri?: string;
+        properties: { tags: string[] };
+      }
+    >();
+
+    const results: Array<{
+      ruleId: string;
+      level: 'error' | 'warning' | 'note';
+      message: { text: string };
+      locations: Array<{
+        physicalLocation: {
+          artifactLocation: { uri: string };
+          region: { startLine: number };
+        };
+      }>;
+    }> = [];
+
+    for (const f of report.findings) {
+      const ruleId = f.cveId ?? f.advisoryId;
+      if (!rulesMap.has(ruleId)) {
+        rulesMap.set(ruleId, {
+          id: ruleId,
+          name: `${f.packageName} (${ruleId})`,
+          shortDescription: { text: f.title },
+          helpUri: f.references[0],
+          properties: {
+            tags: ['security', 'sca', f.ecosystem, ...f.cweIds],
+          },
+        });
+      }
+      const dep = report.dependencies.find((d) => d.id === f.dependencyId);
+      results.push({
+        ruleId,
+        level: severityToSarifLevel(f.severity),
+        message: {
+          text: `${f.packageName}@${f.packageVersion}: ${f.title}${f.fixedVersion ? ` (fix >= ${f.fixedVersion})` : ''}`,
+        },
+        locations: [
+          {
+            physicalLocation: {
+              artifactLocation: {
+                uri: dep?.sourceFile || 'package.json',
+              },
+              region: { startLine: 1 },
+            },
+          },
+        ],
+      });
+    }
+
+    for (const p of report.probeResults) {
+      if (p.status !== 'FINDING' && p.status !== 'ABORTED') continue;
+      if (!rulesMap.has(p.probeId)) {
+        rulesMap.set(p.probeId, {
+          id: p.probeId,
+          name: p.probeId,
+          shortDescription: { text: p.title },
+          properties: { tags: ['security', 'dast', 'safe-probe'] },
+        });
+      }
+      results.push({
+        ruleId: p.probeId,
+        level: severityToSarifLevel(p.severity),
+        message: {
+          text: `${p.title} — ${p.evidence}`,
+        },
+        locations: [
+          {
+            physicalLocation: {
+              artifactLocation: { uri: p.targetUrl },
+              region: { startLine: 1 },
+            },
+          },
+        ],
+      });
+    }
+
+    for (const s of report.staticFindings ?? []) {
+      if (!rulesMap.has(s.ruleId)) {
+        rulesMap.set(s.ruleId, {
+          id: s.ruleId,
+          name: s.ruleId,
+          shortDescription: { text: s.title },
+          properties: { tags: ['security', 'sast', s.category, ...s.cweIds] },
+        });
+      }
+      results.push({
+        ruleId: s.ruleId,
+        level: severityToSarifLevel(s.severity),
+        message: {
+          text: `${s.title} — ${s.recommendation}`,
+        },
+        locations: [
+          {
+            physicalLocation: {
+              artifactLocation: { uri: s.filePath },
+              region: { startLine: s.lineNumber ?? 1 },
+            },
+          },
+        ],
+      });
+    }
+
+    const sarif = {
+      $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+      version: '2.1.0',
+      runs: [
+        {
+          tool: {
+            driver: {
+              name: 'Brynja',
+              informationUri: 'https://github.com/pedro-faria/brynja',
+              semanticVersion: packageJson.version,
+              rules: Array.from(rulesMap.values()),
+            },
+          },
+          results,
+        },
+      ],
+    };
+
+    return {
+      filename: `brynja-report-${report.id.slice(0, 8)}.sarif`,
+      mimeType: 'application/sarif+json',
+      content: JSON.stringify(sarif, null, 2),
+    };
+  }
+}
+
+class SpdxSbomExporter implements IReportExporter {
+  readonly format = 'spdx';
+  readonly label = 'Exportar SBOM (SPDX 2.3)';
+
+  export(report: ScanReport): ExportedReportFile {
+    const docCreated =
+      report.completedAt ?? report.createdAt ?? new Date().toISOString();
+    const packages = report.dependencies.map((d, index) => {
+      const spdxId = `SPDXRef-Package-${index + 1}`;
+      const pkg: Record<string, unknown> = {
+        SPDXID: spdxId,
+        name: d.name,
+        versionInfo: d.version,
+        downloadLocation: 'NOASSERTION',
+        filesAnalyzed: false,
+        licenseConcluded: d.license ?? 'NOASSERTION',
+        licenseDeclared: d.license ?? 'NOASSERTION',
+        copyrightText: 'NOASSERTION',
+      };
+      if (d.purl) {
+        pkg.externalRefs = [
+          {
+            referenceCategory: 'PACKAGE-MANAGER',
+            referenceType: 'purl',
+            referenceLocator: d.purl,
+          },
+        ];
+      }
+      return pkg;
+    });
+
+    const spdx = {
+      spdxVersion: 'SPDX-2.3',
+      dataLicense: 'CC0-1.0',
+      SPDXID: 'SPDXRef-DOCUMENT',
+      name: `brynja-sbom-${report.id.slice(0, 8)}`,
+      documentNamespace: `https://brynja.local/spdx/${report.id}`,
+      creationInfo: {
+        created: docCreated,
+        creators: [`Tool: Brynja-${packageJson.version}`],
+      },
+      packages,
+      relationships: packages.map((pkg) => ({
+        spdxElementId: 'SPDXRef-DOCUMENT',
+        relationshipType: 'DESCRIBES',
+        relatedSpdxElement: pkg.SPDXID,
+      })),
+    };
+
+    return {
+      filename: `brynja-sbom-${report.id.slice(0, 8)}.spdx.json`,
+      mimeType: 'application/spdx+json',
+      content: JSON.stringify(spdx, null, 2),
+    };
+  }
+}
+
+class ComplianceCsvReportExporter implements IReportExporter {
+  readonly format = 'compliance-csv';
+  readonly label = 'Exportar Matriz Conformidade (CSV)';
+
+  export(report: ScanReport): ExportedReportFile {
+    const csv = buildComplianceMatrixCsv(report, 'pt-BR');
+    return {
+      filename: csv.filename,
+      mimeType: 'text/csv;charset=utf-8',
+      content: csv.content,
+    };
+  }
+}
+
 export const REPORT_EXPORTERS: IReportExporter[] = [
   new AiRemediationJsonExporter(),
   new JsonReportExporter(),
   new MarkdownReportExporter(),
   new CycloneDxSbomExporter(),
+  new SarifReportExporter(),
+  new SpdxSbomExporter(),
+  new ComplianceCsvReportExporter(),
 ];
