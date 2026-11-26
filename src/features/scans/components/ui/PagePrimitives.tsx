@@ -87,12 +87,12 @@ export function KpiStatCard({
           </span>
         ) : null}
       </div>
-      <div className="mt-3 flex items-baseline justify-between gap-2">
+      <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
         <span className={`text-2xl font-bold tracking-tight sm:text-3xl ${accentClass}`}>
           {value}
         </span>
         {sublabel ? (
-          <span className="text-xs text-fg-muted">{sublabel}</span>
+          <span className="text-[11px] font-medium text-fg-muted">{sublabel}</span>
         ) : null}
       </div>
     </div>

@@ -347,6 +347,19 @@ describe('AI Remediation JSON Exporter & Executive Remediation Planner', () => {
     const aiPayload = buildAiRemediationPayload(cleanReport);
     expect(aiPayload.tasks).toEqual([]);
     expect(aiPayload.summary.totalTasks).toBe(0);
+    expect(aiPayload.aiDiagnosis).toBeUndefined();
+
+    const withAiReport: ScanReport = {
+      ...cleanReport,
+      aiRemediationPlan: {
+        generatedBy: 'gemini:gemini-2.5-flash',
+        summary: 'Diagnóstico de teste da IA para priorização.',
+        reachabilityHits: ['next importado ativamente em: src/app/page.tsx'],
+        prioritizedSteps: ['Corrigir credencial exposta imediatamente.'],
+      },
+    };
+    const payloadWithAi = buildAiRemediationPayload(withAiReport);
+    expect(payloadWithAi.aiDiagnosis).toEqual(withAiReport.aiRemediationPlan);
   });
 
   it('places all report exports in a right-side dropdown ordered PDF -> AI JSON -> others and supports clipboard copy', async () => {

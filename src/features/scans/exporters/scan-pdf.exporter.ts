@@ -45,6 +45,8 @@ const PALETTE = {
   amberBg: [254, 243, 199] as RgbTuple,
   sky: [3, 105, 161] as RgbTuple,
   skyBg: [224, 242, 254] as RgbTuple,
+  violet: [109, 40, 217] as RgbTuple,
+  violetBg: [245, 243, 255] as RgbTuple,
   slateBg: [241, 245, 249] as RgbTuple,
 };
 
@@ -490,23 +492,33 @@ export async function buildScanReportPdf(
   }
 
   // =========================================================================
-  // 3. EXECUTIVE KPI CARDS (5 COLUMNS)
+  // 3. EXECUTIVE KPI CARDS (7 COLUMNS — SCA CVEs + PROBES + STATIC + GRC)
   // =========================================================================
+  const scorecards = COMPLIANCE_FRAMEWORK_IDS.map((frameworkId) =>
+    evaluateComplianceFramework(report, { frameworkId, locale: 'pt-BR' }),
+  );
+  const cisScore =
+    scorecards.find((s) => s.frameworkId === 'cis-v8')?.summary
+      .technicalAdherencePercent ?? 0;
+  const staticCount = (report.staticFindings ?? []).length;
+
   cursorY += 29;
-  const kpiGap = 3;
-  const kpiW = (contentWidth - kpiGap * 4) / 5;
+  const kpiGap = 2.4;
+  const kpiW = (contentWidth - kpiGap * 6) / 7;
   const kpiH = 20;
 
   const kpis: Array<{
     label: string;
-    value: number;
+    value: string | number;
     accent: RgbTuple;
   }> = [
     { label: 'DEPENDÊNCIAS', value: report.totalDependencies, accent: PALETTE.navySoft },
-    { label: 'CRÍTICAS', value: report.criticalCount, accent: PALETTE.rose },
-    { label: 'ALTAS', value: report.highCount, accent: PALETTE.orange },
-    { label: 'MÉDIAS', value: report.mediumCount, accent: PALETTE.amber },
+    { label: 'CRÍTICAS (CVE)', value: report.criticalCount, accent: PALETTE.rose },
+    { label: 'ALTAS (CVE)', value: report.highCount, accent: PALETTE.orange },
+    { label: 'MÉDIAS (CVE)', value: report.mediumCount, accent: PALETTE.amber },
     { label: 'CONFIRMADAS', value: report.confirmedActiveCount, accent: PALETTE.cyanDark },
+    { label: 'CÓDIGO & IAC', value: staticCount, accent: PALETTE.violet },
+    { label: 'CONFORMIDADE', value: `${cisScore}%`, accent: PALETTE.emerald },
   ];
 
   kpis.forEach((kpi, idx) => {
@@ -521,18 +533,18 @@ export async function buildScanReportPdf(
     doc.rect(x + 0.5, cursorY + 0.3, kpiW - 1, 1.8, 'F');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.6);
+    doc.setFontSize(5.5);
     doc.setTextColor(...PALETTE.subtleText);
-    doc.text(sanitizePdfText(kpi.label), x + 3, cursorY + 7.2);
+    doc.text(sanitizePdfText(kpi.label), x + 2.2, cursorY + 7.2);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
+    doc.setFontSize(13);
     doc.setTextColor(...kpi.accent);
-    doc.text(String(kpi.value), x + 3, cursorY + 16.5);
+    doc.text(String(kpi.value), x + 2.2, cursorY + 16.3);
   });
 
   // =========================================================================
-  // 4. SEVERITY DISTRIBUTION BAR + KEV/PROBES SNAPSHOT
+  // 4. SEVERITY DISTRIBUTION BAR + KEV/PROBES/STATIC SNAPSHOT
   // =========================================================================
   cursorY += kpiH + 6;
   const totalVulns =
@@ -556,17 +568,17 @@ export async function buildScanReportPdf(
   doc.setFontSize(8.2);
   doc.setTextColor(...PALETTE.slateText);
   doc.text(
-    sanitizePdfText(`Distribuição de Vulnerabilidades (${totalVulns} achado(s) SCA)`),
+    sanitizePdfText(`Distribuição de CVEs (${totalVulns} achado(s) SCA)`),
     marginX + 4,
     cursorY + 6,
   );
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.6);
+  doc.setFontSize(7.4);
   doc.setTextColor(...PALETTE.mutedText);
   doc.text(
     sanitizePdfText(
-      `CISA KEV Ativas: ${kevCount}   |   Safe Probes: ${probeFindingsCount} ponto(s) fraco(s), ${probePassedCount} aprovado(s)`,
+      `KEV: ${kevCount}  |  Probes: ${probeFindingsCount} falha(s), ${probePassedCount} ok  |  Código/IaC: ${staticCount}`,
     ),
     pageWidth - marginX - 4,
     cursorY + 6,
@@ -713,6 +725,113 @@ export async function buildScanReportPdf(
   }
 
   cursorY += briefCardH + 6;
+
+  // =========================================================================
+  // 5B. AI TRIAGE & PRIORITIZATION DIAGNOSIS (IF GENERATED VIA BYOK)
+  // =========================================================================
+  if (report.aiRemediationPlan) {
+    const aiPlan = report.aiRemediationPlan;
+    const summaryLines = doc.splitTextToSize(
+      sanitizePdfText(aiPlan.summary),
+      contentWidth - 11,
+    ) as string[];
+    const reachHits = aiPlan.reachabilityHits ?? [];
+    const headerAndSummaryH =
+      15 +
+      summaryLines.length * 3.8 +
+      (reachHits.length > 0 ? 7 + reachHits.slice(0, 6).length * 4.2 : 0) +
+      4;
+
+    if (cursorY + Math.min(headerAndSummaryH, 55) > pageHeight - 18) {
+      doc.addPage();
+      cursorY = 20;
+    }
+
+    doc.setFillColor(...PALETTE.violetBg);
+    doc.setDrawColor(...PALETTE.violet);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(marginX, cursorY, contentWidth, headerAndSummaryH, 2.5, 2.5, 'FD');
+
+    doc.setFillColor(...PALETTE.violet);
+    doc.roundedRect(marginX, cursorY, 2.4, headerAndSummaryH, 1.2, 1.2, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.4);
+    doc.setTextColor(...PALETTE.violet);
+    doc.text(
+      sanitizePdfText(`DIAGNÓSTICO EXECUTIVO POR IA (${aiPlan.generatedBy})`),
+      marginX + 5.5,
+      cursorY + 6,
+    );
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.1);
+    doc.setTextColor(...PALETTE.slateText);
+    doc.text(summaryLines, marginX + 5.5, cursorY + 11.5);
+
+    if (reachHits.length > 0) {
+      let rY = cursorY + 11.5 + summaryLines.length * 3.8 + 2.5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.2);
+      doc.setTextColor(...PALETTE.amber);
+      doc.text(
+        sanitizePdfText('Reachability detectado no código-fonte:'),
+        marginX + 5.5,
+        rY,
+      );
+      rY += 4.2;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(...PALETTE.mutedText);
+      for (const hit of reachHits.slice(0, 6)) {
+        doc.text(sanitizePdfText(`- ${truncateText(hit, 105)}`), marginX + 6.5, rY);
+        rY += 4;
+      }
+    }
+
+    cursorY += headerAndSummaryH + 4;
+
+    if (aiPlan.prioritizedSteps.length > 0) {
+      if (cursorY + 16 > pageHeight - 18) {
+        doc.addPage();
+        cursorY = 20;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.8);
+      doc.setTextColor(...PALETTE.violet);
+      doc.text(
+        sanitizePdfText(
+          `Passos Priorizados pela IA (${aiPlan.prioritizedSteps.length}):`,
+        ),
+        marginX + 1,
+        cursorY + 4,
+      );
+      cursorY += 7;
+
+      aiPlan.prioritizedSteps.forEach((step, idx) => {
+        const stepLines = doc.splitTextToSize(
+          sanitizePdfText(`${String(idx + 1).padStart(2, '0')}. ${step}`),
+          contentWidth - 8,
+        ) as string[];
+        const rowH = stepLines.length * 3.8 + 3.5;
+        if (cursorY + rowH > pageHeight - 18) {
+          doc.addPage();
+          cursorY = 20;
+        }
+        doc.setFillColor(...PALETTE.white);
+        doc.setDrawColor(...PALETTE.cardBorder);
+        doc.setLineWidth(0.22);
+        doc.roundedRect(marginX, cursorY, contentWidth, rowH, 1.5, 1.5, 'FD');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.6);
+        doc.setTextColor(...PALETTE.slateText);
+        doc.text(stepLines, marginX + 3.5, cursorY + 4.5);
+        cursorY += rowH + 2;
+      });
+      cursorY += 4;
+    }
+  }
 
   // =========================================================================
   // 6. SECTION 1 — PROBLEM PRESENTATION & SOLUTION PLAN (MANAGEMENT & BOARD)
@@ -1095,10 +1214,6 @@ export async function buildScanReportPdf(
     'Matriz de Conformidade (CIS v8 · NIST CSF 2.0 · OWASP · LGPD/ISO)',
     'Aderência técnica automática derivada das evidências desta varredura e principais lacunas regulatórias.',
     marginX,
-  );
-
-  const scorecards = COMPLIANCE_FRAMEWORK_IDS.map((frameworkId) =>
-    evaluateComplianceFramework(report, { frameworkId, locale: 'pt-BR' }),
   );
 
   autoTable(doc, {

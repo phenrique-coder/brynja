@@ -116,6 +116,8 @@ export interface ScanSummary {
   lowCount: number;
   confirmedActiveCount: number;
   probeIssuesCount?: number;
+  staticIssuesCount?: number;
+  staticCriticalHighCount?: number;
   warnings: string[];
   errorMessage: string | null;
   startedAt: string | null;
@@ -291,4 +293,46 @@ export function resolveScanProbeIssuesCount(
     return countProbeIssues(scan.probeResults);
   }
   return typeof scan.probeIssuesCount === 'number' ? scan.probeIssuesCount : 0;
+}
+
+/**
+ * Counts static analysis findings (Code, Secrets, IaC/CI-CD & GitHub Posture).
+ */
+export function countStaticIssues(
+  staticFindings: ReadonlyArray<Pick<StaticAnalysisFinding, 'severity'>>,
+): number {
+  return staticFindings.length;
+}
+
+/**
+ * Resolves the total static analysis findings count from a summary or full report,
+ * supporting legacy locally stored reports created before `staticIssuesCount` existed.
+ */
+export function resolveScanStaticIssuesCount(
+  scan: Pick<ScanSummary, 'staticIssuesCount'> & {
+    staticFindings?: ReadonlyArray<Pick<StaticAnalysisFinding, 'severity'>>;
+  },
+): number {
+  if (Array.isArray(scan.staticFindings)) {
+    return countStaticIssues(scan.staticFindings);
+  }
+  return typeof scan.staticIssuesCount === 'number' ? scan.staticIssuesCount : 0;
+}
+
+/**
+ * Resolves Critical/High static findings count from a summary or full report.
+ */
+export function resolveScanStaticCritHighCount(
+  scan: Pick<ScanSummary, 'staticCriticalHighCount'> & {
+    staticFindings?: ReadonlyArray<Pick<StaticAnalysisFinding, 'severity'>>;
+  },
+): number {
+  if (Array.isArray(scan.staticFindings)) {
+    return scan.staticFindings.filter(
+      (s) => s.severity === 'CRITICAL' || s.severity === 'HIGH',
+    ).length;
+  }
+  return typeof scan.staticCriticalHighCount === 'number'
+    ? scan.staticCriticalHighCount
+    : 0;
 }

@@ -6,6 +6,16 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.15.0] - 2026-11-26
+
+### Adicionado
+- Adicionados indicadores executivos separados para **Código, Segredos & IaC** (`staticIssuesCount`, `staticCriticalHighCount`) e **Conformidade (CIS v8)** no Painel principal, Histórico (`/history`), coluna Severidade (badge dedicado `E:` + segmento na barra proporcional), Relatório (`/scans/[id]`) e PDF Executivo — mantendo `Críticas / Altas / Médias` exclusivos para CVEs de dependências e recalculando automaticamente inclusive para varreduras já salvas no `IndexedDB`.
+- Incluído o **Diagnóstico Executivo por IA** (`aiRemediationPlan`: resumo, indícios de *reachability* e passos priorizados) tanto no **PDF Executivo** (`scan-pdf.exporter.ts`) quanto no **JSON para IA** (`aiDiagnosis` em `ai-remediation-json.exporter.ts`).
+
+### Alterado
+- Padronizada a verificação de posse `WELL_KNOWN_FILE` para o arquivo RFC 9116 `/.well-known/security.txt` (`Contact:`, `Expires:` e comentário `# Brynja-Verification: <token>`) no `DomainOwnershipVerifierAdapter`, `TargetAuthorizationUseCase`, `RunSafeProbesUseCase`, guia `/authorizations` (`OwnershipSetupGuide` + trechos Nginx/Apache), traduções PT-BR/EN/ES e documentação de segurança — mantendo fallback automático legado para `/.well-known/brynja-verify.txt`.
+- Aprimorado o visual do painel `AiAdvisorPanel` com card callout de diagnóstico, chips de *reachability*, cards numerados de ação com destaque monospace para caminhos de arquivo/cabeçalhos e substituição do termo `"Copilot"` no badge por **`Inteligência AppSec (BYOK)`** (PT-BR/ES) / **`AppSec AI Advisor (BYOK)`** (EN).
+
 ## [1.14.0] - 2026-11-26
 
 ### Adicionado

@@ -9,6 +9,7 @@ export interface OwnershipGuideSnippetsInput {
   hostname: string;
   token: string;
   dnsAltComment: string;
+  expiresIso?: string;
 }
 
 export type ReverseProxyServer = 'nginx' | 'apache';
@@ -162,21 +163,43 @@ export function escapeShellSingleQuoted(value: string): string {
   return value.replace(/'/g, `'\\''`);
 }
 
+function computeDefaultSecurityTxtExpiresIso(): string {
+  const future = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+  future.setUTCHours(23, 59, 59, 0);
+  return future.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+function resolveContactEmail(hostname: string): string {
+  const clean = hostname.replace(/^www\./i, '');
+  if (!clean || isLoopbackHost(clean) || isValidIpv4(clean) || IPV6_BRACKETED_RE.test(clean)) {
+    return 'mailto:security@example.com';
+  }
+  return `mailto:security@${clean}`;
+}
+
 export function buildOwnershipGuideSnippets(
   input: OwnershipGuideSnippetsInput,
 ): OwnershipGuideSnippets {
   const { origin, hostname, token, dnsAltComment } = input;
-  const safeToken = escapeShellSingleQuoted(token);
-  const wellKnownUrl = `${origin}/.well-known/brynja-verify.txt`;
+  const expiresIso = input.expiresIso ?? computeDefaultSecurityTxtExpiresIso();
+  const contactLine = `Contact: ${resolveContactEmail(hostname)}`;
+  const expiresLine = `Expires: ${expiresIso}`;
+  const verificationComment = `# Brynja-Verification: ${token}`;
+  const fileContent = [contactLine, expiresLine, verificationComment].join('\n');
+
+  const safeContactLine = escapeShellSingleQuoted(contactLine);
+  const safeExpiresLine = escapeShellSingleQuoted(expiresLine);
+  const safeVerificationLine = escapeShellSingleQuoted(verificationComment);
+  const wellKnownUrl = `${origin}/.well-known/security.txt`;
 
   const nginxActiveConfigCmd = `ls -la /etc/nginx/sites-enabled/ && sudo grep -rn "${hostname}" /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null`;
-  const nginxSnippet = `location = /.well-known/brynja-verify.txt {
+  const nginxSnippet = `location = /.well-known/security.txt {
     root /var/www/html;
     default_type text/plain;
     allow all;
 }`;
   const nginxReloadCmd = `sudo nginx -t && sudo systemctl reload nginx`;
-  const nginxFindBlockCmd = `sudo grep -rn "brynja-verify\\|well-known" /etc/nginx/sites-enabled/ /etc/nginx/sites-available/ /etc/nginx/conf.d/ 2>/dev/null`;
+  const nginxFindBlockCmd = `sudo grep -rn "security.txt\\|brynja-verify\\|well-known" /etc/nginx/sites-enabled/ /etc/nginx/sites-available/ /etc/nginx/conf.d/ 2>/dev/null`;
 
   const apacheActiveConfigCmd = `ls -la /etc/apache2/sites-enabled/ 2>/dev/null; sudo grep -rn "${hostname}" /etc/apache2/sites-enabled/ /etc/httpd/conf.d/ 2>/dev/null`;
   const apacheSnippet = `ProxyPass /.well-known/ !
@@ -186,17 +209,17 @@ Alias /.well-known/ /var/www/html/.well-known/
     Options -Indexes
     AllowOverride None
     Require all granted
-    <Files "brynja-verify.txt">
+    <Files "security.txt">
         ForceType text/plain
     </Files>
 </Directory>`;
   const apacheReloadCmd = `sudo apache2ctl configtest && sudo systemctl reload apache2`;
-  const apacheFindBlockCmd = `sudo grep -rn "brynja-verify\\|well-known" /etc/apache2/sites-enabled/ /etc/apache2/sites-available/ /etc/apache2/conf-available/ /etc/httpd/conf.d/ /etc/httpd/conf/ 2>/dev/null`;
+  const apacheFindBlockCmd = `sudo grep -rn "security.txt\\|brynja-verify\\|well-known" /etc/apache2/sites-enabled/ /etc/apache2/sites-available/ /etc/apache2/conf-available/ /etc/httpd/conf.d/ /etc/httpd/conf/ 2>/dev/null`;
 
   return {
     wellKnownUrl,
     sshConnectCmd: `ssh usuario@${hostname}`,
-    sshCreateFileCmd: `sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' '${safeToken}' | sudo tee /var/www/html/.well-known/brynja-verify.txt > /dev/null`,
+    sshCreateFileCmd: `sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' '${safeContactLine}' '${safeExpiresLine}' '${safeVerificationLine}' | sudo tee /var/www/html/.well-known/security.txt > /dev/null`,
     nginxActiveConfigCmd,
     nginxSnippet,
     nginxReloadCmd,
@@ -204,7 +227,7 @@ Alias /.well-known/ /var/www/html/.well-known/
     apacheSnippet,
     apacheReloadCmd,
     curlVerifyCmd: `curl -fsSL ${wellKnownUrl}`,
-    sshCleanupFileCmd: `sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)`,
+    sshCleanupFileCmd: `sudo rm -f /var/www/html/.well-known/security.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)`,
     nginxFindBlockCmd,
     apacheFindBlockCmd,
     reverseProxy: {
@@ -222,10 +245,10 @@ Alias /.well-known/ /var/www/html/.well-known/
       },
     },
     curlCleanupVerifyCmd: `curl -i ${wellKnownUrl}`,
-    webCleanupCmd: `rm -f public/.well-known/brynja-verify.txt && (rmdir public/.well-known 2>/dev/null || true)`,
+    webCleanupCmd: `rm -f public/.well-known/security.txt && (rmdir public/.well-known 2>/dev/null || true)`,
     dnsRecordHost: `_brynja.${hostname}`,
     dnsVerifyCmd: `dig +short TXT _brynja.${hostname}\n${dnsAltComment}\nnslookup -type=TXT _brynja.${hostname}`,
     sandboxEnvLine: `ALLOW_LOCAL_LOOPBACK_TARGETS=true`,
-    fileContent: token,
+    fileContent,
   };
 }

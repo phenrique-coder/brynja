@@ -30,7 +30,7 @@ That concept directly reflects the platform's **defense-in-depth** philosophy:
 3. **Controlled Active Verification (*8 Non-Destructive Safe Probes*):**
    - `SecurityHeadersProbe`, `HstsTlsProbe`, `CookieSecurityProbe`, `CorsMisconfigProbe`, `ExposedArtifactsProbe`, `ExposedDocsAndMetricsProbe`, `RuntimeFingerprintProbe`, and `SourceMapExposureProbe`.
 4. **Inviolable Guardrails & Signed Stateless Ownership:**
-   - Mandatory cryptographic ownership verification with deterministic HMAC-SHA256 tokens scoped per user and origin (`/.well-known/brynja-verify.txt`, `_brynja` DNS TXT record, or `LOCAL_DEV_SANDBOX` in development).
+   - Mandatory cryptographic ownership verification with deterministic HMAC-SHA256 tokens scoped per user and origin (`/.well-known/security.txt` RFC 9116 `# Brynja-Verification:` with legacy fallback `/.well-known/brynja-verify.txt`, `_brynja` DNS TXT record, or `LOCAL_DEV_SANDBOX` in development).
    - Issues an **AES-256-GCM** signed ownership certificate valid for 7 days with **automatic live renewal** as long as the proof remains published on the domain (and immediate blocking if removed).
    - Pre-flight DNS anti-SSRF guard, strict `GET`/`HEAD` only with header allowlist (`Origin`/`Accept`), rate limiting, and circuit breaker.
 5. **Local-First Privacy (Zero Cloud Database):**

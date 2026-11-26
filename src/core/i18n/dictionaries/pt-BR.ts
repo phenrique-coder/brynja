@@ -266,8 +266,9 @@ export const PT_BR_MESSAGES = {
     newScan: 'Nova Varredura',
     kpiScans: 'Varreduras',
     kpiDependencies: 'Dependências',
-    kpiCriticalHigh: 'Críticas & Altas',
+    kpiCriticalHigh: 'Críticas & Altas (CVEs)',
     kpiConfirmed: 'Confirmadas / Sondas',
+    kpiStaticIssues: 'Código, Segredos & IaC',
     historyTitle: 'Histórico de Varreduras',
     historySubtitle:
       'Selecione uma avaliação para inspecionar SBOM, CVEs, EPSS, Safe Probes e baixar o PDF.',
@@ -287,7 +288,8 @@ export const PT_BR_MESSAGES = {
     kpiTotal: 'Total de Avaliações',
     kpiCompleted: 'Concluídas',
     kpiWithProbes: 'Com Safe Probes',
-    kpiCritHigh: 'Com Críticas / Altas',
+    kpiCritHigh: 'Com Críticas / Altas (CVEs)',
+    kpiWithStatic: 'Com Código / IaC',
     searchPlaceholder:
       'Filtrar por repositório, branch, ecossistema ou alvo staging...',
     filterStatusAria: 'Filtrar por status',
@@ -344,11 +346,13 @@ export const PT_BR_MESSAGES = {
     medShort: 'M',
     lowShort: 'B',
     probeShort: 'P',
-    critTitle: '{count} Crítica(s)',
-    highTitle: '{count} Alta(s)',
-    medTitle: '{count} Média(s)',
-    lowTitle: '{count} Baixa(s)',
+    staticShort: 'E',
+    critTitle: '{count} Crítica(s) (CVEs)',
+    highTitle: '{count} Alta(s) (CVEs)',
+    medTitle: '{count} Média(s) (CVEs)',
+    lowTitle: '{count} Baixa(s) (CVEs)',
     probeTitle: '{count} Probe(s) com problema(s)',
+    staticTitle: '{count} achado(s) em Código, Segredos & IaC',
   },
   newScan: {
     loading: 'Verificando sessão GitHub...',
@@ -464,7 +468,7 @@ export const PT_BR_MESSAGES = {
     spdxLabel: 'SBOM (SPDX 2.3)',
     complianceCsvLabel: 'CSV Conformidade',
     aiAdvisor: {
-      badge: 'Copilot AppSec (BYOK)',
+      badge: 'Inteligência AppSec (BYOK)',
       title: 'Consultor de Triagem & Reachability por IA (BYOK)',
       subtitle:
         'Use sua própria chave de API (OpenAI, Gemini ou endpoint compatível) para priorizar correções com análise de imports no repositório.',
@@ -487,6 +491,7 @@ export const PT_BR_MESSAGES = {
       regenerateButton: 'Regerar Plano com IA',
       generatingButton: 'Analisando achados...',
       generatedByLabel: 'Gerado por {model}',
+      stepsCountLabel: '{count} ações priorizadas',
       summaryTitle: 'Diagnóstico Executivo da IA',
       reachabilityTitle: 'Dependências Importadas no Código (Reachability)',
       stepsTitle: 'Passos Priorizados de Remediação',
@@ -507,10 +512,14 @@ export const PT_BR_MESSAGES = {
       'Nenhuma vulnerabilidade de dependência (SCA) encontrada, mas há {count} ponto(s) de atenção na aba Safe Probes.',
     executionError: 'Erro na execução: {message}',
     kpiDependencies: 'Dependências',
-    kpiCritical: 'Críticas',
-    kpiHigh: 'Altas',
-    kpiMedium: 'Médias',
+    kpiCritical: 'Críticas (CVEs)',
+    kpiHigh: 'Altas (CVEs)',
+    kpiMedium: 'Médias (CVEs)',
     kpiConfirmed: 'Confirmadas / Sondas',
+    kpiProbesSublabel: '{count} sonda(s) c/ falha',
+    kpiStatic: 'Código & IaC',
+    kpiStaticCritHighSublabel: '{count} Crít/Alta',
+    kpiCompliance: 'Conformidade',
     tabFindings: 'Vulnerabilidades ({count})',
     tabDependencies: 'Inventário SBOM ({count})',
     tabProbes: 'Safe Probes ({count})',
@@ -560,7 +569,7 @@ export const PT_BR_MESSAGES = {
     targetUrlLabel: 'URL Base do Alvo',
     targetUrlPlaceholder: 'https://staging.suaempresa.com',
     methodLabel: 'Método de Prova',
-    methodWellKnown: 'Arquivo /.well-known/brynja-verify.txt',
+    methodWellKnown: 'Arquivo /.well-known/security.txt (RFC 9116)',
     methodDns: 'Registro DNS TXT (_brynja)',
     methodSandbox: 'Sandbox Loopback Local (dev)',
     generateButton: 'Gerar Desafio de Posse',
@@ -623,7 +632,7 @@ export const PT_BR_MESSAGES = {
     tabSandbox: 'Sandbox Local (dev)',
     wellKnownIntroPrefix: 'O objetivo é deixar o endereço',
     wellKnownIntroSuffix:
-      'acessível mostrando somente o seu token. Escolha como você publica no seu servidor:',
+      'acessível no padrão RFC 9116 (com Contact, Expires e o comentário `# Brynja-Verification` do seu token — assim você comprova a posse e atende à sonda de segurança ao mesmo tempo). Escolha como publicar:',
     subtabSsh: 'Via Terminal Remoto (SSH)',
     subtabWeb: 'Sem SSH (Vercel / Projeto / cPanel)',
     sshStep1Title: 'Passo 1 — Conectar ao servidor remoto pelo terminal',
@@ -633,9 +642,9 @@ export const PT_BR_MESSAGES = {
     sshStep1Caption:
       "Substitua 'usuario' pelo seu usuário do servidor (ex.: root, ubuntu, deploy) ou use o apelido configurado no seu ~/.ssh/config.",
     sshStep2Title:
-      'Passo 2 — Criar a pasta .well-known e gravar o arquivo de verificação',
+      'Passo 2 — Criar a pasta .well-known e gravar o arquivo security.txt (RFC 9116)',
     sshStep2Body:
-      'Já conectado no servidor remoto, execute o comando abaixo para criar a pasta e salvar o token sem espaços extras:',
+      'Já conectado no servidor remoto, execute o comando abaixo para criar a pasta e gerar o security.txt com Contact, Expires e o token do Brynja (se já existir um security.txt, apenas adicione a linha `# Brynja-Verification:` no final):',
     sshStep2Label: 'Servidor remoto (Linux / VPS)',
     sshStep2Caption:
       'Se o diretório raiz do seu site não for /var/www/html (ex.: /var/www/meusite/public ou /usr/share/nginx/html), troque o caminho antes de executar.',
@@ -656,7 +665,7 @@ export const PT_BR_MESSAGES = {
       'Atenção: se em /etc/nginx/sites-enabled/ o arquivo aparecer SEM seta (->), ele é uma cópia física (não um symlink de sites-available). Edite esse arquivo em sites-enabled/ diretamente — sempre no bloco "listen 443 ssl" quando usar HTTPS.',
     sshStep3Label: 'Trecho Nginx (bloco server 443 do arquivo ativo)',
     sshStep3NginxSnippetCaption:
-      'Usa "location = /.well-known/brynja-verify.txt" (match exato): vence o proxy_pass de containers Docker (ex.: 127.0.0.1:3000) sem conflitar com o Certbot (/.well-known/acme-challenge/).',
+      'Usa "location = /.well-known/security.txt" (match exato): vence o proxy_pass de containers Docker (ex.: 127.0.0.1:3000) sem conflitar com o Certbot (/.well-known/acme-challenge/).',
     sshStep3ReloadLabel: 'Validar sintaxe e recarregar o Nginx sem downtime',
     sshStep3ApacheBodyBefore:
       'Se o seu site roda em Node.js, Next.js, Docker ou Python atrás do Apache (',
@@ -681,18 +690,18 @@ export const PT_BR_MESSAGES = {
       'Se apenas a aplicação roda em Docker (ex.: Next.js/Node em 127.0.0.1:3000) atrás do Nginx/Apache no host, grave o arquivo em /var/www/html/.well-known/ no host e edite o arquivo ativo do proxy do host. Se o próprio proxy reverso rodar dentro de um container (Traefik, Caddy, Nginx Proxy Manager), publique o arquivo no proxy do container ou use a aba "Registro DNS TXT" sem alterar containers.',
     sshStep4Title: 'Passo 4 — Testar pelo terminal se o arquivo ficou público',
     sshStep4Body:
-      'Rode o comando abaixo (no servidor ou no seu computador). Ele deve imprimir exatamente o seu token na tela:',
+      'Rode o comando abaixo (no servidor ou no seu computador). Ele deve imprimir o seu security.txt contendo Contact, Expires e o token de verificação:',
     sshStep4Label: 'Teste rápido via curl',
     sshStep4Caption:
-      'Resultado esperado: {token}. Se apareceu exatamente isso, suba a página e clique em "Verificar Posse"!',
+      'Resultado esperado inclui "# Brynja-Verification: {token}". Se aparecer na resposta, suba a página e clique em "Verificar Posse"!',
     sshStep5Title:
       'Passo 5 — (Opcional) Reverter tudo: remover o arquivo, a pasta .well-known e o Passo 3 (Nginx / Apache)',
     sshStep5Body:
-      'Quando quiser voltar o servidor exatamente ao estado anterior (ou revogar o acesso), siga a sequência abaixo. Atenção: remover o arquivo impede a renovação automática do certificado após 7 dias.',
+      'Quando quiser voltar o servidor exatamente ao estado anterior (ou revogar o acesso), siga a sequência abaixo. Dica RFC 9116: se desejar manter seu canal público security.txt ativo em produção, remova apenas a linha "# Brynja-Verification:" em vez de apagar o arquivo inteiro. Atenção: remover o token impede a renovação automática do certificado após 7 dias.',
     sshStep5RemoveFileLabel:
-      '5.1 — Remover .well-known/brynja-verify.txt e a pasta .well-known (se vazia)',
+      '5.1 — Remover .well-known/security.txt e a pasta .well-known (se vazia)',
     sshStep5RemoveFileCaption:
-      'Apaga o arquivo brynja-verify.txt e remove a pasta .well-known apenas se ela ficar vazia (preservando pastas existentes como acme-challenge do Certbot/Let’s Encrypt). Ajuste /var/www/html se tiver usado outro diretório raiz.',
+      'Apaga o arquivo security.txt e remove a pasta .well-known apenas se ela ficar vazia (preservando pastas existentes como acme-challenge do Certbot/Let’s Encrypt). Ajuste /var/www/html se tiver usado outro diretório raiz.',
     sshStep5NginxBodyBefore:
       'Se você adicionou o bloco do Passo 3 no Nginx, localize o arquivo de configuração com o comando abaixo, remova o bloco',
     sshStep5NginxBodyAfter:
@@ -717,23 +726,23 @@ export const PT_BR_MESSAGES = {
     webOptionAStep2:
       'Crie dentro dela uma subpasta chamada exatamente .well-known (com o ponto na frente).',
     webOptionAStep3:
-      'Crie o arquivo public/.well-known/brynja-verify.txt e cole somente o token abaixo dentro dele.',
+      'Crie (ou atualize) o arquivo public/.well-known/security.txt com o conteúdo RFC 9116 abaixo (Contact, Expires e `# Brynja-Verification: <token>`).',
     webOptionAStep4:
       'Faça o commit/deploy e abra {url} no navegador para conferir.',
-    webOptionACodeLabel: 'Conteúdo exato do arquivo brynja-verify.txt',
+    webOptionACodeLabel: 'Conteúdo recomendado de security.txt (RFC 9116 + posse)',
     webOptionBTitle: 'Opção B — Painel de Hospedagem (cPanel, Hostinger, FTP)',
     webOptionBStep1:
       'Acesse o Gerenciador de Arquivos e entre na pasta pública do site (normalmente public_html).',
     webOptionBStep2:
       'Nas configurações do gerenciador, marque a opção Mostrar arquivos ocultos (dotfiles).',
     webOptionBStep3:
-      'Crie a pasta .well-known (se ainda não existir) e crie dentro dela o arquivo brynja-verify.txt.',
+      'Crie a pasta .well-known (se ainda não existir) e crie ou edite dentro dela o arquivo security.txt.',
     webOptionBStep4:
-      'Edite o arquivo, cole apenas o token, salve e clique em Verificar Posse aqui no Brynja.',
+      'Cole o conteúdo completo (ou adicione a linha # Brynja-Verification ao seu security.txt existente), salve e clique em Verificar Posse aqui no Brynja.',
     webCleanupTitle:
-      'Como reverter e remover .well-known/brynja-verify.txt depois (opcional)',
+      'Como reverter e remover .well-known/security.txt depois (opcional)',
     webCleanupBody:
-      'Em projetos web (Next.js/React/Vercel/Netlify), rode o comando abaixo na raiz do projeto e faça commit/deploy. No cPanel/FTP, apague brynja-verify.txt e remova a pasta .well-known se ela ficar vazia.',
+      'Em projetos web (Next.js/React/Vercel/Netlify), rode o comando abaixo na raiz do projeto caso deseje remover o arquivo completo (ou apague apenas a linha # Brynja-Verification para manter a conformidade RFC 9116). No cPanel/FTP, remova o arquivo ou a linha de verificação.',
     webCleanupCodeLabel: 'Remover arquivo e pasta .well-known no projeto web',
     dnsIntro:
       'Ideal se você não tem acesso aos arquivos do servidor web, mas controla o painel de DNS do domínio (Cloudflare, Registro.br, GoDaddy, Route 53, Vercel DNS). Crie um registro com os valores abaixo:',

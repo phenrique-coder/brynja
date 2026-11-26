@@ -18,6 +18,7 @@ import {
   VerificationMethod,
   VulnerabilityFinding,
   countProbeIssues,
+  countStaticIssues,
 } from '../models/scan.models';
 import {
   IAiAdvisorGatewayPort,
@@ -80,6 +81,7 @@ function summarizeReport(report: ScanReport): ScanSummary {
     findings: _f,
     probeResults,
     auditLogs: _a,
+    staticFindings,
     ...summary
   } = report;
   return {
@@ -87,6 +89,14 @@ function summarizeReport(report: ScanReport): ScanSummary {
     probeIssuesCount: Array.isArray(probeResults)
       ? countProbeIssues(probeResults)
       : (summary.probeIssuesCount ?? 0),
+    staticIssuesCount: Array.isArray(staticFindings)
+      ? countStaticIssues(staticFindings)
+      : (summary.staticIssuesCount ?? 0),
+    staticCriticalHighCount: Array.isArray(staticFindings)
+      ? staticFindings.filter(
+          (s) => s.severity === 'CRITICAL' || s.severity === 'HIGH',
+        ).length
+      : (summary.staticCriticalHighCount ?? 0),
   };
 }
 
@@ -528,6 +538,10 @@ export class HttpScanGateway
         findings.filter((f) => f.verdict === 'CONFIRMED_ACTIVE').length +
         probeResults.filter((p) => p.status === 'FINDING').length;
       const probeIssuesCount = countProbeIssues(probeResults);
+      const staticIssuesCount = countStaticIssues(staticFindings);
+      const staticCriticalHighCount = staticFindings.filter(
+        (s) => s.severity === 'CRITICAL' || s.severity === 'HIGH',
+      ).length;
 
       current = {
         ...current,
@@ -543,6 +557,8 @@ export class HttpScanGateway
         lowCount,
         confirmedActiveCount,
         probeIssuesCount,
+        staticIssuesCount,
+        staticCriticalHighCount,
         completedAt: new Date().toISOString(),
       };
       await this.store.putScan(ownerId, current);

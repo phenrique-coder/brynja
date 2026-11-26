@@ -232,6 +232,10 @@ export function ScanReportView({ scanId }: { scanId: string }) {
   };
   const allClear = isScanAllClear(report);
   const probeIssuesCount = countProbeIssues(report.probeResults);
+  const staticFindings = report.staticFindings ?? [];
+  const staticCritHighCount = staticFindings.filter(
+    (s) => s.severity === 'CRITICAL' || s.severity === 'HIGH',
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -608,8 +612,8 @@ export function ScanReportView({ scanId }: { scanId: string }) {
       {/* BYOK AI Triage & Reachability Advisor */}
       <AiAdvisorPanel report={report} onPlanGenerated={() => void refresh()} />
 
-      {/* Summary KPI Grid */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      {/* Summary KPI Grid (CVEs kept distinct from Safe Probes, Static Analysis, and Compliance) */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
         <KpiStatCard
           label={messages.scanReport.kpiDependencies}
           value={report.totalDependencies}
@@ -633,6 +637,37 @@ export function ScanReportView({ scanId }: { scanId: string }) {
           label={messages.scanReport.kpiConfirmed}
           value={report.confirmedActiveCount}
           accentClass="text-cyan-600 dark:text-cyan-300"
+          sublabel={
+            probeIssuesCount > 0
+              ? t(messages.scanReport.kpiProbesSublabel, {
+                  count: probeIssuesCount,
+                })
+              : undefined
+          }
+        />
+        <KpiStatCard
+          label={messages.scanReport.kpiStatic}
+          value={staticFindings.length}
+          accentClass="text-indigo-600 dark:text-indigo-300"
+          sublabel={
+            staticCritHighCount > 0
+              ? t(messages.scanReport.kpiStaticCritHighSublabel, {
+                  count: staticCritHighCount,
+                })
+              : undefined
+          }
+        />
+        <KpiStatCard
+          label={messages.scanReport.kpiCompliance}
+          value={`${complianceSummaryScore}%`}
+          accentClass={
+            complianceSummaryScore >= 80
+              ? 'text-emerald-600 dark:text-emerald-300'
+              : complianceSummaryScore >= 50
+                ? 'text-amber-600 dark:text-amber-300'
+                : 'text-rose-600 dark:text-rose-300'
+          }
+          sublabel="CIS v8"
         />
       </div>
 

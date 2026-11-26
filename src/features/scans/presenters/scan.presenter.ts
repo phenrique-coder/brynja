@@ -5,9 +5,11 @@ import {
   ScanStatus,
   ScanSummary,
   SeverityLevel,
+  StaticAnalysisFinding,
   VulnerabilityFinding,
   countProbeIssues,
   resolveScanProbeIssuesCount,
+  resolveScanStaticIssuesCount,
 } from '@/core/models/scan.models';
 import {
   SEVERITY_REGISTRY,
@@ -66,6 +68,7 @@ export interface DashboardMetrics {
   totalDependenciesScanned: number;
   criticalAndHighTotal: number;
   confirmedActiveTotal: number;
+  staticIssuesTotal: number;
 }
 
 export function computeDashboardMetrics(
@@ -77,6 +80,7 @@ export function computeDashboardMetrics(
       acc.totalDependenciesScanned += scan.totalDependencies;
       acc.criticalAndHighTotal += scan.criticalCount + scan.highCount;
       acc.confirmedActiveTotal += scan.confirmedActiveCount;
+      acc.staticIssuesTotal += resolveScanStaticIssuesCount(scan);
       return acc;
     },
     {
@@ -84,6 +88,7 @@ export function computeDashboardMetrics(
       totalDependenciesScanned: 0,
       criticalAndHighTotal: 0,
       confirmedActiveTotal: 0,
+      staticIssuesTotal: 0,
     },
   );
 }
@@ -207,7 +212,7 @@ export function isScanAllClear(
 }
 
 export interface SeverityBarSegment {
-  key: 'critical' | 'high' | 'medium' | 'low' | 'probes';
+  key: 'critical' | 'high' | 'medium' | 'low' | 'probes' | 'static';
   count: number;
   percentage: number;
   colorClass: string;
@@ -215,15 +220,24 @@ export interface SeverityBarSegment {
 
 /**
  * Computes proportional width percentages for the stacked severity bar in `ScanHistoryTable`,
- * distributing Critical, High, Medium, Low, and Safe Probe issues across the total issue count.
+ * distributing CVE Critical/High/Medium/Low, Safe Probe issues, and Static Analysis issues.
  */
 export function computeSeverityBarSegments(
   scan: Pick<
     ScanSummary,
-    'criticalCount' | 'highCount' | 'mediumCount' | 'lowCount' | 'probeIssuesCount'
-  > & { probeResults?: ReadonlyArray<Pick<ProbeFinding, 'status'>> },
+    | 'criticalCount'
+    | 'highCount'
+    | 'mediumCount'
+    | 'lowCount'
+    | 'probeIssuesCount'
+    | 'staticIssuesCount'
+  > & {
+    probeResults?: ReadonlyArray<Pick<ProbeFinding, 'status'>>;
+    staticFindings?: ReadonlyArray<Pick<StaticAnalysisFinding, 'severity'>>;
+  },
 ): SeverityBarSegment[] {
   const probeIssuesCount = resolveScanProbeIssuesCount(scan);
+  const staticIssuesCount = resolveScanStaticIssuesCount(scan);
   const entries: Array<{
     key: SeverityBarSegment['key'];
     count: number;
@@ -234,6 +248,7 @@ export function computeSeverityBarSegments(
     { key: 'medium', count: scan.mediumCount, colorClass: 'bg-amber-400' },
     { key: 'low', count: scan.lowCount, colorClass: 'bg-sky-400' },
     { key: 'probes', count: probeIssuesCount, colorClass: 'bg-violet-500' },
+    { key: 'static', count: staticIssuesCount, colorClass: 'bg-cyan-500' },
   ];
 
   const total = entries.reduce((sum, entry) => sum + entry.count, 0);

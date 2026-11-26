@@ -6,6 +6,16 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-11-26
+
+### Added
+- Added separate executive KPI indicators for **Code, Secrets & IaC** (`staticIssuesCount`, `staticCriticalHighCount`) and **Compliance** across `DashboardView.tsx`, `ScanHistoryView.tsx`, `ScanHistoryTable.tsx` (`E:` / `S:` badge + stacked bar segment), `ScanReportView.tsx`, and the **Executive PDF**, keeping **Critical / High / Medium** metrics strictly scoped to dependency CVEs while dynamically deriving counts for legacy `IndexedDB` scans.
+- Added the BYOK **AI Executive Diagnosis** (`aiRemediationPlan` summary, reachability hints, and prioritized steps) directly into both the **Executive PDF** (`scan-pdf.exporter.ts`) and the **AI Fix JSON** payload (`aiDiagnosis` in `ai-remediation-json.exporter.ts`).
+
+### Changed
+- Standardized the `WELL_KNOWN_FILE` domain ownership verification path on RFC 9116 `/.well-known/security.txt` (`Contact:`, `Expires:`, and `# Brynja-Verification: <token>`) across `DomainOwnershipVerifierAdapter`, `TargetAuthorizationUseCase`, `RunSafeProbesUseCase`, `/authorizations` (`OwnershipSetupGuide` + Nginx/Apache snippets), PT-BR/EN/ES copy, and security docs — while retaining automatic legacy fallback support for `/.well-known/brynja-verify.txt`.
+- Redesigned `AiAdvisorPanel.tsx` with a dedicated executive callout card, reachability chips, scannable numbered remediation cards with inline monospace path/header tokens, and replaced the ambiguous `"Copilot"` badge label with brand-neutral AppSec AI Advisor terminology across PT-BR, EN, and ES.
+
 ## [1.14.0] - 2026-11-26
 
 ### Added

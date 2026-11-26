@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  Code2,
   GitCompareArrows,
   History,
   Loader2,
@@ -14,7 +15,10 @@ import {
   ShieldCheck,
   Upload,
 } from 'lucide-react';
-import { ScanStatus } from '@/core/models/scan.models';
+import {
+  ScanStatus,
+  resolveScanStaticIssuesCount,
+} from '@/core/models/scan.models';
 import {
   useExternalReportImporterPort,
   useScanReader,
@@ -80,6 +84,10 @@ export function ScanHistoryView() {
   );
   const withCriticalOrHighCount = useMemo(
     () => scans.filter((s) => s.criticalCount > 0 || s.highCount > 0).length,
+    [scans],
+  );
+  const withStaticIssuesCount = useMemo(
+    () => scans.filter((s) => resolveScanStaticIssuesCount(s) > 0).length,
     [scans],
   );
 
@@ -424,7 +432,7 @@ export function ScanHistoryView() {
         </SurfaceCard>
       ) : null}
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <KpiStatCard
           label={messages.history.kpiTotal}
           value={scans.length}
@@ -453,6 +461,12 @@ export function ScanHistoryView() {
           icon={
             <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           }
+        />
+        <KpiStatCard
+          label={messages.history.kpiWithStatic}
+          value={withStaticIssuesCount}
+          accentClass="text-indigo-600 dark:text-indigo-300"
+          icon={<Code2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />}
         />
       </section>
 

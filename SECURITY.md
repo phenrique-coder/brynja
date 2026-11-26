@@ -12,7 +12,7 @@ Using this software against targets without formal authorization from the asset 
 
 Every release and contribution must preserve the following security invariants:
 
-1. **Mandatory Cryptographic Ownership Verification (`OwnershipCertificateService` + `AuthorizationPolicy`):** no HTTP probe is ever dispatched without prior ownership verification (`/.well-known/brynja-verify.txt`, `_brynja` DNS TXT record, or local loopback sandbox in development). AES-256-GCM signed certificates carry a bounded validity window (default 7 days) and only renew automatically if the live proof is still published on the target domain.
+1. **Mandatory Cryptographic Ownership Verification (`OwnershipCertificateService` + `AuthorizationPolicy`):** no HTTP probe is ever dispatched without prior ownership verification (`/.well-known/security.txt` RFC 9116 `# Brynja-Verification:` with legacy fallback `/.well-known/brynja-verify.txt`, `_brynja` DNS TXT record, or local loopback sandbox in development). AES-256-GCM signed certificates carry a bounded validity window (default 7 days) and only renew automatically if the live proof is still published on the target domain.
 2. **Anti-SSRF Protection (`SsrfDnsGuardService`):** pre-flight DNS resolution blocking private networks (RFC1918), CGNAT, link-local / cloud metadata (`169.254.169.254`), and loopback in production (`ALLOW_LOCAL_LOOPBACK_TARGETS=false`).
 3. **Strict Non-Destructive Policy (`SafeProbePolicy`):**
    - Only `GET` and `HEAD` HTTP methods are permitted.

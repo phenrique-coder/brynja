@@ -663,7 +663,7 @@ export function OwnershipSetupGuide({
                       <p className="flex-1 text-xs leading-relaxed text-fg-secondary">
                         {g.sshStep5NginxBodyBefore}{' '}
                         <code className="rounded bg-surface-subtle px-1 py-0.5 font-mono text-[11px]">
-                          location = /.well-known/brynja-verify.txt &#123; ... &#125;
+                          location = /.well-known/security.txt &#123; ... &#125;
                         </code>{' '}
                         {g.sshStep5NginxBodyAfter}
                       </p>

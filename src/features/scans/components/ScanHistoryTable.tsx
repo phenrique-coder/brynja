@@ -16,6 +16,7 @@ import {
 import {
   ScanSummary,
   resolveScanProbeIssuesCount,
+  resolveScanStaticIssuesCount,
 } from '@/core/models/scan.models';
 import { useI18n } from '@/core/providers/i18n-provider';
 import {
@@ -75,9 +76,11 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
             const repo = formatRepositoryDisplay(scan.repositoryUrl);
             const targetHost = formatTargetHost(scan.targetUrl);
             const probeIssuesCount = resolveScanProbeIssuesCount(scan);
+            const staticIssuesCount = resolveScanStaticIssuesCount(scan);
             const barSegments = computeSeverityBarSegments({
               ...scan,
               probeIssuesCount,
+              staticIssuesCount,
             });
 
             return (
@@ -185,6 +188,16 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                           className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300"
                         >
                           {messages.historyTable.probeShort}:{probeIssuesCount}
+                        </span>
+                      ) : null}
+                      {staticIssuesCount > 0 ? (
+                        <span
+                          title={t(messages.historyTable.staticTitle, {
+                            count: staticIssuesCount,
+                          })}
+                          className="inline-flex items-center rounded-md border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/15 dark:text-cyan-300"
+                        >
+                          {messages.historyTable.staticShort}:{staticIssuesCount}
                         </span>
                       ) : null}
                     </div>

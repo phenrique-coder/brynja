@@ -30,7 +30,7 @@ Esse conceito traduz exatamente a filosofia de **defesa em profundidade (*defens
 3. **Verificação Ativa Controlada (*8 Safe Probes* Não Destrutivas):**
    - `SecurityHeadersProbe`, `HstsTlsProbe`, `CookieSecurityProbe`, `CorsMisconfigProbe`, `ExposedArtifactsProbe`, `ExposedDocsAndMetricsProbe`, `RuntimeFingerprintProbe` e `SourceMapExposureProbe`.
 4. **Guardrails Invioláveis & Posse Stateless Assinada:**
-   - Verificação criptográfica obrigatória de posse com token determinístico HMAC-SHA256 por usuário e origem (`/.well-known/brynja-verify.txt`, registro `_brynja` DNS TXT ou `LOCAL_DEV_SANDBOX` em desenvolvimento).
+   - Verificação criptográfica obrigatória de posse com token determinístico HMAC-SHA256 por usuário e origem (`/.well-known/security.txt` RFC 9116 `# Brynja-Verification:` com compatibilidade legada em `/.well-known/brynja-verify.txt`, registro `_brynja` DNS TXT ou `LOCAL_DEV_SANDBOX` em desenvolvimento).
    - Emite certificado assinado em **AES-256-GCM** válido por 7 dias com **renovação automática** caso a prova continue publicada no domínio (e bloqueio imediato se removida).
    - Proteção anti-SSRF via DNS, somente `GET`/`HEAD` com allowlist de cabeçalhos (`Origin`/`Accept`), *rate limiting* e *circuit breaker*.
 5. **Privacidade Local-First (Zero Banco na Nuvem):**

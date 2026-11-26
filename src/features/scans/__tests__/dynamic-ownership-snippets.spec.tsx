@@ -106,23 +106,27 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
       hostname: 'app.acme.io',
       token: 'brynja-verify-1234567890abcdef',
       dnsAltComment: '# alt',
+      expiresIso: '2027-05-25T23:59:59Z',
     });
     expect(snippets.sshConnectCmd).toBe('ssh usuario@app.acme.io');
     expect(snippets.curlVerifyCmd).toBe(
-      'curl -fsSL https://app.acme.io/.well-known/brynja-verify.txt',
+      'curl -fsSL https://app.acme.io/.well-known/security.txt',
     );
-    expect(snippets.sshCreateFileCmd).toContain(
-      "'brynja-verify-1234567890abcdef'",
+    expect(snippets.fileContent).toBe(
+      'Contact: mailto:security@app.acme.io\nExpires: 2027-05-25T23:59:59Z\n# Brynja-Verification: brynja-verify-1234567890abcdef',
+    );
+    expect(snippets.sshCreateFileCmd).toBe(
+      "sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' 'Contact: mailto:security@app.acme.io' 'Expires: 2027-05-25T23:59:59Z' '# Brynja-Verification: brynja-verify-1234567890abcdef' | sudo tee /var/www/html/.well-known/security.txt > /dev/null",
     );
     expect(snippets.sshCleanupFileCmd).toBe(
-      'sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
+      'sudo rm -f /var/www/html/.well-known/security.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
     );
     expect(snippets.nginxActiveConfigCmd).toContain(
       'ls -la /etc/nginx/sites-enabled/',
     );
     expect(snippets.nginxActiveConfigCmd).toContain('"app.acme.io"');
     expect(snippets.nginxSnippet).toContain(
-      'location = /.well-known/brynja-verify.txt {',
+      'location = /.well-known/security.txt {',
     );
     expect(snippets.nginxFindBlockCmd).toContain('/etc/nginx/sites-enabled/');
     expect(snippets.nginxFindBlockCmd).toContain('/etc/nginx/sites-available/');
@@ -134,6 +138,7 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     expect(snippets.apacheSnippet).toContain(
       'Alias /.well-known/ /var/www/html/.well-known/',
     );
+    expect(snippets.apacheSnippet).toContain('<Files "security.txt">');
     expect(snippets.apacheSnippet).toContain('ForceType text/plain');
     expect(snippets.apacheReloadCmd).toBe(
       'sudo apache2ctl configtest && sudo systemctl reload apache2',
@@ -158,10 +163,10 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
       findBlockCmd: snippets.apacheFindBlockCmd,
     });
     expect(snippets.curlCleanupVerifyCmd).toBe(
-      'curl -i https://app.acme.io/.well-known/brynja-verify.txt',
+      'curl -i https://app.acme.io/.well-known/security.txt',
     );
     expect(snippets.webCleanupCmd).toBe(
-      'rm -f public/.well-known/brynja-verify.txt && (rmdir public/.well-known 2>/dev/null || true)',
+      'rm -f public/.well-known/security.txt && (rmdir public/.well-known 2>/dev/null || true)',
     );
   });
 
@@ -193,7 +198,7 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     ).toBeTruthy();
     expect(
       screen.getByText(
-        /curl -fsSL https:\/\/app\.minhaempresa\.com\/\.well-known\/brynja-verify\.txt/i,
+        /curl -fsSL https:\/\/app\.minhaempresa\.com\/\.well-known\/security\.txt/i,
       ),
     ).toBeTruthy();
 
@@ -209,7 +214,7 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
       ).toBeTruthy();
     });
 
-    // Clicking copy on Step 2 copies the ready-to-run command with the real token
+    // Clicking copy on Step 2 copies the RFC 9116 security.txt creation command with the real token
     fireEvent.click(
       screen.getByRole('button', {
         name: /Copiar — Servidor remoto \(Linux \/ VPS\)/i,
@@ -218,35 +223,42 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith(
-        "sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' 'brynja-verify-deadbeef00112233445566778899aabb' | sudo tee /var/www/html/.well-known/brynja-verify.txt > /dev/null",
+        expect.stringContaining(
+          "sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' 'Contact: mailto:security@app.minhaempresa.com'",
+        ),
+      );
+      expect(writeTextMock).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "'# Brynja-Verification: brynja-verify-deadbeef00112233445566778899aabb' | sudo tee /var/www/html/.well-known/security.txt > /dev/null",
+        ),
       );
     });
 
     // Step 5 rollback commands include safe file/folder removal, Step 3 Nginx revert, and dynamic curl check
     expect(
       screen.getByText(
-        /sudo rm -f \/var\/www\/html\/\.well-known\/brynja-verify\.txt && \(sudo rmdir \/var\/www\/html\/\.well-known 2>\/dev\/null \|\| true\)/i,
+        /sudo rm -f \/var\/www\/html\/\.well-known\/security\.txt && \(sudo rmdir \/var\/www\/html\/\.well-known 2>\/dev\/null \|\| true\)/i,
       ),
     ).toBeTruthy();
     expect(
       screen.getByText(
-        /sudo grep -rn "brynja-verify\\\|well-known" \/etc\/nginx\/sites-enabled\/ \/etc\/nginx\/sites-available\//i,
+        /sudo grep -rn "security\.txt\\\|brynja-verify\\\|well-known" \/etc\/nginx\/sites-enabled\/ \/etc\/nginx\/sites-available\//i,
       ),
     ).toBeTruthy();
     expect(
       screen.getByText(
-        /curl -i https:\/\/app\.minhaempresa\.com\/\.well-known\/brynja-verify\.txt/i,
+        /curl -i https:\/\/app\.minhaempresa\.com\/\.well-known\/security\.txt/i,
       ),
     ).toBeTruthy();
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: /Copiar — 5\.1 — Remover \.well-known\/brynja-verify\.txt/i,
+        name: /Copiar — 5\.1 — Remover \.well-known\/security\.txt/i,
       }),
     );
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenLastCalledWith(
-        'sudo rm -f /var/www/html/.well-known/brynja-verify.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
+        'sudo rm -f /var/www/html/.well-known/security.txt && (sudo rmdir /var/www/html/.well-known 2>/dev/null || true)',
       );
     });
 
@@ -300,7 +312,14 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
         'https://fast.acme.io',
       );
       expect(writeTextMock).toHaveBeenCalledWith(
-        "sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' 'brynja-verify-ffeeddccbbaa99887766554433221100' | sudo tee /var/www/html/.well-known/brynja-verify.txt > /dev/null",
+        expect.stringContaining(
+          "sudo mkdir -p /var/www/html/.well-known && printf '%s\\n' 'Contact: mailto:security@fast.acme.io'",
+        ),
+      );
+      expect(writeTextMock).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "'# Brynja-Verification: brynja-verify-ffeeddccbbaa99887766554433221100' | sudo tee /var/www/html/.well-known/security.txt > /dev/null",
+        ),
       );
     });
 
@@ -418,7 +437,7 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     ).toHaveLength(2);
     expect(
       screen.getByText(
-        /sudo grep -rn "brynja-verify\\\|well-known" \/etc\/nginx\/sites-enabled\/ \/etc\/nginx\/sites-available\//i,
+        /sudo grep -rn "security\.txt\\\|brynja-verify\\\|well-known" \/etc\/nginx\/sites-enabled\/ \/etc\/nginx\/sites-available\//i,
       ),
     ).toBeTruthy();
 
@@ -452,7 +471,7 @@ describe('Dynamic Ownership Setup Snippets & Copy-Ready Token', () => {
     ).toBeTruthy();
     expect(
       screen.getByText(
-        /sudo grep -rn "brynja-verify\\\|well-known" \/etc\/apache2\/sites-enabled\/ \/etc\/apache2\/sites-available\/ \/etc\/apache2\/conf-available\/ \/etc\/httpd\/conf\.d\//i,
+        /sudo grep -rn "security\.txt\\\|brynja-verify\\\|well-known" \/etc\/apache2\/sites-enabled\/ \/etc\/apache2\/sites-available\/ \/etc\/apache2\/conf-available\/ \/etc\/httpd\/conf\.d\//i,
       ),
     ).toBeTruthy();
     expect(

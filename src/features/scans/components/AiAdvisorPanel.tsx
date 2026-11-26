@@ -4,10 +4,14 @@ import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Bot,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  FileCode2,
   KeyRound,
+  ListChecks,
   Loader2,
+  ShieldCheck,
   Sparkles,
   Trash2,
 } from 'lucide-react';
@@ -74,6 +78,34 @@ function writeStoredByok(draft: StoredByokDraft | null) {
   }
 }
 
+/**
+ * Highlights file paths, headers, and code literals wrapped in backticks or
+ * isolated single quotes so remediation steps read cleanly without pulling in a Markdown parser.
+ */
+function renderFormattedInlineTokens(text: string): React.ReactNode {
+  const tokenPattern =
+    /(`[^`\n]{1,90}`|(?<![A-Za-z0-9])'[^\n']{2,72}'(?![A-Za-z0-9]))/g;
+  const parts = text.split(tokenPattern);
+  if (parts.length <= 1) return text;
+
+  return parts.map((part, idx) => {
+    const isBacktick = part.startsWith('`') && part.endsWith('`') && part.length >= 3;
+    const isQuoted =
+      part.startsWith("'") && part.endsWith("'") && part.length >= 4;
+    if (isBacktick || isQuoted) {
+      return (
+        <code
+          key={idx}
+          className="mx-0.5 inline-block rounded-md border border-subtle bg-surface-subtle px-1.5 py-0.5 font-mono text-[11px] font-medium text-cyan-700 dark:text-cyan-300"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
+}
+
 export function AiAdvisorPanel({
   report,
   onPlanGenerated,
@@ -85,7 +117,7 @@ export function AiAdvisorPanel({
   const { messages, t } = useI18n();
   const copy = messages.scanReport.aiAdvisor;
 
-  const [expanded, setExpanded] = useState(Boolean(report.aiRemediationPlan));
+  const [expanded, setExpanded] = useState(!report.aiRemediationPlan);
   const [draft, setDraft] = useState<StoredByokDraft>(DEFAULT_DRAFT);
   const [saveLocally, setSaveLocally] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -134,7 +166,7 @@ export function AiAdvisorPanel({
       setGenerating(true);
       const generated = await aiAdvisor.requestAiAdvice(report.id, byokConfig);
       setPlan(generated);
-      setExpanded(true);
+      setExpanded(false);
       onPlanGenerated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.errorFallback);
@@ -150,25 +182,36 @@ export function AiAdvisorPanel({
   }
 
   return (
-    <SurfaceCard className="overflow-hidden border-violet-500/20">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300">
-            <Bot className="h-4.5 w-4.5" />
+    <SurfaceCard className="overflow-hidden border-violet-500/25 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-violet-500/[0.06] via-indigo-500/[0.03] to-transparent px-5 py-4 sm:px-6">
+        <div className="flex items-start gap-3.5">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-500/30 bg-gradient-to-br from-violet-500/15 to-indigo-500/15 text-violet-700 shadow-sm dark:text-violet-300">
+            <Bot className="h-5 w-5" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-800 dark:bg-violet-500/15 dark:text-violet-200">
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-800 dark:bg-violet-500/15 dark:text-violet-200">
                 <Sparkles className="h-3 w-3" />
                 {copy.badge}
               </span>
               {plan ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
-                  {t(copy.generatedByLabel, { model: plan.generatedBy })}
-                </span>
+                <>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-50 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {t(copy.generatedByLabel, { model: plan.generatedBy })}
+                  </span>
+                  {plan.prioritizedSteps.length > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-indigo-500/25 bg-indigo-50 px-2.5 py-0.5 text-[10px] font-semibold text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-200">
+                      <ListChecks className="h-3 w-3" />
+                      {t(copy.stepsCountLabel, {
+                        count: plan.prioritizedSteps.length,
+                      })}
+                    </span>
+                  ) : null}
+                </>
               ) : null}
             </div>
-            <h2 className="mt-1 text-sm font-semibold text-fg sm:text-base">
+            <h2 className="mt-1.5 text-sm font-semibold text-fg sm:text-base">
               {copy.title}
             </h2>
             <p className="text-xs text-fg-secondary">{copy.subtitle}</p>
@@ -179,7 +222,7 @@ export function AiAdvisorPanel({
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
           aria-expanded={expanded}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-subtle px-3 py-2 text-xs font-semibold text-fg transition hover:border-violet-500/40"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-subtle bg-surface px-3.5 py-2 text-xs font-semibold text-fg shadow-sm transition hover:border-violet-500/45 hover:text-violet-700 dark:hover:text-violet-300"
         >
           <KeyRound className="h-3.5 w-3.5 text-violet-600 dark:text-violet-300" />
           <span>{expanded ? copy.hideConfig : copy.configureButton}</span>
@@ -192,11 +235,15 @@ export function AiAdvisorPanel({
       </div>
 
       {expanded || plan ? (
-        <div className="space-y-4 border-t border-subtle px-5 py-4 sm:px-6">
+        <div className="space-y-4 border-t border-subtle px-5 py-4 sm:px-6 sm:py-5">
           {expanded ? (
-            <form onSubmit={(e) => void handleGenerate(e)} className="space-y-3">
-              <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-[11px] leading-relaxed text-fg-secondary">
-                {copy.securityNotice}
+            <form
+              onSubmit={(e) => void handleGenerate(e)}
+              className="space-y-3 rounded-2xl border border-subtle bg-surface-subtle/60 p-4"
+            >
+              <div className="flex items-start gap-2 rounded-xl border border-violet-500/20 bg-violet-500/[0.06] px-3 py-2 text-[11px] leading-relaxed text-fg-secondary">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-600 dark:text-violet-300" />
+                <span>{copy.securityNotice}</span>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -212,7 +259,7 @@ export function AiAdvisorPanel({
                         provider: e.target.value as AiProviderType,
                       }))
                     }
-                    className="w-full rounded-xl border border-subtle bg-surface-subtle px-3 py-2 text-xs text-fg focus:border-violet-500 focus:outline-none"
+                    className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 text-xs text-fg focus:border-violet-500 focus:outline-none"
                   >
                     <option value="openai">{copy.providerOpenAi}</option>
                     <option value="gemini">{copy.providerGemini}</option>
@@ -232,7 +279,7 @@ export function AiAdvisorPanel({
                       setDraft((d) => ({ ...d, apiKey: e.target.value }))
                     }
                     placeholder={copy.apiKeyPlaceholder}
-                    className="w-full rounded-xl border border-subtle bg-surface-subtle px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
+                    className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
                   />
                 </div>
 
@@ -251,7 +298,7 @@ export function AiAdvisorPanel({
                         ? 'gemini-2.5-flash'
                         : 'gpt-4o-mini'
                     }
-                    className="w-full rounded-xl border border-subtle bg-surface-subtle px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
+                    className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -268,12 +315,12 @@ export function AiAdvisorPanel({
                       setDraft((d) => ({ ...d, endpointUrl: e.target.value }))
                     }
                     placeholder={copy.endpointPlaceholder}
-                    className="w-full rounded-xl border border-subtle bg-surface-subtle px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
+                    className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
                   />
                 </div>
               ) : null}
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-fg-secondary">
                   <input
                     type="checkbox"
@@ -292,7 +339,7 @@ export function AiAdvisorPanel({
                     <button
                       type="button"
                       onClick={handleClearKey}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-subtle px-3 py-2 text-xs font-medium text-fg-secondary transition hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-300"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-subtle bg-surface px-3 py-2 text-xs font-medium text-fg-secondary transition hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-300"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       {copy.clearSavedKey}
@@ -329,40 +376,75 @@ export function AiAdvisorPanel({
           ) : null}
 
           {plan ? (
-            <div className="space-y-3 rounded-xl border border-subtle bg-surface-subtle p-4">
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
-                  {copy.summaryTitle}
-                </h3>
-                <p className="mt-1 text-xs leading-relaxed text-fg sm:text-sm">
-                  {plan.summary}
+            <div className="space-y-4">
+              {/* Executive AI Diagnosis Callout */}
+              <div className="rounded-2xl border border-violet-500/25 border-l-4 border-l-violet-500 bg-surface-subtle/60 p-4 sm:p-5">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-violet-700 dark:text-violet-300">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <h3>{copy.summaryTitle}</h3>
+                </div>
+                <p className="mt-2.5 text-sm leading-relaxed text-fg">
+                  {renderFormattedInlineTokens(plan.summary)}
                 </p>
               </div>
 
+              {/* Active Code Reachability Hints */}
               {plan.reachabilityHits && plan.reachabilityHits.length > 0 ? (
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                    {copy.reachabilityTitle}
-                  </h4>
-                  <ul className="mt-1.5 space-y-1 text-xs text-fg-secondary">
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-50/70 p-4 dark:bg-amber-500/[0.08]">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                    <FileCode2 className="h-3.5 w-3.5" />
+                    <h4>{copy.reachabilityTitle}</h4>
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
                     {plan.reachabilityHits.map((hit, idx) => (
-                      <li key={idx} className="font-mono text-[11px]">
-                        • {hit}
-                      </li>
+                      <span
+                        key={idx}
+                        className="inline-flex items-center rounded-lg border border-amber-500/25 bg-surface px-2.5 py-1 font-mono text-[11px] font-medium text-fg-secondary shadow-sm"
+                      >
+                        {hit}
+                      </span>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ) : null}
 
+              {/* Prioritized Action Cards */}
               {plan.prioritizedSteps.length > 0 ? (
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
-                    {copy.stepsTitle}
-                  </h4>
-                  <ol className="mt-1.5 list-decimal space-y-1.5 pl-4 text-xs text-fg-secondary sm:text-sm">
-                    {plan.prioritizedSteps.map((step, idx) => (
-                      <li key={idx}>{step}</li>
-                    ))}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 px-0.5">
+                    <h4 className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-fg-muted">
+                      <ListChecks className="h-3.5 w-3.5 text-violet-600 dark:text-violet-300" />
+                      {copy.stepsTitle}
+                    </h4>
+                  </div>
+
+                  <ol className="space-y-2">
+                    {plan.prioritizedSteps.map((step, idx) => {
+                      const isTopPriority = idx < 2;
+                      return (
+                        <li
+                          key={idx}
+                          className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 transition ${
+                            isTopPriority
+                              ? 'border-violet-500/25 bg-violet-500/[0.04] hover:border-violet-500/40'
+                              : 'border-subtle bg-surface-subtle/50 hover:border-strong'
+                          }`}
+                        >
+                          <span
+                            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold ${
+                              isTopPriority
+                                ? 'border border-violet-500/35 bg-violet-500/15 text-violet-700 dark:text-violet-200'
+                                : 'border border-subtle bg-surface text-fg-secondary'
+                            }`}
+                          >
+                            {String(idx + 1).padStart(2, '0')}
+                          </span>
+                          <span className="text-xs leading-relaxed text-fg sm:text-[13px]">
+                            {renderFormattedInlineTokens(step)}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ol>
                 </div>
               ) : null}

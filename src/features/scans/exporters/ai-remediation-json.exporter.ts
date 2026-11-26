@@ -1,4 +1,9 @@
-import { Ecosystem, ScanReport, SeverityLevel } from '@/core/models/scan.models';
+import {
+  AgentRemediationPlan,
+  Ecosystem,
+  ScanReport,
+  SeverityLevel,
+} from '@/core/models/scan.models';
 import {
   ExportedReportFile,
   IReportExporter,
@@ -49,6 +54,7 @@ export interface AiRemediationJsonPayload {
     runtimeHardening: number;
     staticCodeIssues?: number;
   };
+  aiDiagnosis?: AgentRemediationPlan;
   tasks: AiRemediationTask[];
 }
 
@@ -124,6 +130,9 @@ export function buildAiRemediationPayload(
         ? { staticCodeIssues: plan.counts.staticCode }
         : {}),
     },
+    ...(report.aiRemediationPlan
+      ? { aiDiagnosis: report.aiRemediationPlan }
+      : {}),
     tasks: plan.items.map(toAiTask),
   };
 }

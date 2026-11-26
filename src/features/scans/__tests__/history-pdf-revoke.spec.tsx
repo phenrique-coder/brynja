@@ -137,7 +137,7 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
       ).toBeTruthy();
       expect(
         screen.getByText(
-          /curl -fsSL https:\/\/staging\.example\.com\/\.well-known\/brynja-verify\.txt/i,
+          /curl -fsSL https:\/\/staging\.example\.com\/\.well-known\/security\.txt/i,
         ),
       ).toBeTruthy();
     });
@@ -318,7 +318,35 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
       ],
     };
 
-    const doc = await buildScanReportPdf(sampleReport, { compress: false });
+    const doc = await buildScanReportPdf(
+      {
+        ...sampleReport,
+        staticFindings: [
+          {
+            id: 'stat-1',
+            ruleId: 'secret:db-connection-credentials',
+            category: 'SECRET_LEAK',
+            severity: 'HIGH',
+            title: 'String de conexão com senha embutida',
+            description: 'Credencial mascarada',
+            filePath: 'apps/api/src/lib/db.ts',
+            lineNumber: 3,
+            maskedSnippet: 'postgres://***',
+            cweIds: ['CWE-798'],
+            recommendation: 'Usar DATABASE_URL via secret manager.',
+          },
+        ],
+        aiRemediationPlan: {
+          generatedBy: 'gemini:gemini-2.5-flash',
+          summary: 'Priorize a remoção da credencial em db.ts antes do deploy.',
+          reachabilityHits: ['next importado em src/app.ts'],
+          prioritizedSteps: [
+            'Rotacionar senha em apps/api/src/lib/db.ts imediatamente.',
+          ],
+        },
+      },
+      { compress: false },
+    );
     expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1);
 
     const bytes = new Uint8Array(doc.output('arraybuffer'));
@@ -327,6 +355,11 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
 
     const pdfLatin1 = new TextDecoder('latin1').decode(bytes);
     expect(pdfLatin1).toContain('PARECER EXECUTIVO PARA GERÊNCIA E DIRETORIA');
+    expect(pdfLatin1).toContain(
+      'DIAGNÓSTICO EXECUTIVO POR IA \\(gemini:gemini-2.5-flash\\)',
+    );
+    expect(pdfLatin1).toContain('Priorize a remoção da credencial em db.ts');
+    expect(pdfLatin1).toContain('Rotacionar senha em apps/api/src/lib/db.ts');
     expect(pdfLatin1).toContain('Apresentação dos Problemas e Plano de Soluções');
     expect(pdfLatin1).toContain('APRESENTAÇÃO E EXPLANAÇÃO DO PROBLEMA');
     expect(pdfLatin1).toContain('SOLUÇÃO RECOMENDADA');
@@ -401,6 +434,21 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
         },
       ],
       auditLogs: [],
+      staticFindings: [
+        {
+          id: 'stat-legacy-1',
+          ruleId: 'secret:db-connection-credentials',
+          category: 'SECRET_LEAK',
+          severity: 'HIGH',
+          title: 'Credencial no código',
+          description: 'Desc',
+          filePath: 'apps/api/src/lib/db.ts',
+          lineNumber: 3,
+          maskedSnippet: '****',
+          cweIds: ['CWE-798'],
+          recommendation: 'Rotacionar.',
+        },
+      ],
     });
 
     await store.putScan('gh-user-1', {
@@ -470,18 +518,28 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
 
       await waitFor(() => {
         expect(screen.getByText('P:2')).toBeTruthy();
+        expect(screen.getByText('E:1')).toBeTruthy();
       });
 
       expect(screen.getByTitle('2 Probe(s) com problema(s)')).toBeTruthy();
+      expect(
+        screen.getByTitle('1 achado(s) em Código, Segredos & IaC'),
+      ).toBeTruthy();
       expect(screen.queryByText('P:0')).toBeNull();
+      expect(screen.queryByText('E:0')).toBeNull();
 
       const barWithProbes = screen.getByTestId('severity-bar-scan-with-issues');
       const probeSlice = barWithProbes.querySelector(
         '[data-segment="probes"]',
       ) as HTMLElement | null;
+      const staticSlice = barWithProbes.querySelector(
+        '[data-segment="static"]',
+      ) as HTMLElement | null;
       expect(probeSlice).not.toBeNull();
-      expect(probeSlice?.style.width).toBe('100%');
+      expect(staticSlice).not.toBeNull();
+      expect(probeSlice?.style.width).toContain('66.6');
       expect(probeSlice?.className).toContain('bg-violet-500');
+      expect(staticSlice?.className).toContain('bg-cyan-500');
       expect(screen.queryByTestId('severity-bar-scan-clean')).toBeNull();
     } finally {
       fetchSpy.mockRestore();

@@ -16,6 +16,8 @@ import {
   VulnerabilityFinding,
   countProbeIssues,
   resolveScanProbeIssuesCount,
+  resolveScanStaticCritHighCount,
+  resolveScanStaticIssuesCount,
 } from '@/core/models/scan.models';
 
 describe('Scan Presenter & OCP Registries', () => {
@@ -102,6 +104,7 @@ describe('Scan Presenter & OCP Registries', () => {
         mediumCount: 3,
         lowCount: 0,
         confirmedActiveCount: 1,
+        staticIssuesCount: 4,
         warnings: [],
         errorMessage: null,
         startedAt: null,
@@ -115,6 +118,7 @@ describe('Scan Presenter & OCP Registries', () => {
       totalDependenciesScanned: 12,
       criticalAndHighTotal: 3,
       confirmedActiveTotal: 1,
+      staticIssuesTotal: 4,
     });
   });
 
@@ -278,5 +282,40 @@ describe('Scan Presenter & OCP Registries', () => {
         probeIssuesCount: 0,
       }),
     ).toEqual([]);
+
+    expect(
+      computeSeverityBarSegments({
+        criticalCount: 0,
+        highCount: 0,
+        mediumCount: 0,
+        lowCount: 0,
+        probeIssuesCount: 2,
+        staticIssuesCount: 6,
+      }),
+    ).toEqual([
+      {
+        key: 'probes',
+        count: 2,
+        percentage: 25,
+        colorClass: 'bg-violet-500',
+      },
+      {
+        key: 'static',
+        count: 6,
+        percentage: 75,
+        colorClass: 'bg-cyan-500',
+      },
+    ]);
+
+    expect(resolveScanStaticIssuesCount({ staticIssuesCount: 9 })).toBe(9);
+    expect(
+      resolveScanStaticCritHighCount({
+        staticFindings: [
+          { severity: 'CRITICAL' },
+          { severity: 'HIGH' },
+          { severity: 'MEDIUM' },
+        ],
+      }),
+    ).toBe(2);
   });
 });

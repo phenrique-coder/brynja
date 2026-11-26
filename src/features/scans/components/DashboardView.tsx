@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  Code2,
   Package,
   RefreshCw,
   ShieldAlert,
@@ -72,7 +73,7 @@ export function DashboardView() {
         }
       />
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <KpiStatCard
           label={messages.dashboard.kpiScans}
           value={metrics.totalScans}
@@ -102,6 +103,12 @@ export function DashboardView() {
           icon={
             <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
           }
+        />
+        <KpiStatCard
+          label={messages.dashboard.kpiStaticIssues}
+          value={metrics.staticIssuesTotal}
+          accentClass="text-cyan-600 dark:text-cyan-300"
+          icon={<Code2 className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />}
         />
       </section>
 

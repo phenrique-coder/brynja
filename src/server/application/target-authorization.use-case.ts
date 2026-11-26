@@ -158,7 +158,9 @@ export class TargetAuthorizationUseCase {
       httpMethod: candidate.method === 'DNS_TXT' ? 'DNS_TXT' : 'GET',
       requestPath:
         candidate.method === 'WELL_KNOWN_FILE'
-          ? '/.well-known/brynja-verify.txt'
+          ? outcome.reason.includes('brynja-verify.txt')
+            ? '/.well-known/brynja-verify.txt'
+            : '/.well-known/security.txt'
           : '/',
       statusCode: outcome.verified ? 200 : null,
       durationMs,
@@ -207,7 +209,7 @@ export class TargetAuthorizationUseCase {
   private buildInstructions(auth: TargetAuthorizationEntity): string {
     switch (auth.method) {
       case 'WELL_KNOWN_FILE':
-        return `Publique um arquivo texto acessível via GET em "${auth.origin}/.well-known/brynja-verify.txt" contendo exatamente: ${auth.challengeToken}`;
+        return `Publique "${auth.origin}/.well-known/security.txt" (RFC 9116 com Contact:, Expires: e linha "# Brynja-Verification: ${auth.challengeToken}") — compatibilidade legada mantida com /.well-known/brynja-verify.txt.`;
       case 'DNS_TXT':
         return `Crie um registro DNS TXT em "_brynja.${auth.hostname}" com o valor: ${auth.challengeToken}`;
       case 'LOCAL_DEV_SANDBOX':

@@ -12,7 +12,7 @@ O **Brynja** é uma plataforma estritamente **defensiva** para inventário de de
 
 Todas as releases e contribuições devem preservar os seguintes invariantes:
 
-1. **Verificação Criptográfica de Posse Obrigatória (`OwnershipCertificateService` + `AuthorizationPolicy`):** nenhuma sonda HTTP é disparada sem validação prévia de posse (`/.well-known/brynja-verify.txt`, registro `_brynja` DNS TXT ou loopback local em dev). Certificados assinados em AES-256-GCM têm validade limitada (padrão 7 dias) e só se renovam automaticamente se a prova ao vivo ainda estiver publicada no domínio.
+1. **Verificação Criptográfica de Posse Obrigatória (`OwnershipCertificateService` + `AuthorizationPolicy`):** nenhuma sonda HTTP é disparada sem validação prévia de posse (`/.well-known/security.txt` RFC 9116 `# Brynja-Verification:` com fallback legado `/.well-known/brynja-verify.txt`, registro `_brynja` DNS TXT ou loopback local em dev). Certificados assinados em AES-256-GCM têm validade limitada (padrão 7 dias) e só se renovam automaticamente se a prova ao vivo ainda estiver publicada no domínio.
 2. **Proteção Anti-SSRF (`SsrfDnsGuardService`):** resolução DNS prévia bloqueando endereços privados (RFC1918), CGNAT, link-local / cloud metadata (`169.254.169.254`) e loopback em produção (`ALLOW_LOCAL_LOOPBACK_TARGETS=false`).
 3. **Política Estrita Não Destrutiva (`SafeProbePolicy`):**
    - Apenas métodos HTTP `GET` e `HEAD`.

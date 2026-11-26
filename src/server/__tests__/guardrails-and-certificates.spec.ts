@@ -14,6 +14,7 @@ import {
 import { AesTokenCipherService } from '../infrastructure/crypto/aes-token-cipher.service';
 import { OwnershipCertificateService } from '../infrastructure/crypto/ownership-certificate.service';
 import { SealedSessionService } from '../infrastructure/crypto/sealed-session.service';
+import { DomainOwnershipVerifierAdapter } from '../infrastructure/pentest/domain-ownership-verifier.adapter';
 import { InMemoryProbeAuditCollector } from '../infrastructure/pentest/in-memory-audit-collector';
 import { RateLimitedSafeHttpClient } from '../infrastructure/pentest/rate-limited-http-client.adapter';
 import { SsrfDnsGuardService } from '../infrastructure/pentest/ssrf-dns-guard.service';
@@ -380,5 +381,53 @@ describe('Stateless Ownership Certificates, Guardrails & Browser Multi-User Isol
 
     await store.deleteScan('user-a', 'scan-a');
     expect(await store.getScan('user-a', 'scan-a')).toBeNull();
+  });
+
+  it('verifies WELL_KNOWN_FILE via RFC 9116 /.well-known/security.txt and supports legacy /.well-known/brynja-verify.txt fallback', async () => {
+    const ssrfAllowLoopback = new SsrfDnsGuardService(true);
+    const verifier = new DomainOwnershipVerifierAdapter(ssrfAllowLoopback);
+    const baseAuth = {
+      id: 'auth-wk',
+      ownerGithubUserId: 'user-a',
+      origin: 'http://127.0.0.1:4010',
+      hostname: '127.0.0.1',
+      method: 'WELL_KNOWN_FILE' as const,
+      status: 'PENDING' as const,
+      challengeToken: 'brynja-verify-0123456789abcdef0123456789abcdef',
+      verifiedAt: null,
+      expiresAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    try {
+      // 1. Primary path: RFC 9116 /.well-known/security.txt containing Contact, Expires, and verification comment
+      fetchMock.mockResolvedValueOnce(
+        new Response(
+          `Contact: mailto:security@example.com\nExpires: 2027-12-31T23:59:59Z\n# Brynja-Verification: ${baseAuth.challengeToken}\n`,
+          { status: 200 },
+        ),
+      );
+
+      const primaryRes = await verifier.verify(baseAuth);
+      expect(primaryRes.verified).toBe(true);
+      expect(primaryRes.reason).toContain('/.well-known/security.txt');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // 2. Fallback path: /.well-known/security.txt 404 -> tries legacy /.well-known/brynja-verify.txt
+      fetchMock
+        .mockResolvedValueOnce(new Response('Not found', { status: 404 }))
+        .mockResolvedValueOnce(
+          new Response(baseAuth.challengeToken, { status: 200 }),
+        );
+
+      const fallbackRes = await verifier.verify(baseAuth);
+      expect(fallbackRes.verified).toBe(true);
+      expect(fallbackRes.reason).toContain('/.well-known/brynja-verify.txt');
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 });

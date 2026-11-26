@@ -13,7 +13,7 @@ An open-source **100% Vercel Serverless + Local-First (IndexedDB)** Web Platform
    - **FIRST EPSS** (`https://api.first.org/data/v1/epss`) — real-world exploitation probability.
    - **CISA KEV** (`https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json`) — confirmation of known active exploitation.
 3. **Controlled Active Verification (*8 Non-Destructive Safe Probes*):** strictly read-only (`GET`/`HEAD`) checks gated by:
-   - Deterministic per-user/per-origin HMAC-SHA256 ownership challenges (`/.well-known/brynja-verify.txt`, `_brynja` DNS `TXT`, or loopback sandbox in development) sealed into AES-256-GCM 7-day certificates with automatic live renewal.
+   - Deterministic per-user/per-origin HMAC-SHA256 ownership challenges (`/.well-known/security.txt` RFC 9116 `# Brynja-Verification:` with legacy fallback `/.well-known/brynja-verify.txt`, `_brynja` DNS `TXT`, or loopback sandbox in development) sealed into AES-256-GCM 7-day certificates with automatic live renewal.
    - Pre-flight DNS SSRF protection, strict header allowlist (`Origin`/`Accept`), rate limiting, timeouts, and circuit breaker.
    - Local-first audit trail persisted in the user's browser (`IndexedDB`) alongside scan history and SBOMs, isolated per `ownerGithubUserId`.
 4. **AI Agent Extensibility:** decoupled `IAgentAdvisorPort` interface ready for future reachability analysis and remediation guidance powered by AI agents.
