@@ -464,11 +464,32 @@ export function NewScanView() {
                       package-lock.json (npm)
                     </option>
                     <option value="pnpm-lock.yaml">pnpm-lock.yaml (npm)</option>
+                    <option value="yarn.lock">yarn.lock (npm)</option>
                     <option value="requirements.txt">
                       requirements.txt (PyPI)
                     </option>
                     <option value="pyproject.toml">
                       pyproject.toml (PyPI)
+                    </option>
+                    <option value="go.mod">go.mod (Go)</option>
+                    <option value="go.sum">go.sum (Go)</option>
+                    <option value="Cargo.toml">Cargo.toml (Rust)</option>
+                    <option value="Cargo.lock">Cargo.lock (Rust)</option>
+                    <option value="pom.xml">pom.xml (Maven / Java)</option>
+                    <option value="gradle.lockfile">
+                      gradle.lockfile (Maven / Gradle)
+                    </option>
+                    <option value="packages.lock.json">
+                      packages.lock.json (NuGet / .NET)
+                    </option>
+                    <option value="composer.json">
+                      composer.json (Packagist / PHP)
+                    </option>
+                    <option value="composer.lock">
+                      composer.lock (Packagist / PHP)
+                    </option>
+                    <option value="Gemfile.lock">
+                      Gemfile.lock (RubyGems)
                     </option>
                   </select>
                 </div>

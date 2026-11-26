@@ -304,8 +304,12 @@ function inferDependencyCommand(
   if (!targetVersion) return null;
 
   if (ecosystem === 'npm') {
+    const lowerSource = sourceFile.toLowerCase();
+    if (lowerSource.endsWith('yarn.lock')) {
+      return `yarn upgrade ${packageName}@^${targetVersion}`;
+    }
     const isPnpm =
-      repoUsesPnpm || sourceFile.toLowerCase().endsWith('pnpm-lock.yaml');
+      repoUsesPnpm || lowerSource.endsWith('pnpm-lock.yaml');
     if (isDirect) {
       return isPnpm
         ? `pnpm up ${packageName}@^${targetVersion}`
@@ -316,9 +320,34 @@ function inferDependencyCommand(
       : `npm audit fix # or pin "${packageName}": ">=${targetVersion}" in package.json overrides && npm install`;
   }
 
-  // PyPI
-  return `pip install --upgrade "${packageName}>=${targetVersion}"`;
+  switch (ecosystem) {
+    case 'PyPI':
+      return `pip install --upgrade "${packageName}>=${targetVersion}"`;
+    case 'Go':
+      return `go get ${packageName}@${targetVersion.startsWith('v') ? targetVersion : `v${targetVersion}`} && go mod tidy`;
+    case 'crates.io':
+      return `cargo update -p ${packageName} --precise ${targetVersion}`;
+    case 'Maven':
+      return `# Update ${packageName} to >= ${targetVersion} in ${sourceFile}`;
+    case 'NuGet':
+      return `dotnet add package ${packageName} --version ${targetVersion}`;
+    case 'Packagist':
+      return `composer require ${packageName}:^${targetVersion}`;
+    case 'RubyGems':
+      return `bundle update ${packageName}`;
+  }
 }
+
+const DEFAULT_MANIFEST_BY_ECOSYSTEM: Record<Ecosystem, string> = {
+  npm: 'package.json',
+  PyPI: 'requirements.txt',
+  Go: 'go.mod',
+  'crates.io': 'Cargo.toml',
+  Maven: 'pom.xml',
+  NuGet: 'packages.lock.json',
+  Packagist: 'composer.json',
+  RubyGems: 'Gemfile.lock',
+};
 
 interface PackageGroup {
   key: string;
@@ -521,7 +550,8 @@ export function buildRemediationPlan(report: ScanReport): RemediationPlan {
       );
     const sourceFile =
       dep?.sourceFile ??
-      (finding.ecosystem === 'PyPI' ? 'requirements.txt' : 'package.json');
+      DEFAULT_MANIFEST_BY_ECOSYSTEM[finding.ecosystem] ??
+      'package.json';
     const isDirect = dep?.isDirect ?? true;
     const key = `${finding.ecosystem}:${finding.packageName}@${finding.packageVersion}:${sourceFile}`;
 

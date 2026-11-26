@@ -292,6 +292,13 @@ function classifyReferenceUrl(parsed: URL): {
   }
   if (host === 'npmjs.com') return { baseLabel: 'npm' };
   if (host === 'pypi.org') return { baseLabel: 'PyPI' };
+  if (host === 'pkg.go.dev') return { baseLabel: 'Go Packages' };
+  if (host === 'crates.io') return { baseLabel: 'crates.io' };
+  if (host === 'mvnrepository.com') return { baseLabel: 'Maven' };
+  if (host === 'nuget.org') return { baseLabel: 'NuGet' };
+  if (host === 'packagist.org') return { baseLabel: 'Packagist' };
+  if (host === 'rubygems.org') return { baseLabel: 'RubyGems' };
+  if (host === 'deps.dev') return { baseLabel: 'deps.dev' };
   if (host === 'security.snyk.io' || host === 'snyk.io') {
     return { baseLabel: 'Snyk' };
   }

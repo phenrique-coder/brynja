@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerContainer } from '@/server/application/container';
+import { SUPPORTED_ECOSYSTEMS } from '@/server/domain/entities/scan.types';
 import {
   handleApiError,
   requireGitHubSession,
@@ -13,7 +14,7 @@ export const maxDuration = 60;
 const DependencySchema = z.object({
   name: z.string().min(1),
   version: z.string().min(1),
-  ecosystem: z.enum(['npm', 'PyPI']),
+  ecosystem: z.enum(SUPPORTED_ECOSYSTEMS),
   purl: z.string(),
   sourceFile: z.string(),
   isDirect: z.boolean(),
@@ -24,7 +25,7 @@ const AdvisorySchema = z.object({
   cveId: z.string().nullable(),
   packageName: z.string(),
   packageVersion: z.string(),
-  ecosystem: z.enum(['npm', 'PyPI']),
+  ecosystem: z.enum(SUPPORTED_ECOSYSTEMS),
   title: z.string(),
   description: z.string(),
   severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']),

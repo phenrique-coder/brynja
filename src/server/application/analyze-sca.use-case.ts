@@ -6,6 +6,7 @@ import {
 } from '../domain/entities/scan.types';
 import { InvalidRepositoryUrlError } from '../domain/errors/domain.errors';
 import {
+  IDependencyEnricher,
   IDependencyParser,
   IRepositoryFetcher,
   IVulnerabilityEnricher,
@@ -32,6 +33,7 @@ export class AnalyzeScaUseCase {
     private readonly parsers: IDependencyParser[],
     private readonly vulnProvider: IVulnerabilityProvider,
     private readonly enrichers: IVulnerabilityEnricher[],
+    private readonly dependencyEnrichers: IDependencyEnricher[] = [],
   ) {}
 
   async execute(input: AnalyzeScaInput): Promise<AnalyzeScaOutput> {
@@ -57,7 +59,7 @@ export class AnalyzeScaUseCase {
 
     if (files.length === 0) {
       warnings.push(
-        'Nenhum manifesto suportado (package.json, package-lock.json, pnpm-lock.yaml, requirements.txt, pyproject.toml) foi encontrado.',
+        'Nenhum manifesto suportado (npm/yarn/pnpm, Python, Go, Rust, Java, .NET, PHP, Ruby) foi encontrado.',
       );
     }
 
@@ -76,7 +78,39 @@ export class AnalyzeScaUseCase {
       }
     }
 
-    const rawDependencies = Array.from(dedupMap.values());
+    let rawDependencies = Array.from(dedupMap.values());
+
+    const [osvResult, ...depEnrichResults] = await Promise.all([
+      this.vulnProvider.lookupBatch(rawDependencies),
+      ...this.dependencyEnrichers.map(async (enricher) => {
+        try {
+          return await enricher.enrichDependencies(rawDependencies);
+        } catch (err) {
+          return {
+            dependencies: rawDependencies,
+            warnings: [
+              `Enriquecedor SBOM ${enricher.name} falhou: ${err instanceof Error ? err.message : 'erro'}`,
+            ],
+          };
+        }
+      }),
+    ]);
+
+    for (const res of depEnrichResults) {
+      const metaByPurl = new Map(res.dependencies.map((d) => [d.purl, d]));
+      rawDependencies = rawDependencies.map((d) => {
+        const enriched = metaByPurl.get(d.purl);
+        return enriched
+          ? {
+              ...d,
+              license: enriched.license ?? d.license,
+              openssfScore: enriched.openssfScore ?? d.openssfScore,
+            }
+          : d;
+      });
+      warnings.push(...res.warnings);
+    }
+
     const dependencies = rawDependencies.map((d) => ({
       ...d,
       id: randomUUID(),
@@ -88,7 +122,6 @@ export class AnalyzeScaUseCase {
       new Set(dependencies.map((d) => d.ecosystem)),
     );
 
-    const osvResult = await this.vulnProvider.lookupBatch(rawDependencies);
     warnings.push(...osvResult.warnings);
     let advisories = osvResult.advisories;
 

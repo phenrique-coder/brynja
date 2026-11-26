@@ -870,7 +870,25 @@ export function ScanReportView({ scanId }: { scanId: string }) {
                 {report.dependencies.map((d) => (
                   <tr key={d.id} className="hover:bg-surface-hover/50">
                     <td className="px-5 py-3 font-mono font-medium text-fg">
-                      {d.name}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span>{d.name}</span>
+                        {d.license ? (
+                          <span className="rounded border border-subtle bg-surface-subtle px-1.5 py-0.5 text-[10px] font-normal text-fg-secondary">
+                            {d.license}
+                          </span>
+                        ) : null}
+                        {typeof d.openssfScore === 'number' ? (
+                          <span
+                            className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                              d.openssfScore < 4
+                                ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                                : 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                            }`}
+                          >
+                            Scorecard {d.openssfScore.toFixed(1)}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-cyan-700 dark:text-cyan-300">
                       {d.version}

@@ -1,4 +1,15 @@
-export type Ecosystem = 'npm' | 'PyPI';
+export const SUPPORTED_ECOSYSTEMS = [
+  'npm',
+  'PyPI',
+  'Go',
+  'crates.io',
+  'Maven',
+  'NuGet',
+  'Packagist',
+  'RubyGems',
+] as const;
+
+export type Ecosystem = (typeof SUPPORTED_ECOSYSTEMS)[number];
 
 export type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
 
@@ -37,6 +48,8 @@ export interface ParsedDependency {
   purl: string;
   sourceFile: string;
   isDirect: boolean;
+  license?: string | null;
+  openssfScore?: number | null;
 }
 
 export interface NormalizedAdvisory {

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const ALLOWED_MANIFEST_PATH =
-  /^(?:[A-Za-z0-9._-]+\/)*(package\.json|package-lock\.json|pnpm-lock\.yaml|requirements\.txt|pyproject\.toml)$/;
+  /^(?:[A-Za-z0-9._-]+\/)*(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|requirements\.txt|pyproject\.toml|go\.mod|go\.sum|Cargo\.toml|Cargo\.lock|pom\.xml|gradle\.lockfile|packages\.lock\.json|[A-Za-z0-9._-]+\.csproj|composer\.json|composer\.lock|Gemfile\.lock)$/;
 
 const AnalyzeScaSchema = z.object({
   repositoryUrl: z.string().min(1, 'repositoryUrl é obrigatório').max(500),

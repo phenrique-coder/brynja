@@ -53,6 +53,13 @@ export interface IVulnerabilityEnricher {
   ): Promise<{ advisories: NormalizedAdvisory[]; warnings: string[] }>;
 }
 
+export interface IDependencyEnricher {
+  readonly name: string;
+  enrichDependencies(
+    dependencies: ParsedDependency[],
+  ): Promise<{ dependencies: ParsedDependency[]; warnings: string[] }>;
+}
+
 // --- Controlled Safe Probes & Guardrails (ISP + OCP) ---
 export interface SafeHttpResponse {
   statusCode: number;

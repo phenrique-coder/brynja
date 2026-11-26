@@ -5,8 +5,16 @@ import { OwnershipCertificateService } from '../infrastructure/crypto/ownership-
 import { SealedSessionService } from '../infrastructure/crypto/sealed-session.service';
 import { GitHubApiRepositoryFetcher } from '../infrastructure/github/github-api-repository.fetcher';
 import { GitHubOAuthClient } from '../infrastructure/github/github-oauth.client';
+import { DotNetManifestParser } from '../infrastructure/parsers/dotnet-manifest.parser';
+import { GoManifestParser } from '../infrastructure/parsers/go-manifest.parser';
+import { JavaManifestParser } from '../infrastructure/parsers/java-manifest.parser';
 import { NpmManifestParser } from '../infrastructure/parsers/npm-manifest.parser';
+import {
+  PhpComposerParser,
+  RubyGemfileParser,
+} from '../infrastructure/parsers/php-ruby-manifest.parser';
 import { PythonManifestParser } from '../infrastructure/parsers/python-manifest.parser';
+import { RustManifestParser } from '../infrastructure/parsers/rust-manifest.parser';
 import { DomainOwnershipVerifierAdapter } from '../infrastructure/pentest/domain-ownership-verifier.adapter';
 import { BackupConfigExposureProbe } from '../infrastructure/pentest/probes/backup-config-exposure.probe';
 import { CacheSecurityProbe } from '../infrastructure/pentest/probes/cache-security.probe';
@@ -24,6 +32,7 @@ import { SourceMapExposureProbe } from '../infrastructure/pentest/probes/source-
 import { SriIntegrityProbe } from '../infrastructure/pentest/probes/sri-integrity.probe';
 import { SsrfDnsGuardService } from '../infrastructure/pentest/ssrf-dns-guard.service';
 import { CisaKevEnricher } from '../infrastructure/vuln-intel/cisa-kev-enricher.adapter';
+import { DepsDevDependencyEnricher } from '../infrastructure/vuln-intel/deps-dev-enricher.adapter';
 import { EpssVulnerabilityEnricher } from '../infrastructure/vuln-intel/epss-enricher.adapter';
 import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enricher.adapter';
 import { OsvVulnerabilityProvider } from '../infrastructure/vuln-intel/osv-client.adapter';
@@ -84,13 +93,23 @@ export function getServerContainer(): ServerContainer {
 
   // OCP Extensible Registries
   const fetchers = [new GitHubApiRepositoryFetcher()];
-  const parsers = [new NpmManifestParser(), new PythonManifestParser()];
+  const parsers = [
+    new NpmManifestParser(),
+    new PythonManifestParser(),
+    new GoManifestParser(),
+    new RustManifestParser(),
+    new JavaManifestParser(),
+    new DotNetManifestParser(),
+    new PhpComposerParser(),
+    new RubyGemfileParser(),
+  ];
   const vulnProvider = new OsvVulnerabilityProvider(vulnCache);
   const enrichers = [
     new NvdVulnerabilityEnricher(vulnCache),
     new EpssVulnerabilityEnricher(),
     new CisaKevEnricher(vulnCache),
   ];
+  const dependencyEnrichers = [new DepsDevDependencyEnricher(vulnCache)];
   const probes = createRegisteredSafeProbes();
 
   cachedContainer = {
@@ -110,6 +129,7 @@ export function getServerContainer(): ServerContainer {
       parsers,
       vulnProvider,
       enrichers,
+      dependencyEnrichers,
     ),
     runSafeProbes: new RunSafeProbesUseCase(
       certificates,

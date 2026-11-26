@@ -2,8 +2,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { MemoryVulnerabilityCacheService } from '../infrastructure/cache/memory-vuln-cache.service';
 import { GitHubApiRepositoryFetcher } from '../infrastructure/github/github-api-repository.fetcher';
 import { GitHubOAuthClient } from '../infrastructure/github/github-oauth.client';
+import { DotNetManifestParser } from '../infrastructure/parsers/dotnet-manifest.parser';
+import { GoManifestParser } from '../infrastructure/parsers/go-manifest.parser';
+import { JavaManifestParser } from '../infrastructure/parsers/java-manifest.parser';
 import { NpmManifestParser } from '../infrastructure/parsers/npm-manifest.parser';
+import {
+  PhpComposerParser,
+  RubyGemfileParser,
+} from '../infrastructure/parsers/php-ruby-manifest.parser';
 import { PythonManifestParser } from '../infrastructure/parsers/python-manifest.parser';
+import { RustManifestParser } from '../infrastructure/parsers/rust-manifest.parser';
+import { DepsDevDependencyEnricher } from '../infrastructure/vuln-intel/deps-dev-enricher.adapter';
 import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enricher.adapter';
 import { resolveFixedVersionForInstalled } from '../infrastructure/vuln-intel/osv-version.resolver';
 
@@ -334,6 +343,119 @@ describe('Manifest Parsers, OSV SemVer Resolver & GitHub API Fetcher', () => {
       ).rejects.toThrow(/vazio/i);
     } finally {
       emptySpy.mockRestore();
+    }
+  });
+
+  it('parses yarn.lock, Go, Rust, Java, .NET, PHP Composer, and Ruby Gemfile.lock manifests', () => {
+    const npm = new NpmManifestParser();
+    const yarnDeps = npm.parse(
+      'yarn.lock',
+      `"lodash@^4.17.20":\n  version "4.17.21"\n\n"@next/env@npm:15.2.3":\n  version: 15.2.3\n`,
+    );
+    expect(yarnDeps.map((d) => `${d.name}@${d.version}`)).toEqual([
+      'lodash@4.17.21',
+      '@next/env@15.2.3',
+    ]);
+
+    const go = new GoManifestParser();
+    const goDeps = go.parse(
+      'go.mod',
+      `module github.com/acme/api\nrequire (\n\tgithub.com/gin-gonic/gin v1.9.1\n\tgolang.org/x/net v0.20.0 // indirect\n)\n`,
+    );
+    expect(goDeps.map((d) => `${d.ecosystem}:${d.name}@${d.version}:${d.isDirect}`)).toEqual([
+      'Go:github.com/gin-gonic/gin@v1.9.1:true',
+      'Go:golang.org/x/net@v0.20.0:false',
+    ]);
+
+    const rust = new RustManifestParser();
+    const cargoDeps = rust.parse(
+      'Cargo.lock',
+      `[[package]]\nname = "serde"\nversion = "1.0.210"\n\n[[package]]\nname = "tokio"\nversion = "1.40.0"\n`,
+    );
+    expect(cargoDeps.map((d) => d.purl)).toEqual([
+      'pkg:cargo/serde@1.0.210',
+      'pkg:cargo/tokio@1.40.0',
+    ]);
+
+    const java = new JavaManifestParser();
+    const mavenDeps = java.parse(
+      'pom.xml',
+      `<project><properties><spring.version>6.1.14</spring.version></properties><dependencies><dependency><groupId>org.springframework</groupId><artifactId>spring-web</artifactId><version>\${spring.version}</version></dependency></dependencies></project>`,
+    );
+    expect(mavenDeps[0]?.name).toBe('org.springframework:spring-web');
+    expect(mavenDeps[0]?.version).toBe('6.1.14');
+
+    const dotnet = new DotNetManifestParser();
+    const nugetDeps = dotnet.parse(
+      'Api.csproj',
+      `<Project><ItemGroup><PackageReference Include="Newtonsoft.Json" Version="13.0.3" /></ItemGroup></Project>`,
+    );
+    expect(nugetDeps[0]?.purl).toBe('pkg:nuget/Newtonsoft.Json@13.0.3');
+
+    const php = new PhpComposerParser();
+    const phpDeps = php.parse(
+      'composer.lock',
+      JSON.stringify({ packages: [{ name: 'symfony/http-kernel', version: 'v6.4.12' }] }),
+    );
+    expect(phpDeps[0]?.purl).toBe('pkg:composer/symfony/http-kernel@6.4.12');
+
+    const ruby = new RubyGemfileParser();
+    const rubyDeps = ruby.parse(
+      'Gemfile.lock',
+      `GEM\n  specs:\n    rails (7.1.3.4)\n      actionpack (= 7.1.3.4)\n`,
+    );
+    expect(rubyDeps.map((d) => d.purl)).toEqual(['pkg:gem/rails@7.1.3.4']);
+  });
+
+  it('enriches SPDX licenses and OpenSSF Scorecard via DepsDevDependencyEnricher with restrictive license & low-score warnings', async () => {
+    const enricher = new DepsDevDependencyEnricher(
+      new MemoryVulnerabilityCacheService(),
+    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes('/systems/npm/packages/')) {
+          return new Response(
+            JSON.stringify({
+              licenses: ['GPL-3.0'],
+              relatedProjects: [
+                {
+                  relationType: 'SOURCE_REPO',
+                  projectKey: { id: 'github.com/acme/lib' },
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        if (u.includes('/v3/projects/')) {
+          return new Response(
+            JSON.stringify({ scorecard: { overallScore: 3.2 } }),
+            { status: 200 },
+          );
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+    try {
+      const res = await enricher.enrichDependencies([
+        {
+          name: 'gpl-lib',
+          version: '1.0.0',
+          ecosystem: 'npm',
+          purl: 'pkg:npm/gpl-lib@1.0.0',
+          sourceFile: 'package.json',
+          isDirect: true,
+        },
+      ]);
+
+      expect(res.dependencies[0].license).toBe('GPL-3.0');
+      expect(res.dependencies[0].openssfScore).toBe(3.2);
+      expect(res.warnings.some((w) => w.includes('GPL-3.0'))).toBe(true);
+      expect(res.warnings.some((w) => w.includes('3.2/10'))).toBe(true);
+    } finally {
+      fetchSpy.mockRestore();
     }
   });
 });

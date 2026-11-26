@@ -10,9 +10,27 @@ const SUPPORTED_FILENAMES = new Set([
   'package.json',
   'package-lock.json',
   'pnpm-lock.yaml',
+  'yarn.lock',
   'requirements.txt',
   'pyproject.toml',
+  'go.mod',
+  'go.sum',
+  'Cargo.toml',
+  'Cargo.lock',
+  'pom.xml',
+  'gradle.lockfile',
+  'packages.lock.json',
+  'composer.json',
+  'composer.lock',
+  'Gemfile.lock',
 ]);
+
+function isSupportedManifestFilename(filename: string): boolean {
+  return (
+    SUPPORTED_FILENAMES.has(filename) ||
+    filename.toLowerCase().endsWith('.csproj')
+  );
+}
 
 const IGNORED_SEGMENT_PREFIXES = [
   '.git/',
@@ -218,7 +236,7 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
         return false;
       }
       const base = path.posix.basename(entry.path);
-      return SUPPORTED_FILENAMES.has(base);
+      return isSupportedManifestFilename(base);
     });
 
     const files = await this.loadBlobs(
@@ -282,7 +300,7 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
     const dirsToScan: string[] = [];
 
     for (const item of rootItems) {
-      if (item.type === 'file' && item.sha && SUPPORTED_FILENAMES.has(item.name)) {
+      if (item.type === 'file' && item.sha && isSupportedManifestFilename(item.name)) {
         toFetch.push({ path: item.path, type: 'blob', sha: item.sha, size: item.size });
       } else if (
         item.type === 'dir' &&
@@ -296,7 +314,7 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
       dirsToScan.map(async (dir) => {
         const subItems = await this.listContentsDir(owner, repo, dir, branch, token);
         for (const sub of subItems) {
-          if (sub.type === 'file' && sub.sha && SUPPORTED_FILENAMES.has(sub.name)) {
+          if (sub.type === 'file' && sub.sha && isSupportedManifestFilename(sub.name)) {
             toFetch.push({ path: sub.path, type: 'blob', sha: sub.sha, size: sub.size });
           } else if (sub.type === 'dir') {
             const nested = await this.listContentsDir(
@@ -310,7 +328,7 @@ export class GitHubApiRepositoryFetcher implements IRepositoryFetcher {
               if (
                 leaf.type === 'file' &&
                 leaf.sha &&
-                SUPPORTED_FILENAMES.has(leaf.name)
+                isSupportedManifestFilename(leaf.name)
               ) {
                 toFetch.push({
                   path: leaf.path,

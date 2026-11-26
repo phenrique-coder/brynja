@@ -6,6 +6,12 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.11.0] - 2026-11-26
+
+### Adicionado
+- Expansão do parser SCA/SBOM de 2 para **8 ecossistemas compatíveis com OSV.dev**: suporte a **Yarn** (`yarn.lock`), **Go** (`go.mod`, `go.sum`), **Rust** (`Cargo.toml`, `Cargo.lock`), **Java/Kotlin Maven & Gradle** (`pom.xml`, `gradle.lockfile`), **.NET NuGet** (`packages.lock.json`, `*.csproj`), **PHP Packagist** (`composer.json`, `composer.lock`) e **RubyGems** (`Gemfile.lock`), incluindo comandos de atualização por ecossistema, `/scans/new` e `/api/analyze/sca`.
+- Adicionado o enriquecedor `DepsDevDependencyEnricher` (`src/server/infrastructure/vuln-intel/deps-dev-enricher.adapter.ts`) consultando `api.deps.dev/v3` em paralelo ao OSV.dev (cache de 6h, *fail-open*) para exibir **licenças SPDX** e notas do **OpenSSF Scorecard** na tabela SBOM, com alertas para licenças restritivas (`GPL`/`AGPL`) e pontuação crítica.
+
 ## [1.10.0] - 2026-11-26
 
 ### Adicionado

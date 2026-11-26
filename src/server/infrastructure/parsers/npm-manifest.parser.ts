@@ -10,7 +10,8 @@ export class NpmManifestParser implements IDependencyParser {
     return (
       base === 'package.json' ||
       base === 'package-lock.json' ||
-      base === 'pnpm-lock.yaml'
+      base === 'pnpm-lock.yaml' ||
+      base === 'yarn.lock'
     );
   }
 
@@ -21,6 +22,9 @@ export class NpmManifestParser implements IDependencyParser {
     }
     if (base === 'pnpm-lock.yaml') {
       return this.parsePnpmLock(filePath, content);
+    }
+    if (base === 'yarn.lock') {
+      return this.parseYarnLock(filePath, content);
     }
     if (base === 'package.json') {
       return this.parsePackageJson(filePath, content);
@@ -163,6 +167,66 @@ export class NpmManifestParser implements IDependencyParser {
             sourceFile: filePath,
             isDirect: false,
           });
+        }
+      }
+    }
+
+    return Array.from(results.values());
+  }
+
+  private parseYarnLock(
+    filePath: string,
+    content: string,
+  ): ParsedDependency[] {
+    const results = new Map<string, ParsedDependency>();
+    const lines = content.split(/\r?\n/);
+    let currentNames: string[] = [];
+
+    for (const rawLine of lines) {
+      if (!rawLine.trim() || rawLine.trimStart().startsWith('#')) {
+        if (!rawLine.trim()) currentNames = [];
+        continue;
+      }
+
+      if (!rawLine.startsWith(' ') && !rawLine.startsWith('\t')) {
+        const header = rawLine.replace(/:$/, '').trim();
+        if (header === '__metadata') {
+          currentNames = [];
+          continue;
+        }
+        const entries = header
+          .split(',')
+          .map((s) => s.trim().replace(/^["']|["']$/g, ''))
+          .filter(Boolean);
+        currentNames = entries
+          .map((spec) => {
+            const match = spec.match(/^((?:@[^@/]+\/)?[^@]+)@/);
+            return match ? match[1] : null;
+          })
+          .filter((name): name is string => Boolean(name));
+        continue;
+      }
+
+      if (currentNames.length > 0) {
+        const verMatch = rawLine
+          .trim()
+          .match(/^version(?::|\s+)\s*["']?(\d+\.\d+\.\d+[^"'\s]*)["']?/);
+        if (verMatch) {
+          const version = verMatch[1];
+          for (const name of currentNames) {
+            const purl = this.buildPurl(name, version);
+            if (!results.has(purl)) {
+              results.set(purl, {
+                name,
+                version,
+                ecosystem: 'npm',
+                purl,
+                sourceFile: filePath,
+                isDirect: false,
+              });
+            }
+          }
+          currentNames = [];
         }
       }
     }

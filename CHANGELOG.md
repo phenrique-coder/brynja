@@ -6,6 +6,12 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-11-26
+
+### Added
+- Expanded SCA/SBOM manifest parsing from 2 to **8 OSV.dev-compatible ecosystems**: added **Yarn** (`yarn.lock`), **Go** (`go.mod`, `go.sum`), **Rust** (`Cargo.toml`, `Cargo.lock`), **Java/Kotlin Maven & Gradle** (`pom.xml`, `gradle.lockfile`), **.NET NuGet** (`packages.lock.json`, `*.csproj`), **PHP Packagist** (`composer.json`, `composer.lock`), and **RubyGems** (`Gemfile.lock`), along with ecosystem-aware upgrade commands in `remediation-plan.presenter.ts`, `/scans/new`, and `/api/analyze/sca`.
+- Added `DepsDevDependencyEnricher` (`src/server/infrastructure/vuln-intel/deps-dev-enricher.adapter.ts`) querying `api.deps.dev/v3` in parallel with OSV.dev (6h cached, fail-open) to enrich direct dependencies with **SPDX licenses** and **OpenSSF Scorecard** ratings, surfacing copyleft (`GPL`/`AGPL`) and low-scorecard warnings and badges inside the SBOM inventory table.
+
 ## [1.10.0] - 2026-11-26
 
 ### Added
