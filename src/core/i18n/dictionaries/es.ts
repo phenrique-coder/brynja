@@ -483,6 +483,16 @@ export const ES_MESSAGES: Messages = {
       apiKeyLabel: 'Tu Clave / Token API (BYOK)',
       apiKeyPlaceholder: 'sk-... o AIza...',
       modelLabel: 'Modelo (opcional)',
+      modelLockedHint: 'Ingresa clave API para elegir',
+      modelDefaultOption: 'Predeterminado ({model})',
+      modelCustomOption: 'Otro (escribir ID)...',
+      modelBackToListBtn: 'Lista',
+      modelRefreshTitle: 'Actualizar modelos disponibles para esta clave',
+      modelLoadingStatus: 'Buscando modelos...',
+      modelLoadedStatus: '{count} modelo(s) disponible(s)',
+      modelFallbackStatus:
+        'Usando lista estándar (no se pudo consultar la API)',
+      modelCustomPlaceholder: 'ID del modelo (ej.: llama-3.3-70b)',
       endpointLabel: 'URL de Endpoint Personalizado',
       endpointPlaceholder: 'https://api.openai.com/v1/chat/completions',
       securityNotice:

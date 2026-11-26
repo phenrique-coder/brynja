@@ -6,6 +6,12 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.20.0] - 2026-11-26
+
+### Adicionado
+- Adicionado endpoint autenticado de descoberta de modelos BYOK (`POST /api/analyze/advise/models` via `ByokAgentAdvisorAdapter.listModels` com proteção anti-SSRF) para OpenAI, Google Gemini e endpoints compatíveis, filtrando automaticamente modelos de geração de imagem (Nano Banana / gpt-image), TTS/áudio, vídeo, embeddings e modalidades não textuais.
+- Atualizado o painel `AiAdvisorPanel` para liberar automaticamente um seletor com os modelos disponíveis na chave informada (com fallback curado, atualização sob demanda e entrada manual personalizada em PT-BR, EN e ES), definindo **Gemini 3.8 Flash (`gemini-3.8-flash`)** como padrão do provedor Gemini.
+
 ## [1.19.0] - 2026-11-26
 
 ### Adicionado

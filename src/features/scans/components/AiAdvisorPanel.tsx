@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Bot,
@@ -11,12 +11,14 @@ import {
   KeyRound,
   ListChecks,
   Loader2,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   Trash2,
 } from 'lucide-react';
 import {
   AgentRemediationPlan,
+  AiModelOption,
   AiProviderType,
   ByokAiConfig,
   ScanReport,
@@ -39,6 +41,30 @@ const DEFAULT_DRAFT: StoredByokDraft = {
   apiKey: '',
   model: '',
   endpointUrl: '',
+};
+
+const CURATED_MODELS_BY_PROVIDER: Record<AiProviderType, AiModelOption[]> = {
+  gemini: [
+    { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (gemini-3.8-flash)' },
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (gemini-2.5-flash)' },
+    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (gemini-2.5-pro)' },
+    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (gemini-2.0-flash)' },
+  ],
+  openai: [
+    { id: 'gpt-4o-mini', label: 'gpt-4o-mini' },
+    { id: 'gpt-4o', label: 'gpt-4o' },
+    { id: 'gpt-4.1-mini', label: 'gpt-4.1-mini' },
+    { id: 'gpt-4.1', label: 'gpt-4.1' },
+    { id: 'o4-mini', label: 'o4-mini' },
+    { id: 'o3-mini', label: 'o3-mini' },
+  ],
+  custom: [],
+};
+
+const DEFAULT_MODEL_BY_PROVIDER: Record<AiProviderType, string> = {
+  gemini: 'gemini-3.8-flash',
+  openai: 'gpt-4o-mini',
+  custom: '',
 };
 
 function readStoredByok(): StoredByokDraft {
@@ -125,6 +151,50 @@ export function AiAdvisorPanel({
   const [plan, setPlan] = useState<AgentRemediationPlan | null>(
     report.aiRemediationPlan ?? null,
   );
+  const [fetchedModels, setFetchedModels] = useState<AiModelOption[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelsFallbackUsed, setModelsFallbackUsed] = useState(false);
+  const [manualModelMode, setManualModelMode] = useState(false);
+
+  const trimmedKey = draft.apiKey.trim();
+  const hasApiKey = trimmedKey.length >= 6;
+  const trimmedEndpoint = draft.endpointUrl.trim();
+  const canQueryProviderModels =
+    hasApiKey &&
+    (draft.provider !== 'custom' || /^https?:\/\/.+/i.test(trimmedEndpoint)) &&
+    (!trimmedEndpoint || /^https?:\/\/.+/i.test(trimmedEndpoint));
+
+  const fetchAvailableModels = useCallback(async () => {
+    if (!canQueryProviderModels || !aiAdvisor.listAiModels) {
+      setFetchedModels([]);
+      setModelsFallbackUsed(false);
+      return;
+    }
+    try {
+      setLoadingModels(true);
+      setModelsFallbackUsed(false);
+      const models = await aiAdvisor.listAiModels({
+        provider: draft.provider,
+        apiKey: trimmedKey,
+        endpointUrl: trimmedEndpoint || undefined,
+      });
+      setFetchedModels(models);
+      if (models.length === 0 && draft.provider !== 'custom') {
+        setModelsFallbackUsed(true);
+      }
+    } catch {
+      setFetchedModels([]);
+      setModelsFallbackUsed(true);
+    } finally {
+      setLoadingModels(false);
+    }
+  }, [
+    canQueryProviderModels,
+    aiAdvisor,
+    draft.provider,
+    trimmedKey,
+    trimmedEndpoint,
+  ]);
 
   useEffect(() => {
     const stored = readStoredByok();
@@ -132,6 +202,32 @@ export function AiAdvisorPanel({
       setDraft(stored);
     }
   }, []);
+
+  useEffect(() => {
+    if (!expanded || !canQueryProviderModels) {
+      if (!hasApiKey) {
+        setFetchedModels([]);
+        setModelsFallbackUsed(false);
+      }
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void fetchAvailableModels();
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [expanded, canQueryProviderModels, hasApiKey, fetchAvailableModels]);
+
+  const modelOptions = useMemo<AiModelOption[]>(() => {
+    const base =
+      fetchedModels.length > 0
+        ? fetchedModels
+        : CURATED_MODELS_BY_PROVIDER[draft.provider];
+    const current = draft.model.trim();
+    if (current && !base.some((m) => m.id === current)) {
+      return [{ id: current, label: current }, ...base];
+    }
+    return base;
+  }, [fetchedModels, draft.provider, draft.model]);
 
   useEffect(() => {
     if (report.aiRemediationPlan) {
@@ -177,6 +273,9 @@ export function AiAdvisorPanel({
 
   function handleClearKey() {
     setDraft(DEFAULT_DRAFT);
+    setFetchedModels([]);
+    setModelsFallbackUsed(false);
+    setManualModelMode(false);
     writeStoredByok(null);
     setError(null);
   }
@@ -246,19 +345,28 @@ export function AiAdvisorPanel({
                 <span>{copy.securityNotice}</span>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                <div>
-                  <label className="mb-1 block text-[11px] font-semibold text-fg-secondary">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+                <div className="md:col-span-3">
+                  <label
+                    htmlFor="byok-provider"
+                    className="mb-1 block text-[11px] font-semibold text-fg-secondary"
+                  >
                     {copy.providerLabel}
                   </label>
                   <select
+                    id="byok-provider"
                     value={draft.provider}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const nextProvider = e.target.value as AiProviderType;
                       setDraft((d) => ({
                         ...d,
-                        provider: e.target.value as AiProviderType,
-                      }))
-                    }
+                        provider: nextProvider,
+                        model: '',
+                      }));
+                      setFetchedModels([]);
+                      setModelsFallbackUsed(false);
+                      setManualModelMode(false);
+                    }}
                     className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 text-xs text-fg focus:border-violet-500 focus:outline-none"
                   >
                     <option value="openai">{copy.providerOpenAi}</option>
@@ -267,11 +375,15 @@ export function AiAdvisorPanel({
                   </select>
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-[11px] font-semibold text-fg-secondary">
+                <div className="md:col-span-5">
+                  <label
+                    htmlFor="byok-api-key"
+                    className="mb-1 block text-[11px] font-semibold text-fg-secondary"
+                  >
                     {copy.apiKeyLabel}
                   </label>
                   <input
+                    id="byok-api-key"
                     type="password"
                     autoComplete="off"
                     value={draft.apiKey}
@@ -283,32 +395,121 @@ export function AiAdvisorPanel({
                   />
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-[11px] font-semibold text-fg-secondary">
-                    {copy.modelLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={draft.model}
-                    onChange={(e) =>
-                      setDraft((d) => ({ ...d, model: e.target.value }))
-                    }
-                    placeholder={
-                      draft.provider === 'gemini'
-                        ? 'gemini-2.5-flash'
-                        : 'gpt-4o-mini'
-                    }
-                    className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
-                  />
+                <div className="md:col-span-4">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label
+                      htmlFor="byok-model"
+                      className="block text-[11px] font-semibold text-fg-secondary"
+                    >
+                      {copy.modelLabel}
+                    </label>
+                    {hasApiKey ? (
+                      <div className="flex items-center gap-2">
+                        {manualModelMode && modelOptions.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setManualModelMode(false)}
+                            className="text-[10px] font-semibold text-violet-600 transition hover:underline dark:text-violet-300"
+                          >
+                            {copy.modelBackToListBtn}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={loadingModels || !canQueryProviderModels}
+                          title={copy.modelRefreshTitle}
+                          aria-label={copy.modelRefreshTitle}
+                          onClick={() => void fetchAvailableModels()}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium text-fg-muted transition hover:text-fg disabled:opacity-40"
+                        >
+                          <RefreshCw
+                            className={`h-3 w-3 ${loadingModels ? 'animate-spin' : ''}`}
+                          />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {!hasApiKey ? (
+                    <select
+                      id="byok-model"
+                      disabled
+                      value=""
+                      className="w-full cursor-not-allowed rounded-xl border border-subtle bg-surface px-3 py-2 text-xs text-fg-muted opacity-65"
+                    >
+                      <option value="">{copy.modelLockedHint}</option>
+                    </select>
+                  ) : manualModelMode ||
+                    (draft.provider === 'custom' &&
+                      modelOptions.length === 0) ? (
+                    <input
+                      id="byok-model"
+                      type="text"
+                      value={draft.model}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, model: e.target.value }))
+                      }
+                      placeholder={
+                        DEFAULT_MODEL_BY_PROVIDER[draft.provider] ||
+                        copy.modelCustomPlaceholder
+                      }
+                      className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 font-mono text-xs text-fg placeholder-fg-muted focus:border-violet-500 focus:outline-none"
+                    />
+                  ) : (
+                    <select
+                      id="byok-model"
+                      value={draft.model}
+                      onChange={(e) => {
+                        if (e.target.value === '__custom__') {
+                          setManualModelMode(true);
+                          return;
+                        }
+                        setDraft((d) => ({ ...d, model: e.target.value }));
+                      }}
+                      className="w-full rounded-xl border border-subtle bg-surface px-3 py-2 font-mono text-xs text-fg focus:border-violet-500 focus:outline-none"
+                    >
+                      {DEFAULT_MODEL_BY_PROVIDER[draft.provider] ? (
+                        <option value="">
+                          {t(copy.modelDefaultOption, {
+                            model: DEFAULT_MODEL_BY_PROVIDER[draft.provider],
+                          })}
+                        </option>
+                      ) : null}
+                      {modelOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label ?? option.id}
+                        </option>
+                      ))}
+                      <option value="__custom__">{copy.modelCustomOption}</option>
+                    </select>
+                  )}
+
+                  {hasApiKey ? (
+                    <p className="mt-1 truncate text-[10px] text-fg-muted">
+                      {loadingModels
+                        ? copy.modelLoadingStatus
+                        : fetchedModels.length > 0
+                          ? t(copy.modelLoadedStatus, {
+                              count: fetchedModels.length,
+                            })
+                          : modelsFallbackUsed
+                            ? copy.modelFallbackStatus
+                            : null}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
               {draft.provider === 'custom' || draft.provider === 'openai' ? (
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold text-fg-secondary">
+                  <label
+                    htmlFor="byok-endpoint"
+                    className="mb-1 block text-[11px] font-semibold text-fg-secondary"
+                  >
                     {copy.endpointLabel}
                   </label>
                   <input
+                    id="byok-endpoint"
                     type="url"
                     value={draft.endpointUrl}
                     onChange={(e) =>

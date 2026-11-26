@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ScanReport } from '@/core/models/scan.models';
 import { IBrynjaGateway } from '@/core/ports/scan-gateway.port';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
+import { AiAdvisorPanel } from '../components/AiAdvisorPanel';
 import { ScanReportView } from '../components/ScanReportView';
 import {
   AiRemediationJsonExporter,
@@ -479,5 +480,75 @@ describe('AI Remediation JSON Exporter & Executive Remediation Planner', () => {
     for (const nonPdfItem of menuItems.slice(1)) {
       expect(nonPdfItem.disabled).toBe(true);
     }
+  });
+
+  it('unlocks live model selection in AiAdvisorPanel once a BYOK key is provided and sends the chosen model', async () => {
+    window.localStorage?.clear();
+    const report = makeSampleScanReport();
+    const listAiModels = vi.fn().mockResolvedValue([
+      { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (gemini-3.8-flash)' },
+      { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (gemini-2.5-pro)' },
+    ]);
+    const requestAiAdvice = vi.fn().mockResolvedValue({
+      summary: 'Diagnóstico gerado com gemini-2.5-pro.',
+      prioritizedSteps: ['Atualizar next para 15.2.3.'],
+      generatedBy: 'gemini:gemini-2.5-pro',
+    });
+
+    const gateway: IBrynjaGateway = {
+      ...makeGateway(report),
+      listAiModels,
+      requestAiAdvice,
+    };
+
+    render(
+      <GatewayProvider gateway={gateway}>
+        <AiAdvisorPanel report={report} />
+      </GatewayProvider>,
+    );
+
+    const modelSelectInitial = screen.getByLabelText(
+      /^Modelo \(opcional\)/i,
+    ) as HTMLSelectElement;
+    expect(modelSelectInitial.disabled).toBe(true);
+
+    // Switch provider to Gemini and enter an API key
+    fireEvent.change(screen.getByLabelText(/Provedor IA/i), {
+      target: { value: 'gemini' },
+    });
+    fireEvent.change(screen.getByLabelText(/Chave \/ Token API/i), {
+      target: { value: 'AIzaSyTestKeyAvailable12345' },
+    });
+
+    await waitFor(() => {
+      expect(listAiModels).toHaveBeenCalledWith({
+        provider: 'gemini',
+        apiKey: 'AIzaSyTestKeyAvailable12345',
+        endpointUrl: undefined,
+      });
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/2 modelo\(s\) disponível\(is\)/i),
+      ).toBeTruthy();
+    });
+
+    const modelSelect = screen.getByLabelText(
+      /^Modelo \(opcional\)/i,
+    ) as HTMLSelectElement;
+    expect(modelSelect.disabled).toBe(false);
+
+    fireEvent.change(modelSelect, { target: { value: 'gemini-2.5-pro' } });
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Plano com IA/i }));
+
+    await waitFor(() => {
+      expect(requestAiAdvice).toHaveBeenCalledWith(report.id, {
+        provider: 'gemini',
+        apiKey: 'AIzaSyTestKeyAvailable12345',
+        model: 'gemini-2.5-pro',
+        endpointUrl: undefined,
+      });
+    });
   });
 });

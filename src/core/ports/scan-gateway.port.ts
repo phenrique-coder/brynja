@@ -1,5 +1,6 @@
 import {
   AgentRemediationPlan,
+  AiModelOption,
   ByokAiConfig,
   ChallengeTokenPreview,
   CreateAuthorizationResponse,
@@ -58,6 +59,7 @@ export interface IAiAdvisorGatewayPort {
     scanId: string,
     byok?: ByokAiConfig | null,
   ): Promise<AgentRemediationPlan>;
+  listAiModels?(byok: ByokAiConfig): Promise<AiModelOption[]>;
 }
 
 export interface IExternalReportImporterPort {

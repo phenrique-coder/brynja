@@ -11,6 +11,7 @@ import React, {
 import { HttpScanGateway } from '../gateways/http-scan.gateway';
 import {
   AgentRemediationPlan,
+  AiModelOption,
   ByokAiConfig,
   GitHubIntegrationStatus,
   GrcAssessment,
@@ -191,6 +192,10 @@ export function useAiAdvisorPort(): IAiAdvisorGatewayPort {
               prioritizedSteps: [],
               generatedBy: 'noop',
             }),
+      listAiModels: (byok: ByokAiConfig) =>
+        gateway.listAiModels
+          ? gateway.listAiModels(byok)
+          : Promise.resolve<AiModelOption[]>([]),
     }),
     [gateway],
   );

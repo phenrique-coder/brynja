@@ -228,7 +228,7 @@ describe('Phase 5 BYOK AI Advisor & Reachability Analysis', () => {
       assertUrlSafeForOutboundRequest: vi
         .fn()
         .mockResolvedValue(
-          new URL('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'),
+          new URL('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent'),
         ),
     } as unknown as SsrfDnsGuardService;
     const advisor = new ByokAgentAdvisorAdapter(guard);
@@ -265,8 +265,142 @@ describe('Phase 5 BYOK AI Advisor & Reachability Analysis', () => {
       },
     });
 
-    expect(plan.generatedBy).toBe('gemini:gemini-2.5-flash');
+    expect(plan.generatedBy).toBe('gemini:gemini-3.8-flash');
     expect(plan.summary).toBe('Plano gerado pelo Gemini BYOK.');
     expect(plan.prioritizedSteps).toEqual(['Atualizar pacote crítico']);
+  });
+
+  it('discovers available Gemini, OpenAI, and custom endpoint models while enforcing SSRF protection', async () => {
+    const realGuard = new SsrfDnsGuardService(false);
+    const advisor = new ByokAgentAdvisorAdapter(realGuard);
+
+    await expect(
+      advisor.listModels({
+        provider: 'custom',
+        apiKey: 'sk-test-token',
+        endpointUrl: 'http://127.0.0.1:8080/v1/chat/completions',
+      }),
+    ).rejects.toBeInstanceOf(SsrfBlockedError);
+
+    const mockGuard = {
+      assertUrlSafeForOutboundRequest: vi
+        .fn()
+        .mockResolvedValue(new URL('https://example.invalid')),
+    } as unknown as SsrfDnsGuardService;
+    const guardedAdvisor = new ByokAgentAdvisorAdapter(mockGuard);
+
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            models: [
+              {
+                name: 'models/embedding-001',
+                displayName: 'Embedding',
+                supportedGenerationMethods: ['embedContent'],
+              },
+              {
+                name: 'models/gemini-2.5-flash-image',
+                displayName: 'Nano Banana',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/gemini-3-pro-image',
+                displayName: 'Nano Banana Pro',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/gemini-2.5-flash-preview-tts',
+                displayName: 'Gemini 2.5 Flash Preview TTS',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/gemini-2.5-computer-use-preview-10-2025',
+                displayName: 'Gemini 2.5 Computer Use Preview 10-2025',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/deep-research-preview-04-2026',
+                displayName: 'Deep Research Preview',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/gemini-3-flash-preview',
+                displayName: 'Gemini 3 Flash Preview',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/gemini-2.5-pro',
+                displayName: 'Gemini 2.5 Pro',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/gemini-2.5-flash',
+                displayName: 'Gemini 2.5 Flash',
+                supportedGenerationMethods: ['generateContent'],
+              },
+              {
+                name: 'models/gemini-3.8-flash',
+                displayName: 'Gemini 3.8 Flash',
+                supportedGenerationMethods: ['generateContent'],
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: [
+              { id: 'whisper-1' },
+              { id: 'gpt-image-1' },
+              { id: 'chatgpt-image-latest' },
+              { id: 'gpt-4o-mini' },
+              { id: 'gpt-4.1' },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: [{ id: 'anthropic/claude-3.7-sonnet' }, { id: 'qwen-2.5-coder' }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+
+    const geminiModels = await guardedAdvisor.listModels({
+      provider: 'gemini',
+      apiKey: 'AIza-live-key',
+    });
+    expect(geminiModels.map((m) => m.id)).toEqual([
+      'gemini-3.8-flash',
+      'gemini-3-flash-preview',
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+    ]);
+
+    const openAiModels = await guardedAdvisor.listModels({
+      provider: 'openai',
+      apiKey: 'sk-openai-key',
+    });
+    expect(openAiModels.map((m) => m.id)).toEqual(['gpt-4o-mini', 'gpt-4.1']);
+
+    const customModels = await guardedAdvisor.listModels({
+      provider: 'custom',
+      apiKey: 'sk-openrouter-key',
+      endpointUrl: 'https://openrouter.ai/api/v1/chat/completions',
+    });
+    expect(customModels.map((m) => m.id)).toEqual([
+      'anthropic/claude-3.7-sonnet',
+      'qwen-2.5-coder',
+    ]);
+    expect(String(fetchMock.mock.calls[2][0])).toBe(
+      'https://openrouter.ai/api/v1/models',
+    );
   });
 });

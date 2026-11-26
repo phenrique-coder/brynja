@@ -6,6 +6,12 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-11-26
+
+### Added
+- Added live BYOK AI model discovery endpoint (`POST /api/analyze/advise/models` backed by `ByokAgentAdvisorAdapter.listModels` with SSRF guardrails) for OpenAI, Google Gemini, and OpenAI-compatible custom endpoints, automatically filtering out non-text-triage modalities (image/Nano Banana, TTS/audio, video, embeddings, computer-use, and deep-research).
+- Updated `AiAdvisorPanel` to automatically populate an interactive model selector once a valid API key is present (with curated fallback and custom model ID entry across PT-BR, EN, and ES), setting **Gemini 3.8 Flash (`gemini-3.8-flash`)** as the default Gemini model.
+
 ## [1.19.0] - 2026-11-26
 
 ### Added

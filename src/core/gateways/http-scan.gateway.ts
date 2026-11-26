@@ -1,5 +1,6 @@
 import {
   AgentRemediationPlan,
+  AiModelOption,
   ByokAiConfig,
   ChallengeTokenPreview,
   CreateAuthorizationResponse,
@@ -400,6 +401,22 @@ export class HttpScanGateway
     };
     await this.store.putScan(owner.githubUserId, updated);
     return res.plan;
+  }
+
+  async listAiModels(byok: ByokAiConfig): Promise<AiModelOption[]> {
+    await this.requireOwner();
+    const res = await this.request<{ models: AiModelOption[] }>(
+      '/analyze/advise/models',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          provider: byok.provider,
+          apiKey: byok.apiKey,
+          ...(byok.endpointUrl ? { endpointUrl: byok.endpointUrl } : {}),
+        }),
+      },
+    );
+    return res.models ?? [];
   }
 
   async importExternalReport(

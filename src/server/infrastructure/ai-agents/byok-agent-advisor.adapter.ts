@@ -6,6 +6,7 @@ import {
 } from '../../domain/entities/scan.types';
 import {
   AgentRemediationPlan,
+  AiModelOption,
   ByokAiConfig,
   IAgentAdvisorPort,
 } from '../../domain/ports/server.ports';
@@ -55,6 +56,9 @@ export function computeReachabilityHints(
   return hits.slice(0, 12);
 }
 
+const NON_TEXT_MODALITY_RE =
+  /(?:^|[-_/\s])(image|imagen|nano\s*banana|tts|audio|speech|realtime|live|veo|lyria|sora|video|whisper|transcribe|dall-e|embedding|aqa|moderation|instruct|search|robotics|computer-use|deep-research|antigravity|bisect)(?:$|[-_/\s])/i;
+
 export class ByokAgentAdvisorAdapter implements IAgentAdvisorPort {
   readonly enabled = true;
 
@@ -94,6 +98,14 @@ export class ByokAgentAdvisorAdapter implements IAgentAdvisorPort {
     }
 
     return this.callOpenAiCompatible(config, prompt, reachabilityHits);
+  }
+
+  async listModels(byok: ByokAiConfig): Promise<AiModelOption[]> {
+    const config = this.resolveConfig(byok);
+    if (config.provider === 'gemini') {
+      return this.listGeminiModels(config);
+    }
+    return this.listOpenAiCompatibleModels(config);
   }
 
   private resolveConfig(byok?: ByokAiConfig | null): ByokAiConfig {
@@ -256,7 +268,7 @@ export class ByokAgentAdvisorAdapter implements IAgentAdvisorPort {
     prompt: string,
     reachabilityHits: string[],
   ): Promise<AgentRemediationPlan> {
-    const model = config.model || 'gemini-2.5-flash';
+    const model = config.model || 'gemini-3.8-flash';
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
     await this.ssrfGuard.assertUrlSafeForOutboundRequest(endpoint);
 
@@ -288,5 +300,141 @@ export class ByokAgentAdvisorAdapter implements IAgentAdvisorPort {
     }
 
     return this.parseAiJson(text, `gemini:${model}`, reachabilityHits);
+  }
+
+  private async listGeminiModels(
+    config: ByokAiConfig,
+  ): Promise<AiModelOption[]> {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=${encodeURIComponent(config.apiKey)}`;
+    await this.ssrfGuard.assertUrlSafeForOutboundRequest(endpoint);
+
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Gemini API retornou HTTP ${res.status}.`);
+    }
+
+    const data = (await res.json()) as {
+      models?: Array<{
+        name?: string;
+        displayName?: string;
+        supportedGenerationMethods?: string[];
+      }>;
+    };
+
+    const seen = new Set<string>();
+    const options: AiModelOption[] = [];
+    for (const m of data.models ?? []) {
+      const methods = m.supportedGenerationMethods ?? [];
+      if (!methods.includes('generateContent')) continue;
+      const id = (m.name ?? '').replace(/^models\//i, '').trim();
+      const display = m.displayName?.trim() ?? '';
+      if (!id || seen.has(id)) continue;
+      if (!/^gemini-/i.test(id)) continue;
+      if (NON_TEXT_MODALITY_RE.test(id) || NON_TEXT_MODALITY_RE.test(display)) {
+        continue;
+      }
+      seen.add(id);
+      options.push({
+        id,
+        label: display && display !== id ? `${display} (${id})` : id,
+      });
+    }
+
+    const priorityScore = (id: string) => {
+      if (id === 'gemini-3.8-flash') return 0;
+      if (id.startsWith('gemini-3.8')) return 1;
+      if (id.startsWith('gemini-3')) return 2;
+      if (id === 'gemini-2.5-flash') return 3;
+      if (id === 'gemini-2.5-pro') return 4;
+      if (id.startsWith('gemini-2.5')) return 5;
+      if (id.startsWith('gemini-2.0-flash')) return 6;
+      if (id.startsWith('gemini-2.0')) return 7;
+      return 8;
+    };
+
+    return options
+      .sort((a, b) => {
+        const diff = priorityScore(a.id) - priorityScore(b.id);
+        return diff !== 0 ? diff : a.id.localeCompare(b.id);
+      })
+      .slice(0, 60);
+  }
+
+  private async listOpenAiCompatibleModels(
+    config: ByokAiConfig,
+  ): Promise<AiModelOption[]> {
+    const baseEndpoint =
+      config.endpointUrl || 'https://api.openai.com/v1/chat/completions';
+    await this.ssrfGuard.assertUrlSafeForOutboundRequest(baseEndpoint);
+
+    const parsed = new URL(baseEndpoint);
+    const trimmedPath = parsed.pathname.replace(/\/+$/, '');
+    if (trimmedPath.endsWith('/chat/completions')) {
+      parsed.pathname = trimmedPath.replace(/\/chat\/completions$/, '/models');
+    } else if (trimmedPath.endsWith('/completions')) {
+      parsed.pathname = trimmedPath.replace(/\/completions$/, '/models');
+    } else if (!trimmedPath.endsWith('/models')) {
+      parsed.pathname = `${trimmedPath}/models`;
+    }
+    const modelsEndpoint = parsed.toString();
+    await this.ssrfGuard.assertUrlSafeForOutboundRequest(modelsEndpoint);
+
+    const res = await fetch(modelsEndpoint, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Provedor IA retornou HTTP ${res.status}.`);
+    }
+
+    const data = (await res.json()) as {
+      data?: Array<{ id?: string }>;
+    };
+
+    const isOfficialOpenAi =
+      parsed.hostname.toLowerCase() === 'api.openai.com';
+    const chatModelRe = /^(gpt-|o1|o3|o4|chatgpt-)/i;
+
+    const ids = Array.from(
+      new Set(
+        (data.data ?? [])
+          .map((item) => (item.id ?? '').trim())
+          .filter((id) => {
+            if (!id) return false;
+            if (!isOfficialOpenAi) return true;
+            return chatModelRe.test(id) && !NON_TEXT_MODALITY_RE.test(id);
+          }),
+      ),
+    );
+
+    const rankOpenAi = (id: string) => {
+      if (id === 'gpt-4o-mini') return 0;
+      if (id === 'gpt-4o') return 1;
+      if (id.startsWith('gpt-4.1')) return 2;
+      if (id.startsWith('o4') || id.startsWith('o3')) return 3;
+      if (id.startsWith('gpt-5')) return 4;
+      return 5;
+    };
+
+    return ids
+      .sort((a, b) => {
+        if (isOfficialOpenAi) {
+          const diff = rankOpenAi(a) - rankOpenAi(b);
+          if (diff !== 0) return diff;
+        }
+        return a.localeCompare(b);
+      })
+      .slice(0, 80)
+      .map((id) => ({ id }));
   }
 }

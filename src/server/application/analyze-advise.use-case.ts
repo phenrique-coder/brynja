@@ -6,6 +6,7 @@ import {
 } from '../domain/entities/scan.types';
 import {
   AgentRemediationPlan,
+  AiModelOption,
   ByokAiConfig,
   IRepositoryFetcher,
 } from '../domain/ports/server.ports';
@@ -59,5 +60,10 @@ export class AnalyzeAdviseUseCase {
     });
 
     return { plan };
+  }
+
+  async listModels(byok: ByokAiConfig): Promise<{ models: AiModelOption[] }> {
+    const models = await this.advisor.listModels(byok);
+    return { models };
   }
 }

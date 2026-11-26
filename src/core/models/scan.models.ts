@@ -211,6 +211,11 @@ export interface StaticAnalysisFinding {
 
 export type AiProviderType = 'openai' | 'gemini' | 'custom';
 
+export interface AiModelOption {
+  id: string;
+  label?: string;
+}
+
 export interface ByokAiConfig {
   provider: AiProviderType;
   apiKey: string;
