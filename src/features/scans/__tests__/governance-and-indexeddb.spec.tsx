@@ -353,6 +353,18 @@ describe('Governance GRC Local-First Storage & UI', () => {
       const exportTrigger = await screen.findByRole('button', {
         name: /^Exportar$/i,
       });
+
+      // Verify linked scan item & assessment name are pre-selected and results loaded automatically
+      const linkedScanSelect = screen.getByLabelText(
+        /Varredura vinculada/i,
+      ) as HTMLSelectElement;
+      expect(linkedScanSelect.value).toBe(scanWithGap.id);
+      const nameInput = screen.getByLabelText(
+        /Nome da avaliação/i,
+      ) as HTMLInputElement;
+      expect(nameInput.value).toContain('acme/fintech-api');
+      expect(screen.getByText(/Cabeçalho HSTS ausente/i)).toBeTruthy();
+
       fireEvent.click(exportTrigger);
 
       const copyAiItem = screen.getByRole('menuitem', {

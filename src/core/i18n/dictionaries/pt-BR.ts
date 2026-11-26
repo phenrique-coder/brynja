@@ -338,6 +338,8 @@ export const PT_BR_MESSAGES = {
     colSeverity: 'Severidade',
     colStagingTarget: 'Alvo Staging',
     colAction: 'Ação',
+    governanceBtn: 'Governança',
+    governanceTitle: 'Abrir Governança & Conformidade para {name}',
     viewReport: 'Ver Relatório',
     deleteAria: 'Excluir varredura {name}',
     deleteTitle: 'Remover do histórico',

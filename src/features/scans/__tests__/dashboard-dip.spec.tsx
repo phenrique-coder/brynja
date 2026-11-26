@@ -71,6 +71,10 @@ describe('DashboardView (DIP injection test)', () => {
     await waitFor(() => {
       expect(screen.getByText('octocat/demo-platform')).toBeTruthy();
     });
+    const govLink = screen.getByRole('link', { name: /Governança/i });
+    expect(govLink.getAttribute('href')).toBe('/governance?scanId=scan-abc');
+    const reportLink = screen.getByRole('link', { name: /Ver Relatório/i });
+    expect(reportLink.getAttribute('href')).toBe('/scans/scan-abc');
     expect(mockGateway.listScans).toHaveBeenCalledTimes(1);
   });
 

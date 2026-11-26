@@ -6,6 +6,14 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.19.0] - 2026-11-26
+
+### Adicionado
+- Adicionado o botão direto **"Governança"** em cada linha de `ScanHistoryTable` (no Painel inicial e em `/history`), abrindo `/governance?scanId=<id>` diretamente ao lado de **"Ver Relatório"**.
+
+### Corrigido
+- Aprimorado o carregamento profundo em `/governance` (`GovernanceView`) via `?scanId=<id>` para aguardar `useScanList` e `getScanReport`, preencher automaticamente o nome/repositório mesmo fora das 50 varreduras recentes, garantir a seleção no `<select>` e exibir o resultado já avaliado sem piscar estados vazios.
+
 ## [1.18.0] - 2026-11-26
 
 ### Adicionado

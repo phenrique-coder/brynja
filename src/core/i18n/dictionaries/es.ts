@@ -338,6 +338,8 @@ export const ES_MESSAGES: Messages = {
     colSeverity: 'Severidad',
     colStagingTarget: 'Objetivo Staging',
     colAction: 'Acción',
+    governanceBtn: 'Gobernanza',
+    governanceTitle: 'Abrir Gobernanza y Cumplimiento para {name}',
     viewReport: 'Ver Informe',
     deleteAria: 'Eliminar escaneo {name}',
     deleteTitle: 'Eliminar del historial',

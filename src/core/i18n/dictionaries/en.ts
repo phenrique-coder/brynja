@@ -338,6 +338,8 @@ export const EN_MESSAGES: Messages = {
     colSeverity: 'Severity',
     colStagingTarget: 'Staging Target',
     colAction: 'Action',
+    governanceBtn: 'Governance',
+    governanceTitle: 'Open Governance & Compliance for {name}',
     viewReport: 'View Report',
     deleteAria: 'Delete scan {name}',
     deleteTitle: 'Remove from history',

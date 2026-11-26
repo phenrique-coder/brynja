@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
+  ClipboardCheck,
   Clock,
   FolderGit2,
   GitBranch,
@@ -241,6 +242,16 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                 {/* Action */}
                 <td className="whitespace-nowrap py-3.5 pl-3 pr-5 text-right align-middle sm:pr-6">
                   <div className="inline-flex items-center justify-end gap-1.5">
+                    <Link
+                      href={`/governance?scanId=${encodeURIComponent(scan.id)}`}
+                      title={t(messages.historyTable.governanceTitle, {
+                        name: repo.displayName,
+                      })}
+                      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-indigo-500/30 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-800 transition hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-200 dark:hover:bg-indigo-500/20"
+                    >
+                      <ClipboardCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span>{messages.historyTable.governanceBtn}</span>
+                    </Link>
                     <Link
                       href={`/scans/${scan.id}`}
                       className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-cyan-500/30 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"

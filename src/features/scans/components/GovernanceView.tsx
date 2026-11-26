@@ -89,11 +89,13 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
     saveAssessment,
     deleteAssessment,
   } = useGrcAssessments();
-  const { scans } = useScanList(50);
+  const { scans, loading: scansLoading } = useScanList(50);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState<GrcAssessment | null>(null);
   const [linkedReport, setLinkedReport] = useState<ScanReport | null>(null);
+  const [settledScanId, setSettledScanId] = useState<string | null>(null);
+  const appliedInitialScanIdRef = useRef<string | null>(null);
   const [frameworkId, setFrameworkId] =
     useState<ComplianceFrameworkId>('cis-v8');
   const [saving, setSaving] = useState(false);
@@ -106,18 +108,24 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
   const dismissExportMenu = useCallback(() => setExportMenuOpen(false), []);
   useDismissibleMenu(exportMenuOpen, exportMenuRef, dismissExportMenu);
 
-  // Initialize active assessment once assessments or initialScanId load
+  // Initialize active assessment once assessments (and scans when linked via ?scanId=) load
   useEffect(() => {
     if (loading || authRequired) return;
-    if (draft) return;
 
     if (initialScanId) {
-      const matching = assessments.find((a) => a.linkedScanId === initialScanId);
+      if (appliedInitialScanIdRef.current === initialScanId && draft) return;
+
+      const matching = assessments.find(
+        (a) => a.linkedScanId === initialScanId,
+      );
       if (matching) {
+        appliedInitialScanIdRef.current = initialScanId;
         setActiveId(matching.id);
         setDraft(matching);
         return;
       }
+
+      if (scansLoading) return;
       const scanMatch = scans.find((s) => s.id === initialScanId);
       const created = createDraftAssessment(
         scanMatch
@@ -126,10 +134,13 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
         initialScanId,
         scanMatch?.repositoryUrl ?? null,
       );
+      appliedInitialScanIdRef.current = initialScanId;
       setActiveId(created.id);
       setDraft(created);
       return;
     }
+
+    if (draft) return;
 
     if (assessments.length > 0) {
       setActiveId(assessments[0].id);
@@ -137,6 +148,7 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
     }
   }, [
     loading,
+    scansLoading,
     authRequired,
     draft,
     initialScanId,
@@ -150,21 +162,51 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
     const scanId = draft?.linkedScanId;
     if (!scanId) {
       setLinkedReport(null);
+      setSettledScanId(null);
       return;
     }
     let cancelled = false;
     void scanReader
       .getScanReport(scanId)
       .then((report) => {
-        if (!cancelled) setLinkedReport(report);
+        if (cancelled) return;
+        setLinkedReport(report);
+        if (report) {
+          const repoSlug = report.repositoryUrl.replace(
+            /^https:\/\/github\.com\//i,
+            '',
+          );
+          setDraft((prev) => {
+            if (!prev || prev.linkedScanId !== scanId) return prev;
+            const needsRepo = !prev.repositoryUrl;
+            const needsNameSuffix =
+              prev.name ===
+              messages.compliance.governance.defaultAssessmentName;
+            if (!needsRepo && !needsNameSuffix) return prev;
+            return {
+              ...prev,
+              repositoryUrl: prev.repositoryUrl ?? report.repositoryUrl,
+              name: needsNameSuffix
+                ? `${messages.compliance.governance.defaultAssessmentName} — ${repoSlug}`
+                : prev.name,
+            };
+          });
+        }
       })
       .catch(() => {
         if (!cancelled) setLinkedReport(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSettledScanId(scanId);
       });
     return () => {
       cancelled = true;
     };
-  }, [draft?.linkedScanId, scanReader]);
+  }, [
+    draft?.linkedScanId,
+    scanReader,
+    messages.compliance.governance.defaultAssessmentName,
+  ]);
 
   const scorecard = useMemo(
     () =>
@@ -193,7 +235,18 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
     );
   }
 
+  const awaitingInitialScan = Boolean(
+    initialScanId &&
+      (!draft ||
+        (draft.linkedScanId === initialScanId &&
+          settledScanId !== initialScanId)),
+  );
+
   if (loading && !draft) {
+    return <PageLoadingState label={messages.compliance.governance.loading} />;
+  }
+
+  if (awaitingInitialScan) {
     return <PageLoadingState label={messages.compliance.governance.loading} />;
   }
 
@@ -577,6 +630,17 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
                       ({s.branch}) — {s.id.slice(0, 8)}
                     </option>
                   ))}
+                  {draft.linkedScanId &&
+                  !scans.some((s) => s.id === draft.linkedScanId) &&
+                  linkedReport?.id === draft.linkedScanId ? (
+                    <option value={draft.linkedScanId}>
+                      {linkedReport.repositoryUrl.replace(
+                        /^https:\/\/github\.com\//i,
+                        '',
+                      )}{' '}
+                      ({linkedReport.branch}) — {linkedReport.id.slice(0, 8)}
+                    </option>
+                  ) : null}
                 </select>
               </div>
 

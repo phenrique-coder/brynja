@@ -6,6 +6,14 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-11-26
+
+### Added
+- Added a direct **"Governance"** shortcut button to every row in `ScanHistoryTable` (on both the Dashboard and `/history`), linking straight to `/governance?scanId=<id>` alongside **"View Report"**.
+
+### Fixed
+- Hardened `/governance` (`GovernanceView`) deep-linking via `?scanId=<id>` to wait cleanly for both `useScanList` and `getScanReport` settlement, enrich draft names/repositories even when outside the top 50 scans, provide a `<select>` fallback option, and avoid flashing empty/un-evaluated scores before linked evidence loads.
+
 ## [1.18.0] - 2026-11-26
 
 ### Added
