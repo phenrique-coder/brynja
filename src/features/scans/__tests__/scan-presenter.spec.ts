@@ -167,7 +167,7 @@ describe('Scan Presenter & OCP Registries', () => {
       'cyclonedx',
       'sarif',
       'spdx',
-      'compliance-csv',
+      'compliance-xlsx',
     ]);
     for (const exporter of REPORT_EXPORTERS) {
       const exported = exporter.export(report);

@@ -6,6 +6,14 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2026-11-26
+
+### Added
+- Added a zero-dependency native OOXML **Excel (`.xlsx`)** workbook builder (`xlsx-workbook.builder.ts` and `buildComplianceMatrixExcel`) exporting multi-sheet compliance workbooks (`Resumo GRC`, `CIS Controls v8`, `NIST CSF 2.0`, `OWASP ASVS`, `LGPD & ISO 27001`) with styled headers, status color coding, auto-sized columns, and spreadsheet formula-injection neutralization.
+
+### Changed
+- Updated `/governance` (`GovernanceView`) to place the **"What is governance?"** button in the top-right corner of the header card (`PageHeader` `topActions`) so the page heading stays uncluttered, switched GRC matrix exports from CSV to Excel (`.xlsx` via `ComplianceExcelReportExporter`), and simplified the action label to **"Export"** (`"Exportar"` in PT-BR/ES).
+
 ## [1.16.0] - 2026-11-26
 
 ### Added

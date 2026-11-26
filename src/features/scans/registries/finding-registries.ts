@@ -14,7 +14,7 @@ import {
 import { AiRemediationJsonExporter } from '../exporters/ai-remediation-json.exporter';
 import {
   ComplianceControlStatus,
-  buildComplianceMatrixCsv,
+  buildComplianceMatrixExcel,
 } from '../presenters/compliance.presenter';
 
 export interface BadgeMeta {
@@ -497,16 +497,17 @@ class SpdxSbomExporter implements IReportExporter {
   }
 }
 
-class ComplianceCsvReportExporter implements IReportExporter {
-  readonly format = 'compliance-csv';
-  readonly label = 'Exportar Matriz Conformidade (CSV)';
+class ComplianceExcelReportExporter implements IReportExporter {
+  readonly format = 'compliance-xlsx';
+  readonly label = 'Exportar Matriz Excel (.xlsx)';
 
   export(report: ScanReport): ExportedReportFile {
-    const csv = buildComplianceMatrixCsv(report, 'pt-BR');
+    const excel = buildComplianceMatrixExcel(report, 'pt-BR');
     return {
-      filename: csv.filename,
-      mimeType: 'text/csv;charset=utf-8',
-      content: csv.content,
+      filename: excel.filename,
+      mimeType: excel.mimeType,
+      content: excel.textPreview,
+      binaryContent: excel.bytes,
     };
   }
 }
@@ -518,5 +519,5 @@ export const REPORT_EXPORTERS: IReportExporter[] = [
   new CycloneDxSbomExporter(),
   new SarifReportExporter(),
   new SpdxSbomExporter(),
-  new ComplianceCsvReportExporter(),
+  new ComplianceExcelReportExporter(),
 ];

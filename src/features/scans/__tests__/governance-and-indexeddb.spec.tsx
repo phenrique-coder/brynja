@@ -236,6 +236,16 @@ describe('Governance GRC Local-First Storage & UI', () => {
       const guideBtn = await screen.findByRole('button', {
         name: /O que é governança\?/i,
       });
+      const createButtons = screen.getAllByRole('button', {
+        name: /Nova Avaliação GRC/i,
+      });
+      expect(createButtons.length).toBeGreaterThanOrEqual(1);
+
+      // Verify Export button exists with new concise label "Exportar" once an assessment is created
+      fireEvent.click(createButtons[0]);
+      expect(screen.getByRole('button', { name: /^Exportar$/i })).toBeTruthy();
+      expect(screen.queryByText(/Exportar Matriz CSV/i)).toBeNull();
+
       fireEvent.click(guideBtn);
 
       const dialog = screen.getByRole('dialog');

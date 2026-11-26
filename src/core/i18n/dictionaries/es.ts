@@ -466,7 +466,7 @@ export const ES_MESSAGES: Messages = {
     sbomLabel: 'SBOM (CycloneDX)',
     sarifLabel: 'SARIF 2.1.0',
     spdxLabel: 'SBOM (SPDX 2.3)',
-    complianceCsvLabel: 'CSV Cumplimiento',
+    complianceExcelLabel: 'Excel Cumplimiento (.xlsx)',
     aiAdvisor: {
       badge: 'Inteligencia AppSec (BYOK)',
       title: 'Asesor de Triaje y Reachability con IA (BYOK)',
@@ -864,7 +864,7 @@ export const ES_MESSAGES: Messages = {
       deleteBtn: 'Eliminar',
       confirmDeleteBtn: 'Confirmar eliminación',
       cancelBtn: 'Cancelar',
-      exportCsvBtn: 'Exportar Matriz CSV',
+      exportBtn: 'Exportar',
       ownerLabel: 'Responsable',
       ownerPlaceholder: 'Ej.: Equipo AppSec / DPO',
       noteLabel: 'Evidencia / Notas GRC',
@@ -921,7 +921,7 @@ export const ES_MESSAGES: Messages = {
               'Adherencia Técnica: calculada automáticamente desde SBOM/CVEs, Safe Probes, análisis Secret/SAST/IaC y registros de auditoría.',
               'Adherencia Global: combina evidencia técnica automática con atestaciones manuales de procesos (MFA corporativo, respaldos, DPO, runbooks de incidentes).',
               'Controles Híbridos: requisitos con parte verificable por software y parte organizacional.',
-              'Privacidad Local-First: guardado exclusivamente en IndexedDB por cuenta GitHub, con exportación CSV protegida contra inyección de fórmulas.',
+              'Privacidad Local-First: guardado exclusivamente en IndexedDB por cuenta GitHub, con exportación a Excel (.xlsx) protegida contra inyección de fórmulas.',
             ],
             brynjaMapping:
               'Flujo recomendado: 1) Crea o selecciona una Evaluación GRC; 2) Vincula tu último escaneo; 3) Elige tu Grupo CIS objetivo (IG1/IG2/IG3); 4) Completa las atestaciones organizacionales y guarda en el navegador.',
@@ -984,7 +984,7 @@ export const ES_MESSAGES: Messages = {
               'LGPD Art. 48 y 50 (ISO A.5.24 / A.5.1): evidencia organizacional para notificación a ANPD/titulares, DPIA (RIPD) y DPO.',
             ],
             brynjaMapping:
-              'Unifica evidencia técnica automática y atestaciones formales de privacidad en una única matriz CSV lista para auditoría.',
+              'Unifica evidencia técnica automática y atestaciones formales de privacidad en un único libro Excel (.xlsx) listo para auditoría.',
           },
         },
       },

@@ -26,7 +26,7 @@ import { useScanReader } from '@/core/providers/gateway-provider';
 import { useI18n } from '@/core/providers/i18n-provider';
 import { useGrcAssessments, useScanList } from '../hooks/use-scans';
 import {
-  buildComplianceMatrixCsv,
+  buildComplianceMatrixExcel,
   evaluateComplianceFramework,
 } from '../presenters/compliance.presenter';
 import { COMPLIANCE_STATUS_REGISTRY } from '../registries/finding-registries';
@@ -241,13 +241,13 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
     }
   }
 
-  function handleExportCsv() {
-    const { filename, content } = buildComplianceMatrixCsv(
+  function handleExportExcel() {
+    const { filename, mimeType, bytes } = buildComplianceMatrixExcel(
       linkedReport,
       locale,
       draft,
     );
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([new Uint8Array(bytes)], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -265,26 +265,28 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
             {messages.compliance.governance.badge}
           </span>
         }
+        topActions={
+          <button
+            type="button"
+            onClick={() => setGuideOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/35 bg-surface-subtle px-3 py-1.5 text-xs font-semibold text-cyan-700 transition hover:border-cyan-500/60 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-500/10"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            {messages.compliance.governance.whatIsGovernanceBtn}
+          </button>
+        }
         title={messages.compliance.governance.title}
         description={messages.compliance.governance.description}
         actions={
           <>
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/35 bg-surface px-3.5 py-2.5 text-xs font-semibold text-cyan-700 shadow-sm transition hover:border-cyan-500/60 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-500/10 sm:text-sm"
-            >
-              <HelpCircle className="h-4 w-4" />
-              {messages.compliance.governance.whatIsGovernanceBtn}
-            </button>
             {draft ? (
               <button
                 type="button"
-                onClick={handleExportCsv}
+                onClick={handleExportExcel}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-subtle bg-surface-subtle px-3.5 py-2.5 text-xs font-semibold text-fg-secondary transition hover:border-strong hover:text-fg sm:text-sm"
               >
                 <Download className="h-4 w-4" />
-                {messages.compliance.governance.exportCsvBtn}
+                {messages.compliance.governance.exportBtn}
               </button>
             ) : null}
             <button

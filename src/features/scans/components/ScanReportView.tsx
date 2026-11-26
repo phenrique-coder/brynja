@@ -142,7 +142,10 @@ export function ScanReportView({ scanId }: { scanId: string }) {
 
   function triggerDownload(exporter: IReportExporter, current: ScanReport) {
     const file = exporter.export(current);
-    const blob = new Blob([file.content], { type: file.mimeType });
+    const payload: BlobPart = file.binaryContent
+      ? new Uint8Array(file.binaryContent)
+      : file.content;
+    const blob = new Blob([payload], { type: file.mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -228,7 +231,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
     cyclonedx: messages.scanReport.sbomLabel,
     sarif: messages.scanReport.sarifLabel,
     spdx: messages.scanReport.spdxLabel,
-    'compliance-csv': messages.scanReport.complianceCsvLabel,
+    'compliance-xlsx': messages.scanReport.complianceExcelLabel,
   };
   const allClear = isScanAllClear(report);
   const probeIssuesCount = countProbeIssues(report.probeResults);

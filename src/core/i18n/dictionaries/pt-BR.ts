@@ -466,7 +466,7 @@ export const PT_BR_MESSAGES = {
     sbomLabel: 'SBOM (CycloneDX)',
     sarifLabel: 'SARIF 2.1.0',
     spdxLabel: 'SBOM (SPDX 2.3)',
-    complianceCsvLabel: 'CSV Conformidade',
+    complianceExcelLabel: 'Excel Conformidade (.xlsx)',
     aiAdvisor: {
       badge: 'Inteligência AppSec (BYOK)',
       title: 'Consultor de Triagem & Reachability por IA (BYOK)',
@@ -865,7 +865,7 @@ export const PT_BR_MESSAGES = {
       deleteBtn: 'Excluir',
       confirmDeleteBtn: 'Confirmar exclusão',
       cancelBtn: 'Cancelar',
-      exportCsvBtn: 'Exportar Matriz CSV',
+      exportBtn: 'Exportar',
       ownerLabel: 'Responsável',
       ownerPlaceholder: 'Ex.: Time AppSec / DPO',
       noteLabel: 'Evidência / Observação GRC',
@@ -922,7 +922,7 @@ export const PT_BR_MESSAGES = {
               'Aderência Técnica: calculada 100% automaticamente a partir de SBOM/CVEs, Safe Probes, Segredos/SAST/IaC e trilha de auditoria da varredura vinculada.',
               'Aderência Global: combina a evidência técnica automática com seus atestados manuais de processos organizacionais (MFA corporativo, política de backups, treinamento, DPO e resposta a incidentes).',
               'Controle Híbrido: controles que têm parte verificada por software (ex.: trilha de auditoria das sondas) e parte processual (ex.: política interna de logs de acesso).',
-              'Privacidade Local-First: tudo fica salvo exclusivamente no IndexedDB do seu navegador por conta GitHub, com exportação em Matriz CSV protegida contra formula injection.',
+              'Privacidade Local-First: tudo fica salvo exclusivamente no IndexedDB do seu navegador por conta GitHub, com exportação em planilha Excel (.xlsx) protegida contra formula injection.',
             ],
             brynjaMapping:
               'Fluxo recomendado: 1) Crie ou selecione uma Avaliação GRC; 2) Vincule sua última varredura completa; 3) Escolha o Escopo alvo CIS Controls (IG1/IG2/IG3); 4) Preencha os atestados organizacionais pendentes e clique em Salvar no Navegador.',
@@ -985,7 +985,7 @@ export const PT_BR_MESSAGES = {
               'LGPD Art. 48 & Art. 50 (ISO A.5.24 / A.5.1): atestados organizacionais obrigatórios para plano de comunicação de incidentes à ANPD/titulares, RIPD (DPIA) e atuação do Encarregado (DPO).',
             ],
             brynjaMapping:
-              'Permite gerar evidência técnica objetiva do Art. 46 junto ao registro formal de DPO/RIPD/Incidentes em um único CSV de conformidade para auditorias jurídicas ou certificações.',
+              'Permite gerar evidência técnica objetiva do Art. 46 junto ao registro formal de DPO/RIPD/Incidentes em uma única planilha Excel (.xlsx) de conformidade para auditorias jurídicas ou certificações.',
           },
         },
       },

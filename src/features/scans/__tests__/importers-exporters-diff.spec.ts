@@ -272,17 +272,17 @@ describe('External Report Importers (SARIF, Trivy, Semgrep, Prowler)', () => {
   });
 });
 
-describe('Phase 5 Exporters (SARIF 2.1.0, SPDX 2.3, Compliance CSV)', () => {
-  it('exports valid SARIF 2.1.0, SPDX 2.3 SBOM, and Compliance Matrix CSV', () => {
+describe('Phase 5 Exporters (SARIF 2.1.0, SPDX 2.3, Compliance Excel .xlsx)', () => {
+  it('exports valid SARIF 2.1.0, SPDX 2.3 SBOM, and Compliance Matrix Excel (.xlsx)', () => {
     const report = makeBaseReport();
 
     const sarifExp = REPORT_EXPORTERS.find((e) => e.format === 'sarif');
     const spdxExp = REPORT_EXPORTERS.find((e) => e.format === 'spdx');
-    const csvExp = REPORT_EXPORTERS.find((e) => e.format === 'compliance-csv');
+    const xlsxExp = REPORT_EXPORTERS.find((e) => e.format === 'compliance-xlsx');
 
     expect(sarifExp).toBeDefined();
     expect(spdxExp).toBeDefined();
-    expect(csvExp).toBeDefined();
+    expect(xlsxExp).toBeDefined();
 
     const sarifFile = sarifExp!.export(report);
     expect(sarifFile.filename.endsWith('.sarif')).toBe(true);
@@ -305,11 +305,20 @@ describe('Phase 5 Exporters (SARIF 2.1.0, SPDX 2.3, Compliance CSV)', () => {
     expect(spdxParsed.packages[0].licenseConcluded).toBe('MIT');
     expect(spdxParsed.relationships).toHaveLength(2);
 
-    const csvFile = csvExp!.export(report);
-    expect(csvFile.filename.endsWith('.csv')).toBe(true);
-    expect(csvFile.content.startsWith('\uFEFF')).toBe(true);
-    expect(csvFile.content).toContain('CIS Controls v8');
-    expect(csvFile.content).toContain('NIST CSF 2.0');
+    const xlsxFile = xlsxExp!.export(report);
+    expect(xlsxFile.filename.endsWith('.xlsx')).toBe(true);
+    expect(xlsxFile.mimeType).toBe(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    expect(xlsxFile.binaryContent).toBeInstanceOf(Uint8Array);
+    // PKZIP local file header signature ("PK\x03\x04")
+    expect(Array.from(xlsxFile.binaryContent!.slice(0, 4))).toEqual([
+      0x50, 0x4b, 0x03, 0x04,
+    ]);
+    const zipText = new TextDecoder().decode(xlsxFile.binaryContent);
+    expect(zipText).toContain('xl/workbook.xml');
+    expect(zipText).toContain('CIS Controls v8');
+    expect(zipText).toContain('NIST CSF 2.0');
   });
 });
 

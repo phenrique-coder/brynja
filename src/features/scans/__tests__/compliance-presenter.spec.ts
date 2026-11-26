@@ -7,6 +7,7 @@ import { SUPPORTED_LOCALES } from '@/core/i18n';
 import { GrcAssessment, ScanReport } from '@/core/models/scan.models';
 import {
   buildComplianceMatrixCsv,
+  buildComplianceMatrixExcel,
   evaluateComplianceFramework,
 } from '../presenters/compliance.presenter';
 
@@ -426,10 +427,23 @@ describe('Compliance Frameworks Catalog & Evaluator', () => {
       fullCis.controls.find((c) => c.controlId === 'cis-v8:3.10')?.status,
     ).toBe('GAP_DETECTED');
 
-    // CSV export must neutralize spreadsheet formula injection prefixes (=, +, -, @)
+    // CSV & Excel exports must neutralize spreadsheet formula injection prefixes (=, +, -, @)
     const csv = buildComplianceMatrixCsv(reportWithGap, 'en', assessment);
     expect(csv.filename).toContain('brynja-compliance-');
     expect(csv.content).toContain('"\'=SecOps"');
     expect(csv.content).toContain('"\'+Okta MFA enforced"');
+
+    const xlsx = buildComplianceMatrixExcel(reportWithGap, 'en', assessment);
+    expect(xlsx.filename).toMatch(/^brynja-compliance-.*\.xlsx$/);
+    expect(xlsx.mimeType).toBe(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    expect(Array.from(xlsx.bytes.slice(0, 4))).toEqual([0x50, 0x4b, 0x03, 0x04]);
+    const rawZipXml = new TextDecoder().decode(xlsx.bytes);
+    expect(rawZipXml).toContain('Resumo GRC');
+    expect(rawZipXml).toContain('xl/styles.xml');
+    expect(rawZipXml).toContain('xl/worksheets/sheet5.xml');
+    expect(rawZipXml).toContain('&apos;=SecOps');
+    expect(rawZipXml).toContain('&apos;+Okta MFA enforced');
   });
 });

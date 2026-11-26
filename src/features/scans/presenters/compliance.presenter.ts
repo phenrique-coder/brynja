@@ -15,6 +15,13 @@ import {
   ScanReport,
   VulnerabilityFinding,
 } from '@/core/models/scan.models';
+import {
+  XlsxCell,
+  XlsxSheetSpec,
+  XlsxStyleId,
+  buildXlsxWorkbookBytes,
+  neutralizeSpreadsheetFormula,
+} from '../exporters/xlsx-workbook.builder';
 
 export type ComplianceControlStatus =
   | 'COMPLIANT_EVIDENCE'
@@ -623,8 +630,139 @@ export function evaluateComplianceFramework(
 }
 
 function escapeCsvCell(value: string): string {
-  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
-  return `"${safe.replace(/"/g, '""')}"`;
+  return `"${neutralizeSpreadsheetFormula(value).replace(/"/g, '""')}"`;
+}
+
+function resolveComplianceSlug(
+  report: ScanReport | null,
+  assessment?: GrcAssessment | null,
+): string {
+  return (assessment?.name || report?.id.slice(0, 8) || 'brynja')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32);
+}
+
+function statusToXlsxStyle(status: ComplianceControlStatus): XlsxStyleId {
+  if (status === 'COMPLIANT_EVIDENCE' || status === 'MANUAL_ATTESTED') return 2;
+  if (status === 'GAP_DETECTED') return 3;
+  if (status === 'PARTIAL') return 4;
+  return 5;
+}
+
+export function buildComplianceMatrixExcel(
+  report: ScanReport | null,
+  locale: Locale,
+  assessment?: GrcAssessment | null,
+): {
+  filename: string;
+  mimeType: string;
+  bytes: Uint8Array;
+  textPreview: string;
+} {
+  const frameworks: ComplianceFrameworkId[] = [
+    'cis-v8',
+    'nist-csf-2',
+    'owasp-asvs',
+    'lgpd-iso27001',
+  ];
+
+  const scorecards = frameworks.map((frameworkId) =>
+    evaluateComplianceFramework(report, {
+      frameworkId,
+      locale,
+      maxCisIg: frameworkId === 'cis-v8' ? assessment?.targetIg : undefined,
+      assessment,
+    }),
+  );
+
+  const summaryRows: XlsxCell[][] = [
+    [
+      { value: 'Brynja GRC · Matriz de Governança & Conformidade', style: 1 },
+      { value: assessment?.name ?? 'Relatório de Varredura', style: 1 },
+      { value: report ? `Scan ${report.id.slice(0, 8)}` : 'Manual', style: 1 },
+      { value: assessment ? `Escopo ${assessment.targetIg}` : 'IG1–IG3', style: 1 },
+      { value: new Date().toISOString().slice(0, 10), style: 1 },
+      { value: '', style: 1 },
+      { value: '', style: 1 },
+    ],
+    [
+      { value: 'Framework', style: 1 },
+      { value: 'Versão', style: 1 },
+      { value: 'Aderência Técnica (%)', style: 1 },
+      { value: 'Aderência Global (%)', style: 1 },
+      { value: 'Conformes', style: 1 },
+      { value: 'Lacunas', style: 1 },
+      { value: 'Manuais / Pendentes', style: 1 },
+    ],
+    ...scorecards.map((sc) => [
+      { value: sc.shortName },
+      { value: sc.version },
+      { value: sc.summary.technicalAdherencePercent },
+      { value: sc.summary.overallAdherencePercent },
+      { value: sc.summary.compliantCount, style: 2 as XlsxStyleId },
+      { value: sc.summary.gapCount, style: (sc.summary.gapCount > 0 ? 3 : 2) as XlsxStyleId },
+      { value: sc.summary.pendingManualOrNotEvaluatedCount },
+    ]),
+  ];
+
+  const headerLabels = [
+    'Control ID',
+    'Code',
+    'IG',
+    'Domain',
+    'Scope',
+    'Title',
+    'Final Status',
+    'Technical Status',
+    'Manual Attestation',
+    'Owner',
+    'Evidence Summary',
+    'Manual Notes',
+    'Guidance',
+  ];
+
+  const sheets: XlsxSheetSpec[] = [
+    { name: 'Resumo GRC', rows: summaryRows },
+    ...scorecards.map((sc) => ({
+      name: sc.shortName,
+      rows: [
+        headerLabels.map((h) => ({ value: h, style: 1 as XlsxStyleId })),
+        ...sc.controls.map((c) => [
+          { value: c.controlId },
+          { value: c.code },
+          { value: c.implementationGroup ?? '-' },
+          { value: c.domainLabel },
+          { value: c.assessmentScope },
+          { value: c.title },
+          { value: c.status, style: statusToXlsxStyle(c.status) },
+          { value: c.technicalStatus },
+          { value: c.manualResponse?.status ?? 'UNANSWERED' },
+          { value: c.manualResponse?.ownerName ?? '' },
+          { value: c.evidenceSummary },
+          { value: c.manualResponse?.evidenceNote ?? '' },
+          { value: c.guidance },
+        ]),
+      ],
+    })),
+  ];
+
+  const bytes = buildXlsxWorkbookBytes(sheets);
+  const slug = resolveComplianceSlug(report, assessment);
+  const textPreview = scorecards
+    .map(
+      (sc) =>
+        `${sc.shortName} (${sc.version}): ${sc.summary.technicalAdherencePercent}% técnico / ${sc.summary.overallAdherencePercent}% global`,
+    )
+    .join('\n');
+
+  return {
+    filename: `brynja-compliance-${slug || 'matrix'}.xlsx`,
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    bytes,
+    textPreview,
+  };
 }
 
 export function buildComplianceMatrixCsv(

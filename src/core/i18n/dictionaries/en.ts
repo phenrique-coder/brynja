@@ -466,7 +466,7 @@ export const EN_MESSAGES: Messages = {
     sbomLabel: 'SBOM (CycloneDX)',
     sarifLabel: 'SARIF 2.1.0',
     spdxLabel: 'SBOM (SPDX 2.3)',
-    complianceCsvLabel: 'Compliance CSV',
+    complianceExcelLabel: 'Compliance Excel (.xlsx)',
     aiAdvisor: {
       badge: 'AppSec AI Advisor (BYOK)',
       title: 'AI Triage & Reachability Advisor (BYOK)',
@@ -863,7 +863,7 @@ export const EN_MESSAGES: Messages = {
       deleteBtn: 'Delete',
       confirmDeleteBtn: 'Confirm delete',
       cancelBtn: 'Cancel',
-      exportCsvBtn: 'Export CSV Matrix',
+      exportBtn: 'Export',
       ownerLabel: 'Owner',
       ownerPlaceholder: 'e.g., AppSec Team / DPO',
       noteLabel: 'GRC Evidence / Notes',
@@ -920,7 +920,7 @@ export const EN_MESSAGES: Messages = {
               'Technical Adherence: calculated 100% automatically from SBOM/CVEs, Safe Probes, Secret/SAST/IaC findings, and immutable probe audit logs.',
               'Overall Adherence: merges automated technical evidence with manual attestations for organizational processes (MFA, backups, DPO, incident runbooks, training).',
               'Hybrid Controls: controls where part is checked automatically by software and part relies on organizational policy attestation.',
-              'Local-First Privacy: stored strictly inside your browser IndexedDB scoped per GitHub account, exportable as formula-safe CSV matrices.',
+              'Local-First Privacy: stored strictly inside your browser IndexedDB scoped per GitHub account, exportable as formula-safe Excel (.xlsx) workbooks.',
             ],
             brynjaMapping:
               'Recommended workflow: 1) Create or select a GRC Assessment; 2) Link your latest scan report; 3) Pick your Target CIS Implementation Group (IG1/IG2/IG3); 4) Record manual process attestations and Save to Browser.',
@@ -983,7 +983,7 @@ export const EN_MESSAGES: Messages = {
               'LGPD Art. 48 & 50 (ISO A.5.24 / A.5.1): mandatory organizational evidence for ANPD/data-subject breach notification, DPIA (RIPD), and DPO oversight.',
             ],
             brynjaMapping:
-              'Brings automated technical Art. 46 evidence together with formal DPO/DPIA/incident attestations inside one auditable CSV compliance matrix.',
+              'Brings automated technical Art. 46 evidence together with formal DPO/DPIA/incident attestations inside one auditable Excel (.xlsx) compliance workbook.',
           },
         },
       },

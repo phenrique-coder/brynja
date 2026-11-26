@@ -395,7 +395,7 @@ describe('AI Remediation JSON Exporter & Executive Remediation Planner', () => {
       expect.stringContaining('SBOM (CycloneDX)'),
       expect.stringContaining('SARIF 2.1.0'),
       expect.stringContaining('SBOM (SPDX 2.3)'),
-      expect.stringContaining('CSV Conformidade'),
+      expect.stringContaining('Excel Conformidade (.xlsx)'),
     ]);
 
     // All menu items are enabled when there are findings

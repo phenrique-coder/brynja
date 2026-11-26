@@ -7,6 +7,7 @@ export interface PageHeaderProps {
   description?: string;
   actions?: React.ReactNode;
   topSlot?: React.ReactNode;
+  topActions?: React.ReactNode;
 }
 
 export function PageHeader({
@@ -15,26 +16,42 @@ export function PageHeader({
   description,
   actions,
   topSlot,
+  topActions,
 }: PageHeaderProps) {
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-subtle bg-surface p-5 shadow-sm transition-colors sm:flex-row sm:items-center sm:justify-between sm:p-6">
-      <div className="min-w-0 space-y-1.5">
-        {topSlot}
-        {badge ? <div>{badge}</div> : null}
-        <h1 className="truncate text-xl font-bold tracking-tight text-fg sm:text-2xl">
-          {title}
-        </h1>
-        {description ? (
-          <p className="max-w-2xl text-sm leading-relaxed text-fg-secondary">
-            {description}
-          </p>
-        ) : null}
-      </div>
-      {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-          {actions}
+    <section className="flex flex-col gap-3 rounded-2xl border border-subtle bg-surface p-5 shadow-sm transition-colors sm:p-6">
+      {topSlot || topActions ? (
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="min-w-0 space-y-1.5">
+            {topSlot}
+            {badge ? <div>{badge}</div> : null}
+          </div>
+          {topActions ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {topActions}
+            </div>
+          ) : null}
         </div>
       ) : null}
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 space-y-1.5">
+          {!topSlot && !topActions && badge ? <div>{badge}</div> : null}
+          <h1 className="text-xl font-bold tracking-tight text-fg sm:text-2xl">
+            {title}
+          </h1>
+          {description ? (
+            <p className="max-w-2xl text-sm leading-relaxed text-fg-secondary">
+              {description}
+            </p>
+          ) : null}
+        </div>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+            {actions}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

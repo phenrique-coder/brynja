@@ -71,6 +71,7 @@ export interface ExportedReportFile {
   filename: string;
   mimeType: string;
   content: string;
+  binaryContent?: Uint8Array;
 }
 
 export interface IReportExporter {

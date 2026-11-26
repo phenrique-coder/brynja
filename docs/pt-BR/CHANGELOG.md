@@ -6,6 +6,14 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.17.0] - 2026-11-26
+
+### Adicionado
+- Adicionado gerador nativo de planilhas **Excel (`.xlsx`)** OOXML sem dependências externas (`xlsx-workbook.builder.ts` e `buildComplianceMatrixExcel`) exportando pasta multi-abas (`Resumo GRC`, `CIS Controls v8`, `NIST CSF 2.0`, `OWASP ASVS`, `LGPD & ISO 27001`) com cabeçalhos estilizados, cores por status, larguras automáticas e proteção contra *formula injection*.
+
+### Alterado
+- Atualizada a tela `/governance` (`GovernanceView`) movendo o botão **"O que é governança?"** para o canto superior direito do card de cabeçalho (`PageHeader` `topActions`), migrada a exportação de conformidade de CSV para Excel (`.xlsx` via `ComplianceExcelReportExporter`) e simplificado o texto do botão para **"Exportar"**.
+
 ## [1.16.0] - 2026-11-26
 
 ### Adicionado
