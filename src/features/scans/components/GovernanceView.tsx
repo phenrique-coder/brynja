@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Download,
+  HelpCircle,
   Plus,
   Save,
   Trash2,
@@ -30,6 +31,7 @@ import {
 } from '../presenters/compliance.presenter';
 import { COMPLIANCE_STATUS_REGISTRY } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
+import { GovernanceGuideModal } from './GovernanceGuideModal';
 import { StatusPill } from './StatusPill';
 import {
   KpiStatCard,
@@ -84,6 +86,7 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   // Initialize active assessment once assessments or initialScanId load
   useEffect(() => {
@@ -266,6 +269,14 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
         description={messages.compliance.governance.description}
         actions={
           <>
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/35 bg-surface px-3.5 py-2.5 text-xs font-semibold text-cyan-700 shadow-sm transition hover:border-cyan-500/60 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-500/10 sm:text-sm"
+            >
+              <HelpCircle className="h-4 w-4" />
+              {messages.compliance.governance.whatIsGovernanceBtn}
+            </button>
             {draft ? (
               <button
                 type="button"
@@ -286,6 +297,11 @@ export function GovernanceView({ initialScanId }: { initialScanId?: string }) {
             </button>
           </>
         }
+      />
+
+      <GovernanceGuideModal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
       />
 
       {error ? (

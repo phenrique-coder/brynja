@@ -6,6 +6,11 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-11-26
+
+### Added
+- Added an interactive **"What is governance?"** button and tabbed educational guide modal (`GovernanceGuideModal`) inside `/governance` (`GovernanceView`) explaining GRC technical vs overall adherence, **CIS Controls v8** (including **IG1 / IG2 / IG3** implementation groups), **NIST CSF 2.0**, **OWASP ASVS / Top 10**, and **LGPD & ISO/IEC 27001:2022** across PT-BR, EN, and ES.
+
 ## [1.15.0] - 2026-11-26
 
 ### Added

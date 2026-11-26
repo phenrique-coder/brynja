@@ -6,6 +6,11 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.16.0] - 2026-11-26
+
+### Adicionado
+- Adicionado o botão **"O que é governança?"** e o modal educativo com abas (`GovernanceGuideModal`) em `/governance` (`GovernanceView`) explicando a diferença entre aderência técnica e global, **CIS Controls v8** (incluindo grupos **IG1 / IG2 / IG3**), **NIST CSF 2.0**, **OWASP ASVS / Top 10** e **LGPD & ISO/IEC 27001:2022** em PT-BR, EN e ES.
+
 ## [1.15.0] - 2026-11-26
 
 ### Adicionado

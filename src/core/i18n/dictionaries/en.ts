@@ -879,6 +879,114 @@ export const EN_MESSAGES: Messages = {
       },
       autoEvidenceBadge: 'Pre-filled from scan',
       lastUpdated: 'Updated {date}',
+      whatIsGovernanceBtn: 'What is governance?',
+      guide: {
+        modalTitle: 'Governance & Compliance Guide (GRC)',
+        modalSubtitle:
+          'Understand how Brynja combines automated technical scan evidence with organizational attestations across each framework.',
+        closeBtn: 'Close guide',
+        tabsAria: 'Governance topics and frameworks',
+        keyPillarsTitle: 'What it covers in practice',
+        brynjaMappingTitle: 'How Brynja evaluates it in your project',
+        cisIgSectionTitle: 'Understanding "Target CIS Implementation Group" (IG1, IG2 & IG3)',
+        cisIgItems: [
+          {
+            code: 'IG1 · Essential Cyber Hygiene',
+            subtitle: 'Baseline safeguards for small teams or early-stage workloads',
+            summary:
+              'Essential non-negotiable hygiene (~56 safeguards): basic dependency inventory, critical CVE remediation, HTTPS/secure cookies, and preventing exposed hardcoded secrets.',
+          },
+          {
+            code: 'IG2 · Corporate / SaaS',
+            subtitle: 'Recommended default for engineering teams, APIs, and production SaaS platforms',
+            summary:
+              'Builds on IG1 with continuous secure configuration, strict CSP/CORS, IaC/CI-CD hardening, strong access control (MFA/IAM), and verifiable audit logging.',
+          },
+          {
+            code: 'IG3 · High Maturity',
+            subtitle: 'Regulated industries, fintech workloads, or dedicated AppSec organizations',
+            summary:
+              'Full CIS v8 coverage: continuous SAST, formal supply-chain review (SBOM/OpenSSF Scorecard), recurring active testing, and measured incident response readiness.',
+          },
+        ],
+        tabs: {
+          overview: {
+            tabLabel: 'Overview (GRC)',
+            badge: 'Core Concept',
+            title: 'What is Governance, Risk & Compliance (GRC) in Brynja?',
+            intro:
+              'While a scan reveals point-in-time issues in code or runtime, Governance turns those technical signals into continuous, auditable alignment with industry frameworks — strictly stored locally in your browser.',
+            pillars: [
+              'Technical Adherence: calculated 100% automatically from SBOM/CVEs, Safe Probes, Secret/SAST/IaC findings, and immutable probe audit logs.',
+              'Overall Adherence: merges automated technical evidence with manual attestations for organizational processes (MFA, backups, DPO, incident runbooks, training).',
+              'Hybrid Controls: controls where part is checked automatically by software and part relies on organizational policy attestation.',
+              'Local-First Privacy: stored strictly inside your browser IndexedDB scoped per GitHub account, exportable as formula-safe CSV matrices.',
+            ],
+            brynjaMapping:
+              'Recommended workflow: 1) Create or select a GRC Assessment; 2) Link your latest scan report; 3) Pick your Target CIS Implementation Group (IG1/IG2/IG3); 4) Record manual process attestations and Save to Browser.',
+          },
+          'cis-v8': {
+            tabLabel: 'CIS Controls v8',
+            badge: '18 Prioritized Controls',
+            title: 'CIS Critical Security Controls v8 (v8.1)',
+            intro:
+              'A practical, prioritized set of safeguards maintained by the Center for Internet Security across three Implementation Groups (IG1, IG2, IG3) tailored to organization size and risk profile.',
+            pillars: [
+              'Control 2 (Software Inventory): tracked via multi-ecosystem SBOM (8 package managers) enriched with SPDX licenses and OpenSSF Scorecard via deps.dev.',
+              'Controls 4 & 16 (Secure Config & AppSec): validated through 19 non-destructive GET/HEAD Safe Probes, lightweight SAST, Secret Scanner, and Dockerfile/Terraform/Actions checks.',
+              'Control 7 (Continuous Vulnerability Management): correlates OSV.dev, NVD, EPSS, and CISA KEV prioritizing actively exploited flaws.',
+              'Controls 6, 8 & 17 (Access, Audit Logs & Incidents): combines local probe audit trails with manual MFA/RBAC and incident response attestations.',
+            ],
+            brynjaMapping:
+              'Changing "Target CIS Implementation Group" (IG1, IG2, or IG3) in the Governance sidebar automatically scopes safeguards to match your maturity target — avoiding noise from IG3 controls when operating at IG1.',
+          },
+          'nist-csf-2': {
+            tabLabel: 'NIST CSF 2.0',
+            badge: '6 Core Functions',
+            title: 'NIST Cybersecurity Framework (CSF) 2.0',
+            intro:
+              'Executive-ready standard used globally to communicate cyber risk and maturity across 6 lifecycle functions.',
+            pillars: [
+              'Govern (GV — New in 2.0): accountability, security policies, and risk oversight captured via GRC attestations.',
+              'Identify (ID): SBOM package inventory, CVE/EPSS/KEV risk scoring, and GitHub repository posture.',
+              'Protect (PR): transport security (TLS/HSTS), cookie flags, strict CSP/CORS, secret hygiene, and branch protection.',
+              'Detect (DE), Respond (RS) & Recover (RC): continuous Safe Probe verification and audit logs paired with incident response and backup attestations.',
+            ],
+            brynjaMapping:
+              'The NIST CSF 2.0 scorecard aggregates coverage by Function (GV, ID, PR, DE, RS, RC), making executive risk reviews straightforward.',
+          },
+          'owasp-asvs': {
+            tabLabel: 'OWASP ASVS / Top 10',
+            badge: 'Application Security',
+            title: 'OWASP Application Security Verification Standard & Top 10',
+            intro:
+              'Global application security standard validating concrete web and API defenses against real-world exploitation patterns.',
+            pillars: [
+              'Session & Auth (ASVS V3 / A07): inspected via CookieSecurityProbe (HttpOnly, Secure, SameSite) and OAuth/OIDC checks.',
+              'Transport & Headers (ASVS V9 / V14 / A05): HSTS, CSP strength, Permissions-Policy, COOP/CORP/COEP, CORS reflection, and Open Redirect checks.',
+              'Vulnerable Components (A06): OSV.dev + runtime exposure confirmation (RuntimeFingerprint / Source Maps).',
+              'Injection, Secrets & Static Flaws (A03 / A02): detected by masked Secret Scanning and JS/TS, Python, and CI/CD structural checks.',
+            ],
+            brynjaMapping:
+              'OWASP ASVS / Top 10 offers the highest technical automation ratio in Brynja (~90%+ automated checks) for release readiness gates.',
+          },
+          'lgpd-iso27001': {
+            tabLabel: 'LGPD & ISO 27001',
+            badge: 'Privacy & Standard',
+            title: 'Brazil LGPD (Law 13.709/2018) & ISO/IEC 27001:2022',
+            intro:
+              'Bridges Brazilian data-protection obligations (LGPD Art. 46, 48, 50) with ISO/IEC 27001:2022 technological (Annex A.8) and organizational (Annex A.5) safeguards.',
+            pillars: [
+              'LGPD Art. 46 & ISO A.8.8 / A.8.9 / A.8.24: technical safeguards against leaks — covering critical CVEs, HTTPS/HSTS/cookies, and secret detection.',
+              'Privacy by Design (ISO A.8.25 / A.8.28): continuous SBOM tracking and secure coding patterns prior to release.',
+              'ISO A.8.15 (Event Logging): local audit logs combined with application access-logging policy attestations.',
+              'LGPD Art. 48 & 50 (ISO A.5.24 / A.5.1): mandatory organizational evidence for ANPD/data-subject breach notification, DPIA (RIPD), and DPO oversight.',
+            ],
+            brynjaMapping:
+              'Brings automated technical Art. 46 evidence together with formal DPO/DPIA/incident attestations inside one auditable CSV compliance matrix.',
+          },
+        },
+      },
     },
   },
 };

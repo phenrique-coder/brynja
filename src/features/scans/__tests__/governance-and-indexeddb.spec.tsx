@@ -1,5 +1,11 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { HttpScanGateway } from '@/core/gateways/http-scan.gateway';
 import { LocalBackupBundle, ScanReport } from '@/core/models/scan.models';
@@ -200,5 +206,88 @@ describe('Governance GRC Local-First Storage & UI', () => {
     expect(pdfLatin1).toContain('NIST CSF 2.0');
     expect(pdfLatin1).toContain('OWASP ASVS / Top 10');
     expect(pdfLatin1).toContain('LGPD & ISO 27001');
+  });
+
+  it('opens the "O que é governança?" modal in GovernanceView and switches across Overview, CIS Controls (IG1-IG3), NIST, OWASP, and LGPD/ISO tabs', async () => {
+    const store = new InMemoryBrynjaStore();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          configured: true,
+          connected: true,
+          githubUserId: 'gh-user-1',
+          login: 'pedro',
+          avatarUrl: null,
+          callbackUrl: 'http://localhost:3000/api/integrations/github/callback',
+          scopes: 'repo',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    try {
+      const gateway = new HttpScanGateway('/api', store);
+      render(
+        <GatewayProvider gateway={gateway}>
+          <GovernanceView />
+        </GatewayProvider>,
+      );
+
+      const guideBtn = await screen.findByRole('button', {
+        name: /O que é governança\?/i,
+      });
+      fireEvent.click(guideBtn);
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeTruthy();
+      expect(
+        within(dialog).getByText('Guia de Governança & Conformidade (GRC)'),
+      ).toBeTruthy();
+      expect(
+        within(dialog).getByText(/O que é Governança, Risco & Conformidade/i),
+      ).toBeTruthy();
+
+      // Switch to CIS Controls v8 tab -> shows IG1, IG2 & IG3 explanation cards
+      fireEvent.click(
+        within(dialog).getByRole('tab', { name: /CIS Controls v8/i }),
+      );
+      expect(within(dialog).getByText(/IG1 · Essencial \/ PME/i)).toBeTruthy();
+      expect(
+        within(dialog).getByText(/IG2 · Corporativo \/ SaaS/i),
+      ).toBeTruthy();
+      expect(
+        within(dialog).getByText(/IG3 · Alta Maturidade/i),
+      ).toBeTruthy();
+
+      // Switch through NIST, OWASP, and LGPD tabs
+      fireEvent.click(
+        within(dialog).getByRole('tab', { name: /NIST CSF 2\.0/i }),
+      );
+      expect(
+        within(dialog).getByText(/NIST Cybersecurity Framework \(CSF\) 2\.0/i),
+      ).toBeTruthy();
+
+      fireEvent.click(
+        within(dialog).getByRole('tab', { name: /OWASP ASVS \/ Top 10/i }),
+      );
+      expect(
+        within(dialog).getByText(
+          /OWASP Application Security Verification Standard/i,
+        ),
+      ).toBeTruthy();
+
+      fireEvent.click(
+        within(dialog).getByRole('tab', { name: /LGPD & ISO 27001/i }),
+      );
+      expect(
+        within(dialog).getByText(/LGPD \(Lei 13\.709\/2018\)/i),
+      ).toBeTruthy();
+
+      // Close modal
+      fireEvent.click(within(dialog).getAllByRole('button', { name: /Fechar guia/i })[0]);
+      expect(screen.queryByRole('dialog')).toBeNull();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });
