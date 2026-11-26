@@ -20,14 +20,19 @@ import { BackupConfigExposureProbe } from '../infrastructure/pentest/probes/back
 import { CacheSecurityProbe } from '../infrastructure/pentest/probes/cache-security.probe';
 import { CookieSecurityProbe } from '../infrastructure/pentest/probes/cookie-security.probe';
 import { CorsMisconfigProbe } from '../infrastructure/pentest/probes/cors-misconfig.probe';
+import { CrossOriginIsolationProbe } from '../infrastructure/pentest/probes/cross-origin-isolation.probe';
 import { CspPermissionsProbe } from '../infrastructure/pentest/probes/csp-permissions.probe';
 import { DebugErrorLeakageProbe } from '../infrastructure/pentest/probes/debug-error-leakage.probe';
+import { DnsEmailPostureProbe } from '../infrastructure/pentest/probes/dns-email-posture.probe';
 import { ExposedArtifactsProbe } from '../infrastructure/pentest/probes/exposed-artifacts.probe';
 import { ExposedDocsAndMetricsProbe } from '../infrastructure/pentest/probes/exposed-docs-metrics.probe';
 import { HstsTlsProbe } from '../infrastructure/pentest/probes/hsts-tls.probe';
+import { OauthGraphqlPostureProbe } from '../infrastructure/pentest/probes/oauth-graphql-posture.probe';
 import { OpenRedirectProbe } from '../infrastructure/pentest/probes/open-redirect.probe';
+import { RobotsSitemapExposureProbe } from '../infrastructure/pentest/probes/robots-sitemap-exposure.probe';
 import { RuntimeFingerprintProbe } from '../infrastructure/pentest/probes/runtime-fingerprint.probe';
 import { SecurityHeadersProbe } from '../infrastructure/pentest/probes/security-headers.probe';
+import { SecurityTxtRfc9116Probe } from '../infrastructure/pentest/probes/security-txt-rfc9116.probe';
 import { SourceMapExposureProbe } from '../infrastructure/pentest/probes/source-map-exposure.probe';
 import { SriIntegrityProbe } from '../infrastructure/pentest/probes/sri-integrity.probe';
 import { SsrfDnsGuardService } from '../infrastructure/pentest/ssrf-dns-guard.service';
@@ -62,6 +67,11 @@ export function createRegisteredSafeProbes(): IControlledProbe[] {
     new SourceMapExposureProbe(),
     new DebugErrorLeakageProbe(),
     new SriIntegrityProbe(),
+    new CrossOriginIsolationProbe(),
+    new DnsEmailPostureProbe(),
+    new RobotsSitemapExposureProbe(),
+    new OauthGraphqlPostureProbe(),
+    new SecurityTxtRfc9116Probe(),
   ];
 }
 

@@ -279,6 +279,7 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
         'safe-probe:csp-permissions',
         'safe-probe:cors-policy',
         'safe-probe:cache-security',
+        'safe-probe:cross-origin-isolation',
       ],
     },
     copy: {
@@ -322,6 +323,8 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
         'safe-probe:backup-config-exposure',
         'safe-probe:source-maps',
         'safe-probe:debug-error-leakage',
+        'safe-probe:robots-sitemap-exposure',
+        'safe-probe:oauth-graphql-posture',
       ],
     },
     copy: {
@@ -540,7 +543,12 @@ export const COMPLIANCE_CONTROLS_CATALOG: readonly ComplianceControlDefinition[]
     implementationGroup: 'IG2',
     assessmentScope: 'HYBRID',
     evidenceRule: {
-      probeIds: ['safe-probe:exposed-docs-metrics', 'safe-probe:sri-integrity', 'safe-probe:open-redirect'],
+      probeIds: [
+        'safe-probe:exposed-docs-metrics',
+        'safe-probe:security-txt-rfc9116',
+        'safe-probe:sri-integrity',
+        'safe-probe:open-redirect',
+      ],
     },
     copy: {
       'pt-BR': {

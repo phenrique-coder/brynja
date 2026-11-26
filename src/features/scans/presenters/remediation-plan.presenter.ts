@@ -206,6 +206,46 @@ const PROBE_REMEDIATION_REGISTRY: Record<string, ProbeRemediationMeta> = {
     verifyExecutive:
       'Confirmar que bibliotecas carregadas de CDNs públicas possuem hashes integrity (SRI) válidos ou foram migradas para hospedagem na mesma origem.',
   },
+  'safe-probe:cross-origin-isolation': {
+    businessImpact:
+      'Sem Cross-Origin-Opener-Policy (COOP) e Cross-Origin-Resource-Policy (CORP), documentos e recursos ficam menos isolados contra ataques cross-origin e side-channel no navegador.',
+    verifyAi:
+      'Inspect GET / headers and confirm Cross-Origin-Opener-Policy and Cross-Origin-Resource-Policy are present.',
+    verifyExecutive:
+      'Validar na resposta HTTP a presença dos cabeçalhos Cross-Origin-Opener-Policy e Cross-Origin-Resource-Policy.',
+  },
+  'safe-probe:dns-email-posture': {
+    businessImpact:
+      'Ausência de SPF, DMARC restritivo ou registros CAA facilita spoofing de e-mails corporativos (phishing usando o domínio da empresa) e emissão não autorizada de certificados TLS.',
+    verifyAi:
+      'Query DNS TXT (SPF, _dmarc) and CAA records to confirm valid SPF, DMARC p=quarantine/reject, and CAA entries.',
+    verifyExecutive:
+      'Confirmar em consulta DNS pública registros SPF, DMARC (p=quarantine ou reject) e CAA ativos para o domínio.',
+  },
+  'safe-probe:robots-sitemap-exposure': {
+    businessImpact:
+      'Caminhos administrativos ou internos listados em robots.txt ou sitemap.xml servem como mapa gratuito para reconhecimento automatizado por atacantes.',
+    verifyAi:
+      'Inspect GET /robots.txt and /sitemap.xml to confirm administrative or internal paths are not listed.',
+    verifyExecutive:
+      'Confirmar que rotas internas e administrativas foram removidas de robots.txt e sitemap.xml e protegidas por autenticação.',
+  },
+  'safe-probe:oauth-graphql-posture': {
+    businessImpact:
+      'Endpoints OIDC sobre HTTP, algoritmo "none" ou introspecção GraphQL pública expõem o schema completo da API ou enfraquecem o fluxo de autenticação.',
+    verifyAi:
+      'Verify OIDC discovery uses HTTPS + PKCE without alg=none and GraphQL GET __schema introspection is disabled in production.',
+    verifyExecutive:
+      'Validar que metadados OIDC exigem HTTPS/PKCE e a introspecção GraphQL pública foi desabilitada em produção.',
+  },
+  'safe-probe:security-txt-rfc9116': {
+    businessImpact:
+      'A ausência ou vencimento de /.well-known/security.txt dificulta que pesquisadores éticos reportem vulnerabilidades críticas ao time responsável.',
+    verifyAi:
+      'Fetch GET /.well-known/security.txt and confirm valid Contact: and future Expires: directives per RFC 9116.',
+    verifyExecutive:
+      'Confirmar que /.well-known/security.txt responde com Contact e Expires futuro válido conforme RFC 9116.',
+  },
 };
 
 const DEFAULT_PROBE_META: ProbeRemediationMeta = {

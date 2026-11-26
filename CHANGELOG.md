@@ -6,6 +6,19 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-11-26
+
+### Added
+- Expanded the non-destructive Safe Probes suite from **14 to 19 probes** (`GET`/`HEAD` read-only + passive DNS), synchronized across `/scans/new` (`safe-probes.catalog.ts`), PT-BR/EN/ES dictionaries, compliance rules, and Executive PDF / AI Fix JSON remediation plans:
+  - `safe-probe:cross-origin-isolation`: checks `Cross-Origin-Opener-Policy` (COOP), `Cross-Origin-Resource-Policy` (CORP), and `Cross-Origin-Embedder-Policy` (COEP) on `GET /`.
+  - `safe-probe:dns-email-posture`: passively checks DNS `TXT` (`SPF`, `_dmarc`), `CAA` records, and `GET /.well-known/mta-sts.txt` (automatically skipped on loopback/IP targets).
+  - `safe-probe:robots-sitemap-exposure`: passively inspects `GET /robots.txt` and `GET /sitemap.xml` (ignoring SPA catch-all HTML) for sensitive administrative or internal path disclosures.
+  - `safe-probe:oauth-graphql-posture`: checks `GET /.well-known/openid-configuration` for weak OIDC settings (`http://`, `alg=none`, implicit without PKCE) and passive `GET /graphql?query=__schema` introspection.
+  - `safe-probe:security-txt-rfc9116`: validates `GET /.well-known/security.txt` for RFC 9116 `Contact:` and unexpired future `Expires:` directives.
+
+### Changed
+- Added per-scan in-memory response memoization in `RateLimitedSafeHttpClient` for default-header `GET`/`HEAD` requests (such as repeated `GET /` reads across probes) and raised default `SAFE_PROBE_MAX_REQUESTS_PER_SCAN` from `60` to `80` while preserving `SAFE_PROBE_MAX_RPS=2`, SSRF guard, and circuit breaker.
+
 ## [1.11.0] - 2026-11-26
 
 ### Added

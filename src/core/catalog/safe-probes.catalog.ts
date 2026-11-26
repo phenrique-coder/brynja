@@ -29,6 +29,11 @@ export const SAFE_PROBE_IDS = [
   'safe-probe:source-maps',
   'safe-probe:debug-error-leakage',
   'safe-probe:sri-integrity',
+  'safe-probe:cross-origin-isolation',
+  'safe-probe:dns-email-posture',
+  'safe-probe:robots-sitemap-exposure',
+  'safe-probe:oauth-graphql-posture',
+  'safe-probe:security-txt-rfc9116',
 ] as const;
 
 export type SafeProbeId = (typeof SAFE_PROBE_IDS)[number];
@@ -156,6 +161,36 @@ export const SAFE_PROBES_CATALOG_MAP: Record<SafeProbeId, SafeProbeCatalogMeta> 
     methods: ['GET'],
     targets: ['/', 'CDN <script>', 'CDN <link>', 'integrity='],
     maxSeverity: 'MEDIUM',
+  },
+  'safe-probe:cross-origin-isolation': {
+    category: 'headers-tls',
+    methods: ['GET'],
+    targets: ['/', 'COOP', 'CORP', 'COEP'],
+    maxSeverity: 'LOW',
+  },
+  'safe-probe:dns-email-posture': {
+    category: 'headers-tls',
+    methods: ['GET'],
+    targets: ['DNS TXT (SPF/DMARC)', 'DNS CAA', '/.well-known/mta-sts.txt'],
+    maxSeverity: 'MEDIUM',
+  },
+  'safe-probe:robots-sitemap-exposure': {
+    category: 'exposure',
+    methods: ['GET'],
+    targets: ['/robots.txt', '/sitemap.xml'],
+    maxSeverity: 'LOW',
+  },
+  'safe-probe:oauth-graphql-posture': {
+    category: 'exposure',
+    methods: ['GET'],
+    targets: ['/.well-known/openid-configuration', '/graphql?query=...'],
+    maxSeverity: 'HIGH',
+  },
+  'safe-probe:security-txt-rfc9116': {
+    category: 'runtime',
+    methods: ['GET'],
+    targets: ['/.well-known/security.txt', 'Contact:', 'Expires:'],
+    maxSeverity: 'LOW',
   },
 };
 

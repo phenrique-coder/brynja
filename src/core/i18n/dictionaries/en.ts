@@ -103,6 +103,41 @@ const SAFE_PROBE_ITEMS_EN: Record<SafeProbeId, SafeProbeCopy> = {
     checks:
       'Parses root HTML <script src> and <link rel="stylesheet"> tags targeting static CDNs (cdnjs, jsDelivr, unpkg, jQuery/Bootstrap) and validates sha256/384/512 integrity attributes.',
   },
+  'safe-probe:cross-origin-isolation': {
+    name: 'Cross-Origin Isolation (COOP, COEP & CORP)',
+    summary:
+      'Checks whether the application instructs browsers to isolate windows and subresources against cross-origin leaks and side-channel attacks.',
+    checks:
+      'Inspects GET / for Cross-Origin-Opener-Policy (COOP), Cross-Origin-Resource-Policy (CORP), and Cross-Origin-Embedder-Policy (COEP).',
+  },
+  'safe-probe:dns-email-posture': {
+    name: 'DNS, Anti-Spoofing (SPF/DMARC) & CAA Posture',
+    summary:
+      'Passively checks domain DNS posture against email spoofing/phishing, unauthorized TLS certificate issuance, and MTA-STS policy.',
+    checks:
+      'Resolves DNS TXT (SPF, _dmarc) and CAA records plus GET /.well-known/mta-sts.txt (automatically skipped for loopback or IP literals).',
+  },
+  'safe-probe:robots-sitemap-exposure': {
+    name: 'Sensitive Routes in robots.txt & sitemap.xml',
+    summary:
+      'Identifies administrative, internal, or staging paths publicly disclosed inside search-engine indexing files.',
+    checks:
+      'Fetches GET /robots.txt and GET /sitemap.xml (ignoring SPA HTML catch-alls) looking for sensitive route patterns like /admin, /internal, /backup, and /debug without crawling them.',
+  },
+  'safe-probe:oauth-graphql-posture': {
+    name: 'OIDC Discovery & GraphQL Introspection Posture',
+    summary:
+      'Detects weak OpenID Connect discovery metadata and publicly enabled GraphQL schema introspection in production.',
+    checks:
+      'Inspects GET /.well-known/openid-configuration (for http:// endpoints, alg=none, or implicit flow without PKCE) and passive GET /graphql?query=__schema.',
+  },
+  'safe-probe:security-txt-rfc9116': {
+    name: 'RFC 9116 security.txt Validation',
+    summary:
+      'Validates that the official vulnerability disclosure channel exists, lists a contact method, and has not expired.',
+    checks:
+      'Fetches GET /.well-known/security.txt (ignoring SPA HTML catch-alls) and validates required "Contact:" and non-expired future "Expires:" directives.',
+  },
 };
 
 export const EN_MESSAGES: Messages = {
@@ -210,7 +245,7 @@ export const EN_MESSAGES: Messages = {
   },
   footer: {
     versionTooltip: 'View changelog and release notes for every version',
-    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 14 Safe Probes',
+    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 19 Safe Probes',
     linksAria: 'Project links',
     changelog: 'Changelog',
     repository: 'Repository',

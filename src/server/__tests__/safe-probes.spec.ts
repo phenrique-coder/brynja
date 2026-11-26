@@ -13,14 +13,22 @@ import { BackupConfigExposureProbe } from '../infrastructure/pentest/probes/back
 import { CacheSecurityProbe } from '../infrastructure/pentest/probes/cache-security.probe';
 import { CookieSecurityProbe } from '../infrastructure/pentest/probes/cookie-security.probe';
 import { CorsMisconfigProbe } from '../infrastructure/pentest/probes/cors-misconfig.probe';
+import { CrossOriginIsolationProbe } from '../infrastructure/pentest/probes/cross-origin-isolation.probe';
 import { CspPermissionsProbe } from '../infrastructure/pentest/probes/csp-permissions.probe';
 import { DebugErrorLeakageProbe } from '../infrastructure/pentest/probes/debug-error-leakage.probe';
+import { DnsEmailPostureProbe } from '../infrastructure/pentest/probes/dns-email-posture.probe';
 import { ExposedDocsAndMetricsProbe } from '../infrastructure/pentest/probes/exposed-docs-metrics.probe';
 import { HstsTlsProbe } from '../infrastructure/pentest/probes/hsts-tls.probe';
+import { OauthGraphqlPostureProbe } from '../infrastructure/pentest/probes/oauth-graphql-posture.probe';
 import { OpenRedirectProbe } from '../infrastructure/pentest/probes/open-redirect.probe';
+import { RobotsSitemapExposureProbe } from '../infrastructure/pentest/probes/robots-sitemap-exposure.probe';
 import { RuntimeFingerprintProbe } from '../infrastructure/pentest/probes/runtime-fingerprint.probe';
 import { SecurityHeadersProbe } from '../infrastructure/pentest/probes/security-headers.probe';
+import { SecurityTxtRfc9116Probe } from '../infrastructure/pentest/probes/security-txt-rfc9116.probe';
 import { SriIntegrityProbe } from '../infrastructure/pentest/probes/sri-integrity.probe';
+import { InMemoryProbeAuditCollector } from '../infrastructure/pentest/in-memory-audit-collector';
+import { RateLimitedSafeHttpClient } from '../infrastructure/pentest/rate-limited-http-client.adapter';
+import { SsrfDnsGuardService } from '../infrastructure/pentest/ssrf-dns-guard.service';
 
 function makeContext(
   overrides: Partial<ProbeExecutionContext> = {},
@@ -83,7 +91,7 @@ function makeHttpClient(
   };
 }
 
-describe('Safe Probes Suite (14 Non-Destructive Probes)', () => {
+describe('Safe Probes Suite (19 Non-Destructive Probes)', () => {
   describe('RuntimeFingerprintProbe', () => {
     const probe = new RuntimeFingerprintProbe();
 
@@ -664,6 +672,212 @@ describe('Safe Probes Suite (14 Non-Destructive Probes)', () => {
         })),
       );
       expect(skipRes[0].status).toBe('SKIPPED');
+    });
+  });
+
+  describe('CrossOriginIsolationProbe, DnsEmailPostureProbe, RobotsSitemapExposureProbe, OauthGraphqlPostureProbe & SecurityTxtRfc9116Probe', () => {
+    it('flags missing COOP/CORP headers and passes when set', async () => {
+      const probe = new CrossOriginIsolationProbe();
+      const missingRes = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: {},
+          setCookies: [],
+          bodySnippet: '',
+          durationMs: 4,
+        })),
+      );
+      expect(missingRes[0].status).toBe('FINDING');
+
+      const okRes = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: {
+            'cross-origin-opener-policy': 'same-origin',
+            'cross-origin-resource-policy': 'same-site',
+          },
+          setCookies: [],
+          bodySnippet: '',
+          durationMs: 4,
+        })),
+      );
+      expect(okRes[0].status).toBe('PASSED');
+    });
+
+    it('audits SPF/DMARC/CAA via DnsEmailPostureProbe and skips loopback targets', async () => {
+      const probe = new DnsEmailPostureProbe({
+        resolveTxt: vi.fn(async (domain) =>
+          domain.startsWith('_dmarc.')
+            ? [['v=DMARC1; p=reject']]
+            : [['v=spf1 -all']],
+        ),
+        resolveCaa: vi.fn(async () => [{ issue: 'letsencrypt.org' }]),
+      });
+
+      const skipRes = await probe.run(
+        makeContext({ targetUrl: 'http://127.0.0.1:3000' }),
+        makeHttpClient(() => ({
+          statusCode: 404,
+          headers: {},
+          setCookies: [],
+          bodySnippet: '',
+          durationMs: 1,
+        })),
+      );
+      expect(skipRes[0].status).toBe('SKIPPED');
+
+      const passRes = await probe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 404,
+          headers: {},
+          setCookies: [],
+          bodySnippet: '',
+          durationMs: 5,
+        })),
+      );
+      expect(passRes[0].status).toBe('PASSED');
+
+      const weakProbe = new DnsEmailPostureProbe({
+        resolveTxt: vi.fn(async () => []),
+        resolveCaa: vi.fn(async () => []),
+      });
+      const weakRes = await weakProbe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 404,
+          headers: {},
+          setCookies: [],
+          bodySnippet: '',
+          durationMs: 5,
+        })),
+      );
+      expect(weakRes[0].status).toBe('FINDING');
+      expect(weakRes[0].severity).toBe('MEDIUM');
+    });
+
+    it('detects sensitive routes in robots.txt/sitemap.xml, weak OIDC/GraphQL introspection, and expired security.txt', async () => {
+      const robotsProbe = new RobotsSitemapExposureProbe();
+      const robotsRes = await robotsProbe.run(
+        makeContext(),
+        makeHttpClient((req) =>
+          req.path === '/robots.txt'
+            ? {
+                statusCode: 200,
+                headers: { 'content-type': 'text/plain' },
+                setCookies: [],
+                bodySnippet: 'User-agent: *\nDisallow: /admin/console\n',
+                durationMs: 3,
+              }
+            : {
+                statusCode: 404,
+                headers: {} as Record<string, string>,
+                setCookies: [],
+                bodySnippet: '',
+                durationMs: 3,
+              },
+        ),
+      );
+      expect(robotsRes[0].status).toBe('FINDING');
+
+      const oauthProbe = new OauthGraphqlPostureProbe();
+      const oauthRes = await oauthProbe.run(
+        makeContext(),
+        makeHttpClient((req) => {
+          if (req.path.includes('openid-configuration')) {
+            return {
+              statusCode: 200,
+              headers: { 'content-type': 'application/json' },
+              setCookies: [],
+              bodySnippet: JSON.stringify({
+                issuer: 'http://app.example.com',
+                id_token_signing_alg_values_supported: ['none'],
+              }),
+              durationMs: 4,
+            };
+          }
+          return {
+            statusCode: 200,
+            headers: { 'content-type': 'application/json' },
+            setCookies: [],
+            bodySnippet: '{"data":{"__schema":{"types":[{"name":"Query"}]}}}',
+            durationMs: 4,
+          };
+        }),
+      );
+      expect(oauthRes).toHaveLength(2);
+      expect(oauthRes.every((r) => r.status === 'FINDING')).toBe(true);
+
+      const secTxtProbe = new SecurityTxtRfc9116Probe();
+      const expiredRes = await secTxtProbe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: { 'content-type': 'text/plain' },
+          setCookies: [],
+          bodySnippet:
+            'Contact: mailto:sec@example.com\nExpires: 2020-01-01T00:00:00Z\n',
+          durationMs: 3,
+        })),
+      );
+      expect(expiredRes[0].status).toBe('FINDING');
+
+      const validRes = await secTxtProbe.run(
+        makeContext(),
+        makeHttpClient(() => ({
+          statusCode: 200,
+          headers: { 'content-type': 'text/plain' },
+          setCookies: [],
+          bodySnippet:
+            'Contact: mailto:sec@example.com\nExpires: 2099-12-31T23:59:59Z\n',
+          durationMs: 3,
+        })),
+      );
+      expect(validRes[0].status).toBe('PASSED');
+    });
+
+    it('memoizes repeated default GET / requests within a single scan in RateLimitedSafeHttpClient', async () => {
+      const audit = new InMemoryProbeAuditCollector();
+      const client = new RateLimitedSafeHttpClient(
+        new SsrfDnsGuardService(true),
+        audit,
+        { maxRps: 100, maxRequestsPerScan: 10, timeoutMs: 2000 },
+      );
+
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('<html><body>Hello</body></html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        }),
+      );
+
+      try {
+        await client.executeSafeRequest({
+          scanId: 'scan-memo',
+          authorizationId: 'auth-1',
+          probeId: 'p1',
+          targetOrigin: 'http://127.0.0.1:3000',
+          path: '/',
+          method: 'GET',
+          maxBodyBytes: 1024,
+        });
+        await client.executeSafeRequest({
+          scanId: 'scan-memo',
+          authorizationId: 'auth-1',
+          probeId: 'p2',
+          targetOrigin: 'http://127.0.0.1:3000',
+          path: '/',
+          method: 'GET',
+          maxBodyBytes: 4096,
+        });
+
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        expect(audit.getEntries()).toHaveLength(2);
+      } finally {
+        fetchSpy.mockRestore();
+      }
     });
   });
 });

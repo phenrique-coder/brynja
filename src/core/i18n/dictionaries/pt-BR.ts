@@ -102,6 +102,41 @@ const SAFE_PROBE_ITEMS_PT_BR: Record<SafeProbeId, SafeProbeCopy> = {
     checks:
       'Analisa tags <script src> e <link rel="stylesheet"> no HTML inicial apontando para CDNs estáticas (cdnjs, jsDelivr, unpkg, jQuery/Bootstrap) verificando o atributo integrity (sha256/384/512).',
   },
+  'safe-probe:cross-origin-isolation': {
+    name: 'Isolamento Cross-Origin (COOP, COEP & CORP)',
+    summary:
+      'Avalia se o servidor instrui o navegador a isolar janelas e recursos contra vazamentos cross-origin e ataques de canal lateral.',
+    checks:
+      'Inspeciona GET / verificando os cabeçalhos Cross-Origin-Opener-Policy (COOP), Cross-Origin-Resource-Policy (CORP) e Cross-Origin-Embedder-Policy (COEP).',
+  },
+  'safe-probe:dns-email-posture': {
+    name: 'Postura DNS, Anti-Spoofing (SPF/DMARC) & CAA',
+    summary:
+      'Verifica passivamente se o domínio possui proteção contra falsificação de e-mail (phishing), emissão indevida de certificados TLS e MTA-STS.',
+    checks:
+      'Consulta registros DNS TXT (SPF, _dmarc) e CAA do domínio, além de GET /.well-known/mta-sts.txt (ignorado automaticamente em loopback/IP).',
+  },
+  'safe-probe:robots-sitemap-exposure': {
+    name: 'Rotas Sensíveis em robots.txt & sitemap.xml',
+    summary:
+      'Identifica caminhos administrativos, internos ou de staging divulgados publicamente em arquivos de indexação para buscadores.',
+    checks:
+      'Lê GET /robots.txt e GET /sitemap.xml (ignorando HTML catch-all de SPAs) procurando padrões como /admin, /internal, /backup, /debug e /private sem acessá-los.',
+  },
+  'safe-probe:oauth-graphql-posture': {
+    name: 'Metadados OIDC & Introspecção GraphQL',
+    summary:
+      'Detecta fragilidades em endpoints públicos de descoberta OpenID Connect e introspecção de schema GraphQL em produção.',
+    checks:
+      'Consulta GET /.well-known/openid-configuration (checando http://, alg=none e implicit sem PKCE) e GET /graphql?query=__schema passivo.',
+  },
+  'safe-probe:security-txt-rfc9116': {
+    name: 'Conformidade RFC 9116 de security.txt',
+    summary:
+      'Valida se o canal oficial de divulgação responsável de vulnerabilidades existe, possui contato válido e não está vencido.',
+    checks:
+      'Lê GET /.well-known/security.txt (ignorando HTML catch-all) e valida presença de "Contact:" e data futura em "Expires:".',
+  },
 };
 
 export const PT_BR_MESSAGES = {
@@ -209,7 +244,7 @@ export const PT_BR_MESSAGES = {
   },
   footer: {
     versionTooltip: 'Ver changelog e novidades de cada versão',
-    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 14 Safe Probes',
+    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 19 Safe Probes',
     linksAria: 'Links do projeto',
     changelog: 'Changelog',
     repository: 'Repositório',
