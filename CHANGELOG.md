@@ -6,6 +6,12 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-11-26
+
+### Added
+- Added a Safe Probe issues badge (`P:<count>`) and proportional violet segment (`bg-violet-500`) inside the **Severity** column and distribution bar of the scan history table (`ScanHistoryTable` on `/history` and `/`) whenever a scan reports runtime Safe Probe problems (`FINDING` or `ABORTED`), with localized tooltips across PT-BR, EN, and ES.
+- Added `probeIssuesCount` on `ScanSummary` along with shared `countProbeIssues` / `resolveScanProbeIssuesCount` helpers (`src/core/models/scan.models.ts`) so `HttpScanGateway.summarizeReport` automatically computes probe problem counts even for existing reports previously stored in browser `IndexedDB`.
+
 ## [1.8.0] - 2026-11-25
 
 ### Added

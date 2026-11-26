@@ -13,6 +13,7 @@ import {
   TargetAuthorization,
   VerificationMethod,
   VulnerabilityFinding,
+  countProbeIssues,
 } from '../models/scan.models';
 import { IBrynjaGateway } from '../ports/scan-gateway.port';
 import {
@@ -58,9 +59,19 @@ function makeUuid(): string {
 }
 
 function summarizeReport(report: ScanReport): ScanSummary {
-  const { dependencies: _d, findings: _f, probeResults: _p, auditLogs: _a, ...summary } =
-    report;
-  return summary;
+  const {
+    dependencies: _d,
+    findings: _f,
+    probeResults,
+    auditLogs: _a,
+    ...summary
+  } = report;
+  return {
+    ...summary,
+    probeIssuesCount: Array.isArray(probeResults)
+      ? countProbeIssues(probeResults)
+      : (summary.probeIssuesCount ?? 0),
+  };
 }
 
 export class HttpScanGateway implements IBrynjaGateway {
@@ -152,6 +163,7 @@ export class HttpScanGateway implements IBrynjaGateway {
       mediumCount: 0,
       lowCount: 0,
       confirmedActiveCount: 0,
+      probeIssuesCount: 0,
       warnings: [],
       errorMessage: null,
       startedAt: now,
@@ -386,6 +398,7 @@ export class HttpScanGateway implements IBrynjaGateway {
       const confirmedActiveCount =
         findings.filter((f) => f.verdict === 'CONFIRMED_ACTIVE').length +
         probeResults.filter((p) => p.status === 'FINDING').length;
+      const probeIssuesCount = countProbeIssues(probeResults);
 
       current = {
         ...current,
@@ -399,6 +412,7 @@ export class HttpScanGateway implements IBrynjaGateway {
         mediumCount,
         lowCount,
         confirmedActiveCount,
+        probeIssuesCount,
         completedAt: new Date().toISOString(),
       };
       await this.store.putScan(ownerId, current);

@@ -6,6 +6,12 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.9.0] - 2026-11-26
+
+### Adicionado
+- Adicionado o badge de Safe Probes com problemas (`P:<qtd>`) e seu segmento proporcional em violeta (`bg-violet-500`) na barra gráfica da coluna **Severidade** na tabela de histórico (`ScanHistoryTable` em `/history` e `/`) sempre que a avaliação possuir ocorrências em Safe Probes (`FINDING` ou `ABORTED`), com tooltips traduzidos em PT-BR, EN e ES.
+- Adicionado o campo `probeIssuesCount` em `ScanSummary` e os helpers compartilhados `countProbeIssues` / `resolveScanProbeIssuesCount` (`src/core/models/scan.models.ts`), permitindo que `HttpScanGateway.summarizeReport` calcule automaticamente a contagem inclusive para varreduras antigas já salvas no `IndexedDB` do navegador.
+
 ## [1.8.0] - 2026-11-25
 
 ### Adicionado

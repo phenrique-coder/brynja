@@ -69,6 +69,7 @@ export interface ScanSummary {
   mediumCount: number;
   lowCount: number;
   confirmedActiveCount: number;
+  probeIssuesCount?: number;
   warnings: string[];
   errorMessage: string | null;
   startedAt: string | null;
@@ -176,4 +177,30 @@ export interface GitHubRepoSummary {
   updatedAt: string;
   ownerLogin?: string;
   ownerType?: 'User' | 'Organization';
+}
+
+/**
+ * Counts Safe Probe entries that reported a weakness (`FINDING`) or guardrail/runtime failure (`ABORTED`).
+ */
+export function countProbeIssues(
+  probeResults: ReadonlyArray<Pick<ProbeFinding, 'status'>>,
+): number {
+  return probeResults.filter(
+    (p) => p.status === 'FINDING' || p.status === 'ABORTED',
+  ).length;
+}
+
+/**
+ * Resolves the number of Safe Probe issues from a summary or full report,
+ * supporting legacy locally stored reports created before `probeIssuesCount` existed.
+ */
+export function resolveScanProbeIssuesCount(
+  scan: Pick<ScanSummary, 'probeIssuesCount'> & {
+    probeResults?: ReadonlyArray<Pick<ProbeFinding, 'status'>>;
+  },
+): number {
+  if (Array.isArray(scan.probeResults)) {
+    return countProbeIssues(scan.probeResults);
+  }
+  return typeof scan.probeIssuesCount === 'number' ? scan.probeIssuesCount : 0;
 }

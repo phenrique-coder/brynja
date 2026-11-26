@@ -1,9 +1,11 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { HttpScanGateway } from '@/core/gateways/http-scan.gateway';
 import { ScanReport } from '@/core/models/scan.models';
 import { IBrynjaGateway } from '@/core/ports/scan-gateway.port';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
+import { InMemoryBrynjaStore } from '@/core/storage/brynja-indexeddb.store';
 import { AuthorizationsView } from '../components/AuthorizationsView';
 import { ScanHistoryView } from '../components/ScanHistoryView';
 import {
@@ -331,5 +333,158 @@ describe('Permanent Target Removal, Scan History & PDF Exporter', () => {
     expect(pdfLatin1).toContain('FIX-01');
     expect(pdfLatin1).toContain('FIX-02');
     expect(pdfLatin1).toContain('15.2.3');
+  });
+
+  it('displays the Safe Probe issues badge (P:N) in the Severity column only when probes have issues and derives it for legacy stored reports', async () => {
+    const store = new InMemoryBrynjaStore();
+    const now = '2026-11-25T20:33:00.000Z';
+
+    // Simulate two legacy reports stored in IndexedDB without `probeIssuesCount` persisted yet
+    await store.putScan('gh-user-1', {
+      id: 'scan-with-issues',
+      repositoryUrl: 'https://github.com/Prenora/prenora',
+      branch: 'main',
+      targetUrl: 'https://prenora.com.br',
+      authorizationId: 'auth-1',
+      status: 'COMPLETED',
+      currentStage: 'completed',
+      ecosystems: ['npm'],
+      totalDependencies: 744,
+      criticalCount: 0,
+      highCount: 0,
+      mediumCount: 0,
+      lowCount: 0,
+      confirmedActiveCount: 2,
+      warnings: [],
+      errorMessage: null,
+      startedAt: now,
+      completedAt: now,
+      createdAt: now,
+      dependencies: [],
+      findings: [],
+      probeResults: [
+        {
+          id: 'p-1',
+          probeId: 'safe-probe:csp-permissions',
+          title: 'CSP permissiva',
+          severity: 'MEDIUM',
+          status: 'FINDING',
+          targetUrl: 'https://prenora.com.br',
+          evidence: 'unsafe-inline',
+          recommendation: 'Usar nonce.',
+          matchedPackage: null,
+          createdAt: now,
+        },
+        {
+          id: 'p-2',
+          probeId: 'safe-probe:sri-integrity',
+          title: 'Script CDN sem SRI',
+          severity: 'MEDIUM',
+          status: 'FINDING',
+          targetUrl: 'https://prenora.com.br',
+          evidence: 'Sem integrity',
+          recommendation: 'Adicionar SRI.',
+          matchedPackage: null,
+          createdAt: now,
+        },
+        {
+          id: 'p-3',
+          probeId: 'safe-probe:hsts-tls',
+          title: 'HSTS OK',
+          severity: 'INFO',
+          status: 'PASSED',
+          targetUrl: 'https://prenora.com.br',
+          evidence: 'max-age=31536000',
+          recommendation: 'Manter.',
+          matchedPackage: null,
+          createdAt: now,
+        },
+      ],
+      auditLogs: [],
+    });
+
+    await store.putScan('gh-user-1', {
+      id: 'scan-clean',
+      repositoryUrl: 'https://github.com/Prenora/prenora',
+      branch: 'main',
+      targetUrl: 'https://prenora.com.br',
+      authorizationId: 'auth-1',
+      status: 'COMPLETED',
+      currentStage: 'completed',
+      ecosystems: ['npm'],
+      totalDependencies: 744,
+      criticalCount: 0,
+      highCount: 0,
+      mediumCount: 0,
+      lowCount: 0,
+      confirmedActiveCount: 0,
+      warnings: [],
+      errorMessage: null,
+      startedAt: '2026-11-25T20:06:00.000Z',
+      completedAt: '2026-11-25T20:06:10.000Z',
+      createdAt: '2026-11-25T20:06:00.000Z',
+      dependencies: [],
+      findings: [],
+      probeResults: [
+        {
+          id: 'p-clean',
+          probeId: 'safe-probe:hsts-tls',
+          title: 'HSTS OK',
+          severity: 'INFO',
+          status: 'PASSED',
+          targetUrl: 'https://prenora.com.br',
+          evidence: 'max-age=31536000',
+          recommendation: 'Manter.',
+          matchedPackage: null,
+          createdAt: '2026-11-25T20:06:10.000Z',
+        },
+      ],
+      auditLogs: [],
+    });
+
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            configured: true,
+            connected: true,
+            githubUserId: 'gh-user-1',
+            login: 'pedro',
+            avatarUrl: null,
+            callbackUrl: 'http://localhost:3000/api/integrations/github/callback',
+            scopes: 'repo',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+
+    try {
+      const gateway = new HttpScanGateway('/api', store);
+
+      render(
+        <GatewayProvider gateway={gateway}>
+          <ScanHistoryView />
+        </GatewayProvider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('P:2')).toBeTruthy();
+      });
+
+      expect(screen.getByTitle('2 Probe(s) com problema(s)')).toBeTruthy();
+      expect(screen.queryByText('P:0')).toBeNull();
+
+      const barWithProbes = screen.getByTestId('severity-bar-scan-with-issues');
+      const probeSlice = barWithProbes.querySelector(
+        '[data-segment="probes"]',
+      ) as HTMLElement | null;
+      expect(probeSlice).not.toBeNull();
+      expect(probeSlice?.style.width).toBe('100%');
+      expect(probeSlice?.className).toContain('bg-violet-500');
+      expect(screen.queryByTestId('severity-bar-scan-clean')).toBeNull();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });

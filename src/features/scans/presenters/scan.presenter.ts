@@ -1,10 +1,13 @@
 import {
   FindingVerdict,
+  ProbeFinding,
   ScanReport,
   ScanStatus,
   ScanSummary,
   SeverityLevel,
   VulnerabilityFinding,
+  countProbeIssues,
+  resolveScanProbeIssuesCount,
 } from '@/core/models/scan.models';
 import {
   SEVERITY_REGISTRY,
@@ -190,9 +193,50 @@ export function isScanAllClear(
   if (report.findings.length > 0) {
     return false;
   }
-  return !report.probeResults.some(
-    (p) => p.status === 'FINDING' || p.status === 'ABORTED',
-  );
+  return countProbeIssues(report.probeResults) === 0;
+}
+
+export interface SeverityBarSegment {
+  key: 'critical' | 'high' | 'medium' | 'low' | 'probes';
+  count: number;
+  percentage: number;
+  colorClass: string;
+}
+
+/**
+ * Computes proportional width percentages for the stacked severity bar in `ScanHistoryTable`,
+ * distributing Critical, High, Medium, Low, and Safe Probe issues across the total issue count.
+ */
+export function computeSeverityBarSegments(
+  scan: Pick<
+    ScanSummary,
+    'criticalCount' | 'highCount' | 'mediumCount' | 'lowCount' | 'probeIssuesCount'
+  > & { probeResults?: ReadonlyArray<Pick<ProbeFinding, 'status'>> },
+): SeverityBarSegment[] {
+  const probeIssuesCount = resolveScanProbeIssuesCount(scan);
+  const entries: Array<{
+    key: SeverityBarSegment['key'];
+    count: number;
+    colorClass: string;
+  }> = [
+    { key: 'critical', count: scan.criticalCount, colorClass: 'bg-rose-500' },
+    { key: 'high', count: scan.highCount, colorClass: 'bg-orange-500' },
+    { key: 'medium', count: scan.mediumCount, colorClass: 'bg-amber-400' },
+    { key: 'low', count: scan.lowCount, colorClass: 'bg-sky-400' },
+    { key: 'probes', count: probeIssuesCount, colorClass: 'bg-violet-500' },
+  ];
+
+  const total = entries.reduce((sum, entry) => sum + entry.count, 0);
+  if (total <= 0) return [];
+
+  return entries
+    .filter((entry) => entry.count > 0)
+    .map((entry) => ({
+      key: entry.key,
+      count: entry.count,
+      percentage: (entry.count / total) * 100,
+      colorClass: entry.colorClass,
+    }));
 }
 
 export interface FormattedReferenceLink {

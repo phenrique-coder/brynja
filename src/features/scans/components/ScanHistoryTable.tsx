@@ -13,9 +13,13 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { ScanSummary } from '@/core/models/scan.models';
+import {
+  ScanSummary,
+  resolveScanProbeIssuesCount,
+} from '@/core/models/scan.models';
 import { useI18n } from '@/core/providers/i18n-provider';
 import {
+  computeSeverityBarSegments,
   formatRepositoryDisplay,
   formatTargetHost,
 } from '../presenters/scan.presenter';
@@ -70,21 +74,11 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
           {scans.map((scan) => {
             const repo = formatRepositoryDisplay(scan.repositoryUrl);
             const targetHost = formatTargetHost(scan.targetUrl);
-            const totalFindings =
-              scan.criticalCount +
-              scan.highCount +
-              scan.mediumCount +
-              scan.lowCount;
-            const critPct =
-              totalFindings > 0
-                ? (scan.criticalCount / totalFindings) * 100
-                : 0;
-            const highPct =
-              totalFindings > 0 ? (scan.highCount / totalFindings) * 100 : 0;
-            const medPct =
-              totalFindings > 0 ? (scan.mediumCount / totalFindings) * 100 : 0;
-            const lowPct =
-              totalFindings > 0 ? (scan.lowCount / totalFindings) * 100 : 0;
+            const probeIssuesCount = resolveScanProbeIssuesCount(scan);
+            const barSegments = computeSeverityBarSegments({
+              ...scan,
+              probeIssuesCount,
+            });
 
             return (
               <tr
@@ -183,36 +177,31 @@ export function ScanHistoryTable({ scans, onDelete }: ScanHistoryTableProps) {
                           {messages.historyTable.lowShort}:{scan.lowCount}
                         </span>
                       ) : null}
+                      {probeIssuesCount > 0 ? (
+                        <span
+                          title={t(messages.historyTable.probeTitle, {
+                            count: probeIssuesCount,
+                          })}
+                          className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300"
+                        >
+                          {messages.historyTable.probeShort}:{probeIssuesCount}
+                        </span>
+                      ) : null}
                     </div>
-                    {totalFindings > 0 ? (
+                    {barSegments.length > 0 ? (
                       <div
                         aria-hidden="true"
+                        data-testid={`severity-bar-${scan.id}`}
                         className="flex h-1 w-full overflow-hidden rounded-full bg-surface-subtle"
                       >
-                        {critPct > 0 ? (
+                        {barSegments.map((segment) => (
                           <div
-                            className="bg-rose-500"
-                            style={{ width: `${critPct}%` }}
+                            key={segment.key}
+                            data-segment={segment.key}
+                            className={segment.colorClass}
+                            style={{ width: `${segment.percentage}%` }}
                           />
-                        ) : null}
-                        {highPct > 0 ? (
-                          <div
-                            className="bg-orange-500"
-                            style={{ width: `${highPct}%` }}
-                          />
-                        ) : null}
-                        {medPct > 0 ? (
-                          <div
-                            className="bg-amber-400"
-                            style={{ width: `${medPct}%` }}
-                          />
-                        ) : null}
-                        {lowPct > 0 ? (
-                          <div
-                            className="bg-sky-400"
-                            style={{ width: `${lowPct}%` }}
-                          />
-                        ) : null}
+                        ))}
                       </div>
                     ) : null}
                   </div>

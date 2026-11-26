@@ -281,10 +281,12 @@ export const PT_BR_MESSAGES = {
     highShort: 'A',
     medShort: 'M',
     lowShort: 'B',
+    probeShort: 'P',
     critTitle: '{count} Crítica(s)',
     highTitle: '{count} Alta(s)',
     medTitle: '{count} Média(s)',
     lowTitle: '{count} Baixa(s)',
+    probeTitle: '{count} Probe(s) com problema(s)',
   },
   newScan: {
     loading: 'Verificando sessão GitHub...',

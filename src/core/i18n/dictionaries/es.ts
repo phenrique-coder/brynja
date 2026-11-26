@@ -282,10 +282,12 @@ export const ES_MESSAGES: Messages = {
     highShort: 'A',
     medShort: 'M',
     lowShort: 'B',
+    probeShort: 'P',
     critTitle: '{count} Crítica(s)',
     highTitle: '{count} Alta(s)',
     medTitle: '{count} Media(s)',
     lowTitle: '{count} Baja(s)',
+    probeTitle: '{count} Probe(s) con problema(s)',
   },
   newScan: {
     loading: 'Verificando sesión de GitHub...',

@@ -26,6 +26,7 @@ import {
   FindingVerdict,
   ScanReport,
   SeverityLevel,
+  countProbeIssues,
 } from '@/core/models/scan.models';
 import { IReportExporter } from '@/core/ports/scan-gateway.port';
 import { useI18n } from '@/core/providers/i18n-provider';
@@ -198,9 +199,7 @@ export function ScanReportView({ scanId }: { scanId: string }) {
     cyclonedx: messages.scanReport.sbomLabel,
   };
   const allClear = isScanAllClear(report);
-  const probeIssuesCount = report.probeResults.filter(
-    (p) => p.status === 'FINDING' || p.status === 'ABORTED',
-  ).length;
+  const probeIssuesCount = countProbeIssues(report.probeResults);
 
   return (
     <div className="space-y-6">

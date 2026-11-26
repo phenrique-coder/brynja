@@ -5,11 +5,18 @@ import { parseChangelogMarkdown } from '@/core/changelog/changelog.parser';
 import packageJson from '../../../../package.json';
 import {
   computeDashboardMetrics,
+  computeSeverityBarSegments,
   filterAndSortFindings,
   formatReferenceLinks,
 } from '../presenters/scan.presenter';
 import { REPORT_EXPORTERS } from '../registries/finding-registries';
-import { ScanReport, ScanSummary, VulnerabilityFinding } from '@/core/models/scan.models';
+import {
+  ScanReport,
+  ScanSummary,
+  VulnerabilityFinding,
+  countProbeIssues,
+  resolveScanProbeIssuesCount,
+} from '@/core/models/scan.models';
 
 describe('Scan Presenter & OCP Registries', () => {
   const sampleFindings: VulnerabilityFinding[] = [
@@ -193,5 +200,80 @@ describe('Scan Presenter & OCP Registries', () => {
     expect(enReleases[0].version).toBe(packageJson.version);
     expect(ptReleases[0].version).toBe(packageJson.version);
     expect(ptReleases[0].sections.length).toBeGreaterThan(0);
+  });
+
+  it('counts Safe Probe issues (FINDING and ABORTED) and resolves legacy summaries safely', () => {
+    expect(
+      countProbeIssues([
+        { status: 'PASSED' },
+        { status: 'SKIPPED' },
+        { status: 'FINDING' },
+        { status: 'ABORTED' },
+      ]),
+    ).toBe(2);
+
+    expect(resolveScanProbeIssuesCount({ probeIssuesCount: 3 })).toBe(3);
+    expect(resolveScanProbeIssuesCount({})).toBe(0);
+    expect(
+      resolveScanProbeIssuesCount({
+        probeResults: [{ status: 'FINDING' }, { status: 'PASSED' }],
+      }),
+    ).toBe(1);
+
+    expect(
+      computeSeverityBarSegments({
+        criticalCount: 0,
+        highCount: 0,
+        mediumCount: 0,
+        lowCount: 0,
+        probeIssuesCount: 2,
+      }),
+    ).toEqual([
+      {
+        key: 'probes',
+        count: 2,
+        percentage: 100,
+        colorClass: 'bg-violet-500',
+      },
+    ]);
+
+    expect(
+      computeSeverityBarSegments({
+        criticalCount: 0,
+        highCount: 5,
+        mediumCount: 3,
+        lowCount: 0,
+        probeIssuesCount: 2,
+      }),
+    ).toEqual([
+      {
+        key: 'high',
+        count: 5,
+        percentage: 50,
+        colorClass: 'bg-orange-500',
+      },
+      {
+        key: 'medium',
+        count: 3,
+        percentage: 30,
+        colorClass: 'bg-amber-400',
+      },
+      {
+        key: 'probes',
+        count: 2,
+        percentage: 20,
+        colorClass: 'bg-violet-500',
+      },
+    ]);
+
+    expect(
+      computeSeverityBarSegments({
+        criticalCount: 0,
+        highCount: 0,
+        mediumCount: 0,
+        lowCount: 0,
+        probeIssuesCount: 0,
+      }),
+    ).toEqual([]);
   });
 });

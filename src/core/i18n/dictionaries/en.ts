@@ -282,10 +282,12 @@ export const EN_MESSAGES: Messages = {
     highShort: 'H',
     medShort: 'M',
     lowShort: 'L',
+    probeShort: 'P',
     critTitle: '{count} Critical',
     highTitle: '{count} High',
     medTitle: '{count} Medium',
     lowTitle: '{count} Low',
+    probeTitle: '{count} Safe Probe issue(s)',
   },
   newScan: {
     loading: 'Checking GitHub session...',
