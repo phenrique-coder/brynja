@@ -1,4 +1,5 @@
 import {
+  GrcAssessment,
   LocalBackupBundle,
   ProbeAuditEntry,
   ScanReport,
@@ -24,20 +25,67 @@ export interface ILocalBrynjaStore {
   listAuditLogs(ownerId: string, scanId?: string): Promise<ProbeAuditEntry[]>;
   appendAuditLogs(ownerId: string, entries: ProbeAuditEntry[]): Promise<void>;
 
+  listGrcAssessments(ownerId: string): Promise<GrcAssessment[]>;
+  getGrcAssessment(
+    ownerId: string,
+    id: string,
+  ): Promise<GrcAssessment | null>;
+  putGrcAssessment(ownerId: string, assessment: GrcAssessment): Promise<void>;
+  deleteGrcAssessment(ownerId: string, id: string): Promise<void>;
+
   exportBackup(ownerId: string): Promise<LocalBackupBundle>;
   importBackup(ownerId: string, bundle: LocalBackupBundle): Promise<void>;
 }
 
 const DB_NAME = 'brynja_local_v1';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_SCANS = 'scans';
 const STORE_AUTH = 'authorizations';
 const STORE_AUDIT = 'auditLogs';
+const STORE_GRC = 'grcAssessments';
 
 function stripOwner<T>(record: OwnedRecord<T>): T {
   const clone = { ...record } as Record<string, unknown>;
   delete clone.ownerGithubUserId;
   return clone as T;
+}
+
+async function exportBackupFromStore(
+  store: ILocalBrynjaStore,
+  ownerId: string,
+): Promise<LocalBackupBundle> {
+  const [scans, authorizations, auditLogs, grcAssessments] = await Promise.all([
+    store.listScans(ownerId, 500),
+    store.listAuthorizations(ownerId),
+    store.listAuditLogs(ownerId),
+    store.listGrcAssessments(ownerId),
+  ]);
+  return {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    ownerGithubUserId: ownerId,
+    scans,
+    authorizations,
+    auditLogs,
+    grcAssessments,
+  };
+}
+
+async function importBackupIntoStore(
+  store: ILocalBrynjaStore,
+  ownerId: string,
+  bundle: LocalBackupBundle,
+): Promise<void> {
+  for (const scan of bundle.scans ?? []) {
+    await store.putScan(ownerId, scan);
+  }
+  for (const auth of bundle.authorizations ?? []) {
+    await store.putAuthorization(ownerId, auth);
+  }
+  await store.appendAuditLogs(ownerId, bundle.auditLogs ?? []);
+  for (const assessment of bundle.grcAssessments ?? []) {
+    await store.putGrcAssessment(ownerId, assessment);
+  }
 }
 
 export class InMemoryBrynjaStore implements ILocalBrynjaStore {
@@ -47,6 +95,10 @@ export class InMemoryBrynjaStore implements ILocalBrynjaStore {
     OwnedRecord<TargetAuthorization>
   >();
   private readonly auditLogs = new Map<string, OwnedRecord<ProbeAuditEntry>>();
+  private readonly grcAssessments = new Map<
+    string,
+    OwnedRecord<GrcAssessment>
+  >();
 
   async listScans(ownerId: string, limit = 50): Promise<ScanReport[]> {
     return Array.from(this.scans.values())
@@ -144,33 +196,51 @@ export class InMemoryBrynjaStore implements ILocalBrynjaStore {
     }
   }
 
-  async exportBackup(ownerId: string): Promise<LocalBackupBundle> {
-    const [scans, authorizations, auditLogs] = await Promise.all([
-      this.listScans(ownerId, 500),
-      this.listAuthorizations(ownerId),
-      this.listAuditLogs(ownerId),
-    ]);
-    return {
-      version: 1,
-      exportedAt: new Date().toISOString(),
+  async listGrcAssessments(ownerId: string): Promise<GrcAssessment[]> {
+    return Array.from(this.grcAssessments.values())
+      .filter((a) => a.ownerGithubUserId === ownerId)
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
+      .map(stripOwner);
+  }
+
+  async getGrcAssessment(
+    ownerId: string,
+    id: string,
+  ): Promise<GrcAssessment | null> {
+    const rec = this.grcAssessments.get(id);
+    if (!rec || rec.ownerGithubUserId !== ownerId) return null;
+    return stripOwner(rec);
+  }
+
+  async putGrcAssessment(
+    ownerId: string,
+    assessment: GrcAssessment,
+  ): Promise<void> {
+    this.grcAssessments.set(assessment.id, {
+      ...assessment,
       ownerGithubUserId: ownerId,
-      scans,
-      authorizations,
-      auditLogs,
-    };
+    });
+  }
+
+  async deleteGrcAssessment(ownerId: string, id: string): Promise<void> {
+    const rec = this.grcAssessments.get(id);
+    if (rec && rec.ownerGithubUserId === ownerId) {
+      this.grcAssessments.delete(id);
+    }
+  }
+
+  async exportBackup(ownerId: string): Promise<LocalBackupBundle> {
+    return exportBackupFromStore(this, ownerId);
   }
 
   async importBackup(
     ownerId: string,
     bundle: LocalBackupBundle,
   ): Promise<void> {
-    for (const scan of bundle.scans ?? []) {
-      await this.putScan(ownerId, scan);
-    }
-    for (const auth of bundle.authorizations ?? []) {
-      await this.putAuthorization(ownerId, auth);
-    }
-    await this.appendAuditLogs(ownerId, bundle.auditLogs ?? []);
+    await importBackupIntoStore(this, ownerId, bundle);
   }
 }
 
@@ -199,6 +269,10 @@ export class IndexedDbBrynjaStore implements ILocalBrynjaStore {
         if (!db.objectStoreNames.contains(STORE_AUDIT)) {
           const logs = db.createObjectStore(STORE_AUDIT, { keyPath: 'id' });
           logs.createIndex('by_owner', 'ownerGithubUserId', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(STORE_GRC)) {
+          const grc = db.createObjectStore(STORE_GRC, { keyPath: 'id' });
+          grc.createIndex('by_owner', 'ownerGithubUserId', { unique: false });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -393,32 +467,62 @@ export class IndexedDbBrynjaStore implements ILocalBrynjaStore {
     });
   }
 
-  async exportBackup(ownerId: string): Promise<LocalBackupBundle> {
-    const [scans, authorizations, auditLogs] = await Promise.all([
-      this.listScans(ownerId, 500),
-      this.listAuthorizations(ownerId),
-      this.listAuditLogs(ownerId),
-    ]);
-    return {
-      version: 1,
-      exportedAt: new Date().toISOString(),
+  async listGrcAssessments(ownerId: string): Promise<GrcAssessment[]> {
+    if (!this.isSupported()) {
+      return this.fallback.listGrcAssessments(ownerId);
+    }
+    const items = await this.getAllByOwner<GrcAssessment>(STORE_GRC, ownerId);
+    return items
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
+      .map(stripOwner);
+  }
+
+  async getGrcAssessment(
+    ownerId: string,
+    id: string,
+  ): Promise<GrcAssessment | null> {
+    if (!this.isSupported()) {
+      return this.fallback.getGrcAssessment(ownerId, id);
+    }
+    const rec = await this.getById<GrcAssessment>(STORE_GRC, id);
+    if (!rec || rec.ownerGithubUserId !== ownerId) return null;
+    return stripOwner(rec);
+  }
+
+  async putGrcAssessment(
+    ownerId: string,
+    assessment: GrcAssessment,
+  ): Promise<void> {
+    if (!this.isSupported()) {
+      return this.fallback.putGrcAssessment(ownerId, assessment);
+    }
+    await this.putRecord(STORE_GRC, {
+      ...assessment,
       ownerGithubUserId: ownerId,
-      scans,
-      authorizations,
-      auditLogs,
-    };
+    });
+  }
+
+  async deleteGrcAssessment(ownerId: string, id: string): Promise<void> {
+    if (!this.isSupported()) {
+      return this.fallback.deleteGrcAssessment(ownerId, id);
+    }
+    const rec = await this.getById<GrcAssessment>(STORE_GRC, id);
+    if (rec && rec.ownerGithubUserId === ownerId) {
+      await this.deleteById(STORE_GRC, id);
+    }
+  }
+
+  async exportBackup(ownerId: string): Promise<LocalBackupBundle> {
+    return exportBackupFromStore(this, ownerId);
   }
 
   async importBackup(
     ownerId: string,
     bundle: LocalBackupBundle,
   ): Promise<void> {
-    for (const scan of bundle.scans ?? []) {
-      await this.putScan(ownerId, scan);
-    }
-    for (const auth of bundle.authorizations ?? []) {
-      await this.putAuthorization(ownerId, auth);
-    }
-    await this.appendAuditLogs(ownerId, bundle.auditLogs ?? []);
+    await importBackupIntoStore(this, ownerId, bundle);
   }
 }

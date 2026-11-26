@@ -4,6 +4,7 @@ import {
   CreateScanPayload,
   GitHubIntegrationStatus,
   GitHubRepoSummary,
+  GrcAssessment,
   LocalBackupBundle,
   ProbeAuditEntry,
   ProbeFinding,
@@ -15,7 +16,7 @@ import {
   VulnerabilityFinding,
   countProbeIssues,
 } from '../models/scan.models';
-import { IBrynjaGateway } from '../ports/scan-gateway.port';
+import { IBrynjaGateway, IGrcAssessmentPort } from '../ports/scan-gateway.port';
 import {
   ILocalBrynjaStore,
   IndexedDbBrynjaStore,
@@ -74,7 +75,7 @@ function summarizeReport(report: ScanReport): ScanSummary {
   };
 }
 
-export class HttpScanGateway implements IBrynjaGateway {
+export class HttpScanGateway implements IBrynjaGateway, IGrcAssessmentPort {
   private cachedOwner: { githubUserId: string; login: string | null } | null =
     null;
 
@@ -311,6 +312,34 @@ export class HttpScanGateway implements IBrynjaGateway {
   async importLocalBackup(bundle: LocalBackupBundle): Promise<void> {
     const owner = await this.requireOwner();
     await this.store.importBackup(owner.githubUserId, bundle);
+  }
+
+  async listGrcAssessments(): Promise<GrcAssessment[]> {
+    const owner = await this.requireOwner();
+    return this.store.listGrcAssessments(owner.githubUserId);
+  }
+
+  async getGrcAssessment(id: string): Promise<GrcAssessment | null> {
+    const owner = await this.requireOwner();
+    return this.store.getGrcAssessment(owner.githubUserId, id);
+  }
+
+  async saveGrcAssessment(assessment: GrcAssessment): Promise<GrcAssessment> {
+    const owner = await this.requireOwner();
+    const now = new Date().toISOString();
+    const normalized: GrcAssessment = {
+      ...assessment,
+      id: assessment.id || makeUuid(),
+      createdAt: assessment.createdAt || now,
+      updatedAt: now,
+    };
+    await this.store.putGrcAssessment(owner.githubUserId, normalized);
+    return normalized;
+  }
+
+  async deleteGrcAssessment(id: string): Promise<void> {
+    const owner = await this.requireOwner();
+    await this.store.deleteGrcAssessment(owner.githubUserId, id);
   }
 
   private async runPipeline(

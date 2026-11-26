@@ -9,11 +9,12 @@ import React, {
   useState,
 } from 'react';
 import { HttpScanGateway } from '../gateways/http-scan.gateway';
-import { GitHubIntegrationStatus } from '../models/scan.models';
+import { GitHubIntegrationStatus, GrcAssessment } from '../models/scan.models';
 import {
   IAuditLogReader,
   IBrynjaGateway,
   IGitHubIntegrationPort,
+  IGrcAssessmentPort,
   IScanCreator,
   IScanReader,
   ITargetAuthorizer,
@@ -143,4 +144,29 @@ export function useAuditLogReader(): IAuditLogReader {
 
 export function useGitHubIntegration(): IGitHubIntegrationPort {
   return useGateway();
+}
+
+export function useGrcAssessmentPort(): IGrcAssessmentPort {
+  const gateway = useGateway();
+  return useMemo<IGrcAssessmentPort>(
+    () => ({
+      listGrcAssessments: () =>
+        gateway.listGrcAssessments
+          ? gateway.listGrcAssessments()
+          : Promise.resolve([] as GrcAssessment[]),
+      getGrcAssessment: (id) =>
+        gateway.getGrcAssessment
+          ? gateway.getGrcAssessment(id)
+          : Promise.resolve(null),
+      saveGrcAssessment: (assessment) =>
+        gateway.saveGrcAssessment
+          ? gateway.saveGrcAssessment(assessment)
+          : Promise.resolve(assessment),
+      deleteGrcAssessment: (id) =>
+        gateway.deleteGrcAssessment
+          ? gateway.deleteGrcAssessment(id)
+          : Promise.resolve(),
+    }),
+    [gateway],
+  );
 }

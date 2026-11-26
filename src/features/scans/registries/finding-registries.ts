@@ -12,6 +12,7 @@ import {
   IReportExporter,
 } from '@/core/ports/scan-gateway.port';
 import { AiRemediationJsonExporter } from '../exporters/ai-remediation-json.exporter';
+import { ComplianceControlStatus } from '../presenters/compliance.presenter';
 
 export interface BadgeMeta {
   label: string;
@@ -146,6 +147,54 @@ export const PROBE_OUTCOME_REGISTRY: Record<ProbeOutcome, BadgeMeta> = {
     classes:
       'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/40',
     weight: 1,
+  },
+};
+
+export const COMPLIANCE_STATUS_REGISTRY: Record<
+  ComplianceControlStatus,
+  BadgeMeta
+> = {
+  COMPLIANT_EVIDENCE: {
+    label: 'Conforme (Evidência Técnica)',
+    classes:
+      'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40',
+    weight: 5,
+  },
+  MANUAL_ATTESTED: {
+    label: 'Atestado (GRC)',
+    classes:
+      'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/15 dark:text-teal-300 dark:border-teal-500/40',
+    weight: 4,
+  },
+  PARTIAL: {
+    label: 'Parcial',
+    classes:
+      'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40',
+    weight: 3,
+  },
+  GAP_DETECTED: {
+    label: 'Lacuna Detectada',
+    classes:
+      'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/40',
+    weight: 6,
+  },
+  MANUAL_REQUIRED: {
+    label: 'Requer Atestado Manual',
+    classes:
+      'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/40',
+    weight: 2,
+  },
+  NOT_EVALUATED: {
+    label: 'Não Avaliado (SCA)',
+    classes:
+      'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700/40 dark:text-slate-300 dark:border-slate-600',
+    weight: 1,
+  },
+  NOT_APPLICABLE: {
+    label: 'Não Aplicável',
+    classes:
+      'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-700',
+    weight: 0,
   },
 };
 

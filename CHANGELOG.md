@@ -6,6 +6,17 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-11-26
+
+### Added
+- Added an automated **Compliance & Governance Engine** (`src/core/catalog/compliance-frameworks.catalog.ts`, `src/features/scans/presenters/compliance.presenter.ts`) mapping SCA/SBOM inventory, CWE/KEV findings, Safe Probes, and probe audit trails across **CIS Controls v8 (IG1/IG2/IG3)**, **NIST CSF 2.0**, **OWASP ASVS / Top 10**, and **LGPD (Art. 46/48/50) & ISO/IEC 27001:2022**.
+- Added the **Compliance Scorecard** tab (`ComplianceScorecardTab`) on `/scans/[id]` (`ScanReportView`) with framework switchers, CIS Implementation Group (`IG1`–`IG3`) and status filters, domain coverage bars, and technical adherence metrics.
+- Added the local-first **Governance & Compliance (GRC)** workspace at `/governance` (`GovernanceView`, linked in `Navbar`) allowing teams to combine automated scan evidence with manual organizational attestations, export formula-safe CSV matrices, and persist assessments locally in browser `IndexedDB`.
+- Added a **Compliance Matrix** section to the **Executive PDF** (`scan-pdf.exporter.ts`) summarizing technical adherence and top detected gaps across all four frameworks.
+
+### Changed
+- Upgraded browser local persistence (`IndexedDbBrynjaStore`) from schema `DB_VERSION = 1` to `DB_VERSION = 2` with a dedicated user-isolated `grcAssessments` store and `LocalBackupBundle` v2 export/import backward-compatible with v1 backups.
+
 ## [1.9.0] - 2026-11-26
 
 ### Added

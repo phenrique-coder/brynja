@@ -33,13 +33,48 @@ export interface TargetAuthorization {
   updatedAt: string;
 }
 
+export type ComplianceFrameworkId =
+  | 'cis-v8'
+  | 'nist-csf-2'
+  | 'owasp-asvs'
+  | 'lgpd-iso27001';
+
+export type CisImplementationGroup = 'IG1' | 'IG2' | 'IG3';
+
+export type GrcManualAttestationStatus =
+  | 'UNANSWERED'
+  | 'COMPLIANT'
+  | 'PARTIAL'
+  | 'NON_COMPLIANT'
+  | 'NOT_APPLICABLE';
+
+export interface GrcControlResponse {
+  controlId: string;
+  status: GrcManualAttestationStatus;
+  ownerName: string;
+  evidenceNote: string;
+  updatedAt: string;
+}
+
+export interface GrcAssessment {
+  id: string;
+  name: string;
+  repositoryUrl: string | null;
+  linkedScanId: string | null;
+  targetIg: CisImplementationGroup;
+  responses: Record<string, GrcControlResponse>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LocalBackupBundle {
-  version: 1;
+  version: 1 | 2;
   exportedAt: string;
   ownerGithubUserId: string;
   scans: ScanReport[];
   authorizations: TargetAuthorization[];
   auditLogs: ProbeAuditEntry[];
+  grcAssessments?: GrcAssessment[];
 }
 
 export interface CreateAuthorizationResponse {

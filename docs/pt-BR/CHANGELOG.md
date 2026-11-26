@@ -6,6 +6,17 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.10.0] - 2026-11-26
+
+### Adicionado
+- Adicionado o **Motor Automático de Conformidade & Governança** (`src/core/catalog/compliance-frameworks.catalog.ts` e `src/features/scans/presenters/compliance.presenter.ts`) mapeando inventário SCA/SBOM, achados CWE/KEV, Safe Probes e trilha de auditoria para **CIS Controls v8 (IG1/IG2/IG3)**, **NIST CSF 2.0**, **OWASP ASVS / Top 10** e **LGPD (Art. 46/48/50) & ISO/IEC 27001:2022**.
+- Adicionada a aba **Conformidade** (`ComplianceScorecardTab`) em `/scans/[id]` (`ScanReportView`) com seletor de frameworks, filtros de Grupo de Implementação CIS (`IG1`–`IG3`) e status, barras de cobertura por domínio e métricas de aderência técnica.
+- Adicionado o módulo local-first de **Governança & Conformidade (GRC)** em `/governance` (`GovernanceView`, com acesso pela `Navbar`), combinando evidências técnicas automáticas das varreduras com atestados organizacionais manuais, exportação de matriz CSV protegida contra *formula injection* e persistência isolada no `IndexedDB`.
+- Adicionada a seção **Matriz de Conformidade** no **PDF Executivo** (`scan-pdf.exporter.ts`) resumindo a aderência técnica e as principais lacunas nos quatro frameworks.
+
+### Alterado
+- Atualizada a persistência local no navegador (`IndexedDbBrynjaStore`) da versão de schema `DB_VERSION = 1` para `DB_VERSION = 2`, adicionando o *object store* `grcAssessments` isolado por `ownerGithubUserId` e `LocalBackupBundle` v2 retrocompatível com backups v1.
+
 ## [1.9.0] - 2026-11-26
 
 ### Adicionado

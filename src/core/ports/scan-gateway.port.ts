@@ -4,6 +4,7 @@ import {
   CreateScanPayload,
   GitHubIntegrationStatus,
   GitHubRepoSummary,
+  GrcAssessment,
   ProbeAuditEntry,
   ScanReport,
   ScanSummary,
@@ -43,6 +44,13 @@ export interface IGitHubIntegrationPort {
   getGitHubConnectUrl(returnTo?: string): string;
 }
 
+export interface IGrcAssessmentPort {
+  listGrcAssessments(): Promise<GrcAssessment[]>;
+  getGrcAssessment(id: string): Promise<GrcAssessment | null>;
+  saveGrcAssessment(assessment: GrcAssessment): Promise<GrcAssessment>;
+  deleteGrcAssessment(id: string): Promise<void>;
+}
+
 export interface ExportedReportFile {
   filename: string;
   mimeType: string;
@@ -60,4 +68,5 @@ export interface IBrynjaGateway
     IScanCreator,
     ITargetAuthorizer,
     IAuditLogReader,
-    IGitHubIntegrationPort {}
+    IGitHubIntegrationPort,
+    Partial<IGrcAssessmentPort> {}

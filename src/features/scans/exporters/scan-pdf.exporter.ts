@@ -1,9 +1,11 @@
 import type { jsPDF } from 'jspdf';
+import { COMPLIANCE_FRAMEWORK_IDS } from '@/core/catalog/compliance-frameworks.catalog';
 import {
   ProbeOutcome,
   ScanReport,
   SeverityLevel,
 } from '@/core/models/scan.models';
+import { evaluateComplianceFramework } from '../presenters/compliance.presenter';
 import {
   buildRemediationPlan,
   RemediationItem,
@@ -1074,7 +1076,85 @@ export async function buildScanReportPdf(
         3: { cellWidth: contentWidth - 120 },
       },
     });
+    cursorY = (doc.lastAutoTable?.finalY ?? cursorY + 20) + 8;
   }
+
+  // =========================================================================
+  // 11. COMPLIANCE MATRIX (CIS CONTROLS v8, NIST CSF 2.0, OWASP, LGPD/ISO)
+  // =========================================================================
+  const complianceSectionNum = String(
+    (report.auditLogs.length > 0 ? 4 : 3) +
+      (report.dependencies.length > 0 ? 1 : 0) +
+      1,
+  ).padStart(2, '0');
+
+  cursorY = drawSectionHeading(
+    doc,
+    cursorY,
+    complianceSectionNum,
+    'Matriz de Conformidade (CIS v8 · NIST CSF 2.0 · OWASP · LGPD/ISO)',
+    'Aderência técnica automática derivada das evidências desta varredura e principais lacunas regulatórias.',
+    marginX,
+  );
+
+  const scorecards = COMPLIANCE_FRAMEWORK_IDS.map((frameworkId) =>
+    evaluateComplianceFramework(report, { frameworkId, locale: 'pt-BR' }),
+  );
+
+  autoTable(doc, {
+    startY: cursorY,
+    margin: { left: marginX, right: marginX, top: 20, bottom: 18 },
+    head: [
+      [
+        'Framework',
+        'Aderência Técnica',
+        'Conformes',
+        'Lacunas',
+        'Principais Lacunas Detectadas',
+      ],
+    ],
+    body: scorecards.map((sc) => {
+      const gaps = sc.controls
+        .filter((c) => c.status === 'GAP_DETECTED')
+        .slice(0, 3)
+        .map((c) => `${c.code}: ${truncateText(c.title, 48)}`);
+      return [
+        sanitizePdfText(`${sc.shortName}\n(${sc.version})`),
+        `${sc.summary.technicalAdherencePercent}%`,
+        `${sc.summary.compliantCount}/${sc.summary.applicableControls}`,
+        String(sc.summary.gapCount),
+        sanitizePdfText(
+          gaps.length > 0
+            ? gaps.join('\n')
+            : 'Nenhuma lacuna técnica detectada neste escopo.',
+        ),
+      ];
+    }),
+    styles: {
+      font: 'helvetica',
+      fontSize: 7.3,
+      cellPadding: 2.3,
+      textColor: PALETTE.slateText,
+      lineColor: PALETTE.cardBorder,
+      lineWidth: 0.2,
+      overflow: 'linebreak',
+    },
+    headStyles: {
+      fillColor: PALETTE.navy,
+      textColor: PALETTE.white,
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: PALETTE.cardBg,
+    },
+    columnStyles: {
+      0: { cellWidth: 38, fontStyle: 'bold' },
+      1: { cellWidth: 26, halign: 'center', fontStyle: 'bold' },
+      2: { cellWidth: 20, halign: 'center' },
+      3: { cellWidth: 16, halign: 'center' },
+      4: { cellWidth: contentWidth - 100 },
+    },
+  });
 
   // =========================================================================
   // 9. RUNNING HEADERS (PAGES 2+) & FOOTERS (ALL PAGES)

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Activity,
+  ClipboardCheck,
   FileSearch,
   Github,
   History,
@@ -45,6 +46,11 @@ export function Navbar() {
       href: '/authorizations',
       label: messages.nav.authorizations,
       icon: LockKeyhole,
+    },
+    {
+      href: '/governance',
+      label: messages.nav.governance,
+      icon: ClipboardCheck,
     },
     { href: '/audit', label: messages.nav.audit, icon: FileSearch },
   ];

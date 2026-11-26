@@ -5,6 +5,7 @@ import { GatewayHttpError } from '@/core/gateways/http-scan.gateway';
 import {
   GitHubIntegrationStatus,
   GitHubRepoSummary,
+  GrcAssessment,
   ProbeAuditEntry,
   ScanReport,
   ScanSummary,
@@ -13,6 +14,7 @@ import {
 import {
   useAuditLogReader,
   useGitHubIntegration,
+  useGrcAssessmentPort,
   useScanReader,
   useSharedSession,
   useTargetAuthorizer,
@@ -318,5 +320,77 @@ export function useGitHubRepositories(returnTo = '/scans/new') {
     refresh,
     connectUrl: github.getGitHubConnectUrl(returnTo),
     disconnect: session.disconnect,
+  };
+}
+
+export function useGrcAssessments() {
+  const port = useGrcAssessmentPort();
+  const session = useSharedSession();
+  const [assessments, setAssessments] = useState<GrcAssessment[]>([]);
+  const [loading, setLoading] = useState(!session.knownUnauthenticated);
+  const [authRequired, setAuthRequired] = useState(
+    session.knownUnauthenticated,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (session.loading) return;
+    if (session.knownUnauthenticated) {
+      setAuthRequired(true);
+      setLoading(false);
+      return;
+    }
+    try {
+      setError(null);
+      setAuthRequired(false);
+      const list = await port.listGrcAssessments();
+      setAssessments(list);
+    } catch (err) {
+      if (isAuthError(err)) {
+        setAuthRequired(true);
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Erro ao carregar avaliações de governança.',
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [port, session.loading, session.knownUnauthenticated]);
+
+  const saveAssessment = useCallback(
+    async (assessment: GrcAssessment): Promise<GrcAssessment> => {
+      const saved = await port.saveGrcAssessment(assessment);
+      setAssessments((prev) => {
+        const rest = prev.filter((item) => item.id !== saved.id);
+        return [saved, ...rest];
+      });
+      return saved;
+    },
+    [port],
+  );
+
+  const deleteAssessment = useCallback(
+    async (id: string) => {
+      await port.deleteGrcAssessment(id);
+      setAssessments((prev) => prev.filter((item) => item.id !== id));
+    },
+    [port],
+  );
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return {
+    assessments,
+    loading: session.loading || loading,
+    authRequired: session.knownUnauthenticated || authRequired,
+    error,
+    refresh,
+    saveAssessment,
+    deleteAssessment,
   };
 }

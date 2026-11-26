@@ -31,7 +31,8 @@ import {
 import { IReportExporter } from '@/core/ports/scan-gateway.port';
 import { useI18n } from '@/core/providers/i18n-provider';
 import { downloadScanReportPdf } from '../exporters/scan-pdf.exporter';
-import { useScanReport } from '../hooks/use-scans';
+import { useGrcAssessments, useScanReport } from '../hooks/use-scans';
+import { evaluateComplianceFramework } from '../presenters/compliance.presenter';
 import {
   filterAndSortFindings,
   formatReferenceLinks,
@@ -48,6 +49,7 @@ import {
   VERDICT_REGISTRY,
 } from '../registries/finding-registries';
 import { AuthRequiredCard } from './AuthRequiredCard';
+import { ComplianceScorecardTab } from './ComplianceScorecardTab';
 import { StatusPill } from './StatusPill';
 import {
   KpiStatCard,
@@ -55,11 +57,12 @@ import {
   SurfaceCard,
 } from './ui/PagePrimitives';
 
-type ReportTab = 'findings' | 'dependencies' | 'probes' | 'audit';
+type ReportTab = 'findings' | 'dependencies' | 'probes' | 'compliance' | 'audit';
 
 export function ScanReportView({ scanId }: { scanId: string }) {
   const { report, loading, authRequired, error } = useScanReport(scanId);
-  const { messages, intlLocale, t } = useI18n();
+  const { assessments } = useGrcAssessments();
+  const { messages, locale, intlLocale, t } = useI18n();
   const [tab, setTab] = useState<ReportTab>('findings');
   const [severityFilter, setSeverityFilter] = useState<SeverityLevel | 'ALL'>(
     'ALL',
@@ -100,6 +103,20 @@ export function ScanReportView({ scanId }: { scanId: string }) {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [exportMenuOpen]);
+
+  const linkedAssessment = useMemo(() => {
+    if (!report) return null;
+    return assessments.find((a) => a.linkedScanId === report.id) ?? null;
+  }, [assessments, report]);
+
+  const complianceSummaryScore = useMemo(() => {
+    if (!report) return 0;
+    return evaluateComplianceFramework(report, {
+      frameworkId: 'cis-v8',
+      locale,
+      assessment: linkedAssessment,
+    }).summary.technicalAdherencePercent;
+  }, [report, locale, linkedAssessment]);
 
   const filteredFindings = useMemo(() => {
     if (!report) return [];
@@ -624,6 +641,12 @@ export function ScanReportView({ scanId }: { scanId: string }) {
               }),
             ],
             [
+              'compliance',
+              t(messages.scanReport.tabCompliance, {
+                score: complianceSummaryScore,
+              }),
+            ],
+            [
               'audit',
               t(messages.scanReport.tabAudit, {
                 count: report.auditLogs.length,
@@ -908,6 +931,13 @@ export function ScanReportView({ scanId }: { scanId: string }) {
             ))
           )}
         </div>
+      ) : null}
+
+      {tab === 'compliance' ? (
+        <ComplianceScorecardTab
+          report={report}
+          linkedAssessment={linkedAssessment}
+        />
       ) : null}
 
       {tab === 'audit' ? (
