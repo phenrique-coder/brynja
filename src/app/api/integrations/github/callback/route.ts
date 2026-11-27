@@ -65,6 +65,8 @@ export async function GET(req: NextRequest) {
       githubUserId: user.id,
       login: user.login,
       name: user.name ?? null,
+      email: user.email ?? null,
+      verifiedEmails: user.verifiedEmails ?? [],
       avatarUrl: user.avatarUrl,
       profileUrl: user.profileUrl ?? `https://github.com/${user.login}`,
       accessToken: tokenRes.accessToken,

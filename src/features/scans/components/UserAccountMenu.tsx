@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   ChevronDown,
   Clock,
@@ -8,6 +9,7 @@ import {
   Github,
   KeyRound,
   LogOut,
+  Presentation,
   ShieldCheck,
 } from 'lucide-react';
 import { GitHubIntegrationStatus } from '@/core/models/scan.models';
@@ -174,7 +176,19 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
             </div>
           </div>
 
-          <div className="p-2.5">
+          <div className="space-y-1.5 p-2.5">
+            {status.canViewPresentation ? (
+              <Link
+                href="/presentation"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/25 bg-cyan-50/70 px-3 py-2 text-center text-xs font-semibold text-cyan-800 transition hover:border-cyan-500/45 hover:bg-cyan-50 dark:bg-cyan-500/10 dark:text-cyan-200 dark:hover:bg-cyan-500/20"
+              >
+                <Presentation className="h-4 w-4 shrink-0" />
+                <span>{messages.accountMenu.presentation}</span>
+              </Link>
+            ) : null}
+
             <button
               type="button"
               role="menuitem"

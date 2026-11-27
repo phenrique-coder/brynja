@@ -141,6 +141,8 @@ export interface GitHubUserProfile {
   id: string;
   login: string;
   name?: string | null;
+  email?: string | null;
+  verifiedEmails?: string[];
   avatarUrl: string | null;
   profileUrl?: string | null;
 }
@@ -161,6 +163,8 @@ export interface EphemeralGitHubSession {
   githubUserId: string;
   login: string;
   name?: string | null;
+  email?: string | null;
+  verifiedEmails?: string[];
   avatarUrl: string | null;
   profileUrl?: string | null;
   accessToken: string;
@@ -195,6 +199,7 @@ export interface IGitHubOAuthClient {
     requestOrigin?: string,
   ): Promise<GitHubTokenExchangeResult>;
   fetchAuthenticatedUser(accessToken: string): Promise<GitHubUserProfile>;
+  fetchVerifiedEmails?(accessToken: string): Promise<string[]>;
   listRepositories(accessToken: string): Promise<GitHubRepoSummary[]>;
 }
 

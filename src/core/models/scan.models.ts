@@ -260,6 +260,7 @@ export interface GitHubIntegrationStatus {
   callbackUrl: string;
   scopes: string;
   oauthAppSettingsUrl?: string | null;
+  canViewPresentation?: boolean;
 }
 
 export interface GitHubRepoSummary {

@@ -17,8 +17,16 @@ interface GitHubUserResponse {
   id: number;
   login: string;
   name?: string | null;
+  email?: string | null;
   avatar_url?: string;
   html_url?: string;
+}
+
+interface GitHubEmailApiItem {
+  email: string;
+  primary?: boolean;
+  verified?: boolean;
+  visibility?: string | null;
 }
 
 interface GitHubRepoApiItem {
@@ -39,8 +47,9 @@ interface GitHubOrgApiItem {
   login: string;
 }
 
-const DEFAULT_OAUTH_SCOPES = 'repo read:user read:org';
+const DEFAULT_OAUTH_SCOPES = 'repo read:user user:email read:org';
 const MAX_REPO_PAGES = 5;
+const MAX_STORED_EMAILS = 10;
 
 export class GitHubOAuthClient implements IGitHubOAuthClient {
   isConfigured(): boolean {
@@ -108,10 +117,13 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
   }
 
   async fetchAuthenticatedUser(accessToken: string): Promise<GitHubUserProfile> {
-    const res = await fetch('https://api.github.com/user', {
-      headers: this.apiHeaders(accessToken),
-      signal: AbortSignal.timeout(10_000),
-    });
+    const [res, apiVerifiedEmails] = await Promise.all([
+      fetch('https://api.github.com/user', {
+        headers: this.apiHeaders(accessToken),
+        signal: AbortSignal.timeout(10_000),
+      }),
+      this.fetchVerifiedEmails(accessToken),
+    ]);
 
     if (!res.ok) {
       throw new Error(
@@ -120,13 +132,52 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
     }
 
     const user = (await res.json()) as GitHubUserResponse;
+    const publicEmail = user.email?.trim().toLowerCase() || null;
+    const verifiedEmails =
+      apiVerifiedEmails.length > 0
+        ? apiVerifiedEmails
+        : publicEmail
+          ? [publicEmail]
+          : [];
+    const primaryEmail = verifiedEmails[0] ?? publicEmail;
+
     return {
       id: String(user.id),
       login: user.login,
       name: user.name ?? null,
+      email: primaryEmail,
+      verifiedEmails,
       avatarUrl: user.avatar_url ?? null,
       profileUrl: user.html_url ?? `https://github.com/${user.login}`,
     };
+  }
+
+  async fetchVerifiedEmails(accessToken: string): Promise<string[]> {
+    try {
+      const res = await fetch('https://api.github.com/user/emails', {
+        headers: this.apiHeaders(accessToken),
+        signal: AbortSignal.timeout(6_000),
+      });
+      if (!res.ok) return [];
+
+      const items = (await res.json()) as GitHubEmailApiItem[];
+      if (!Array.isArray(items)) return [];
+
+      const verified = items
+        .filter(
+          (item) =>
+            item &&
+            item.verified === true &&
+            typeof item.email === 'string' &&
+            item.email.trim().length > 0,
+        )
+        .sort((a, b) => Number(Boolean(b.primary)) - Number(Boolean(a.primary)))
+        .map((item) => item.email.trim().toLowerCase());
+
+      return Array.from(new Set(verified)).slice(0, MAX_STORED_EMAILS);
+    } catch {
+      return [];
+    }
   }
 
   async listRepositories(accessToken: string): Promise<GitHubRepoSummary[]> {
@@ -260,6 +311,9 @@ export class GitHubOAuthClient implements IGitHubOAuthClient {
     const parts = raw.split(/[\s,]+/).filter(Boolean);
     if (parts.includes('repo') && !parts.includes('read:org')) {
       parts.push('read:org');
+    }
+    if (parts.includes('read:user') && !parts.includes('user:email')) {
+      parts.push('user:email');
     }
     return parts.join(' ');
   }

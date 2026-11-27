@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerContainer } from '@/server/application/container';
+import { resolvePresentationAccess } from '@/server/http/presentation-access';
 import {
   getRequestOrigin,
   resolveOptionalSession,
@@ -13,6 +14,7 @@ export async function GET(req: NextRequest) {
   const origin = getRequestOrigin(req);
   const config = githubOAuth.getConfigSummary(origin);
   const session = resolveOptionalSession(req);
+  const canViewPresentation = await resolvePresentationAccess(session);
 
   return NextResponse.json({
     configured: config.configured,
@@ -28,5 +30,6 @@ export async function GET(req: NextRequest) {
     callbackUrl: config.callbackUrl,
     scopes: session?.scopes?.trim() || config.scopes,
     oauthAppSettingsUrl: config.oauthAppSettingsUrl ?? null,
+    canViewPresentation,
   });
 }

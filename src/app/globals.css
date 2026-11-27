@@ -60,3 +60,36 @@ body {
   background-color: var(--border-strong);
   border-radius: 9999px;
 }
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 8mm;
+  }
+
+  body:has(.presentation-print-deck) > div > header,
+  body:has(.presentation-print-deck) > div > footer,
+  .presentation-print-deck .no-print {
+    display: none !important;
+  }
+
+  body:has(.presentation-print-deck) main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .presentation-print-slide {
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .presentation-print-slide:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}

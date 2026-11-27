@@ -83,6 +83,7 @@ export function GatewayProvider({ children, gateway }: GatewayProviderProps) {
             avatarUrl: null,
             profileUrl: null,
             sessionExpiresAt: null,
+            canViewPresentation: false,
           }
         : null,
     );

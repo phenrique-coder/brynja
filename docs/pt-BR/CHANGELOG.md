@@ -6,6 +6,13 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.23.0] - 2026-11-27
+
+### Adicionado
+- Adicionada a **Apresentação Executiva & Técnica** interativa (`/presentation`) com 18 slides ponta a ponta explicando todas as etapas do Brynja de forma acessível (proposta de valor, arquitetura Local-First custo zero, login GitHub, autorização criptográfica de domínio, 8 ecossistemas SCA, 4 camadas de análise, 19 Safe Probes, guardrails invioláveis, Consultor IA BYOK, relatórios/exportações, Governança GRC, Scan Diff/trilha de auditoria, rotina diária e plano sugerido de piloto de 30 dias).
+- Adicionados controles completos de palco em `PresentationDeckView`: alternador ao vivo de foco (**Diretoria + TI** vs **Só Executivo**), roteiro de fala ocultável do apresentador (`N`), índice visual de slides (`G`), atalhos de demonstração ao vivo abrindo telas reais em nova aba, modo palco em tela cheia (`F`), navegação por teclado e exportação limpa para PDF em paisagem (1 slide por página).
+- Adicionado controle de acesso server-side *fail-closed* via variável de ambiente `PRESENTATION_ALLOWED_USERS` (`presentation-access.policy.ts` + `resolvePresentationAccess`), cruzando o `@login` e os e-mails verificados da conta GitHub autenticada (escopo OAuth `user:email` selado exclusivamente no cookie efêmero AES-256-GCM `HttpOnly`), com atalho discreto **Apresentação Executiva** em `UserAccountMenu` visível somente para usuários autorizados.
+
 ## [1.22.0] - 2026-11-27
 
 ### Adicionado

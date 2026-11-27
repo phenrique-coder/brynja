@@ -39,9 +39,17 @@ export class SealedSessionService implements ISessionTokenCodec {
         githubUserId: parsed.githubUserId,
         login: parsed.login,
         name: parsed.name ?? null,
+        email: typeof parsed.email === 'string' ? parsed.email : null,
+        verifiedEmails: Array.isArray(parsed.verifiedEmails)
+          ? parsed.verifiedEmails.filter(
+              (item): item is string =>
+                typeof item === 'string' && item.trim().length > 0,
+            )
+          : [],
         avatarUrl: parsed.avatarUrl ?? null,
         profileUrl: parsed.profileUrl ?? null,
         accessToken: parsed.accessToken,
+        scopes: typeof parsed.scopes === 'string' ? parsed.scopes : undefined,
         issuedAt: parsed.issuedAt ?? Date.now(),
         expiresAt: parsed.expiresAt,
       };
