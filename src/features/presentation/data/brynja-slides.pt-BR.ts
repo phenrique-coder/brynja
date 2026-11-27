@@ -13,11 +13,48 @@ export const PRESENTATION_CHAPTERS: readonly SlideChapterMeta[] = [
 
 export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   {
-    id: 'cover',
+    id: 'hero-cover',
     number: 1,
     chapter: 'vision',
-    kicker: 'Apresentação Executiva & Técnica',
-    title: 'Brynja — Segurança Proativa de Aplicações',
+    isHeroCover: true,
+    kicker: 'Apresentação Executiva & Técnica · Equipe de TI e Diretoria',
+    title: 'Brynja',
+    subtitle:
+      'Plataforma Proativa de Segurança em Aplicações — da inspeção de código e bibliotecas à verificação ativa segura e conformidade regulatória.',
+    visual: 'hero-cover',
+    highlights: [
+      {
+        title: 'Local-First & Custo Zero',
+        description: 'Zero banco de dados na nuvem',
+      },
+      {
+        title: '8 Ecossistemas SCA',
+        description: 'OSV · NVD · EPSS · CISA KEV',
+      },
+      {
+        title: '19 Safe Probes',
+        description: 'Somente leitura (GET / HEAD)',
+      },
+      {
+        title: 'Governança GRC',
+        description: 'CIS v8 · NIST · OWASP · LGPD',
+      },
+    ],
+    itDetails: {
+      summary:
+        'Next.js 15 App Router (SOLID) · Vercel Serverless · IndexedDB isolado por conta GitHub · Guardrails anti-SSRF & Certificados AES-256-GCM.',
+      tags: ['100% Serverless', 'Local-First', 'Open-Source MIT', 'Defensivo'],
+    },
+    presenterNotes:
+      'Slide de abertura enquanto todos entram na sala ou na chamada. Apresente o nome Brynja ("cota de malha" em nórdico antigo) e antecipe o roteiro: em cerca de 25 minutos vamos passar pelo valor de negócio, privacidade Local-First, todas as 7 etapas da plataforma na prática e uma proposta de piloto de 30 dias sem custo.',
+    estimatedTime: '0,5 min',
+  },
+  {
+    id: 'cover',
+    number: 2,
+    chapter: 'vision',
+    kicker: 'Visão Geral da Plataforma',
+    title: 'Por que Brynja? Segurança em Camadas sem Fricção',
     subtitle:
       'Da inspeção de código e bibliotecas até conformidade regulatória (LGPD, ISO 27001, CIS v8), sem banco de dados na nuvem e sem risco de derrubar sistemas.',
     analogy:
@@ -58,7 +95,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'problem',
-    number: 2,
+    number: 3,
     chapter: 'vision',
     kicker: 'Por que precisamos agir agora?',
     title: 'O Desafio Atual da Segurança em Aplicações',
@@ -93,7 +130,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'chainmail',
-    number: 3,
+    number: 4,
     chapter: 'vision',
     kicker: 'Nossa Filosofia',
     title: 'Defesa em Profundidade: Como a Cota de Malha Protege',
@@ -135,7 +172,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'local-first',
-    number: 4,
+    number: 5,
     chapter: 'vision',
     kicker: 'Arquitetura & Privacidade',
     title: 'Zero Banco na Nuvem: Privacidade Local-First & Custo Zero',
@@ -177,7 +214,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'journey-map',
-    number: 5,
+    number: 6,
     chapter: 'onboarding',
     kicker: 'Visão Panorâmica',
     title: 'Mapa Completo da Plataforma: As 7 Etapas na Prática',
@@ -213,7 +250,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'stage-auth',
-    number: 6,
+    number: 7,
     chapter: 'onboarding',
     kicker: 'Etapa 1 de 7',
     title: 'Acesso Seguro com GitHub & Isolamento Multi-Usuário',
@@ -249,7 +286,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'stage-authz',
-    number: 7,
+    number: 8,
     chapter: 'onboarding',
     kicker: 'Etapa 2 de 7',
     title: 'Autorização Criptográfica de Domínio (Uso 100% Ético)',
@@ -287,7 +324,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'stage-new-scan',
-    number: 8,
+    number: 9,
     chapter: 'onboarding',
     kicker: 'Etapa 3 de 7',
     title: 'Iniciando uma Varredura & 8 Ecossistemas Suportados',
@@ -323,7 +360,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'layer-sca',
-    number: 9,
+    number: 10,
     chapter: 'analysis',
     kicker: 'Etapa 4 · Camada 1 de 4',
     title: 'Inventário de Dependências (SCA/SBOM) & Inteligência Real',
@@ -360,7 +397,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'layer-static',
-    number: 10,
+    number: 11,
     chapter: 'analysis',
     kicker: 'Etapa 4 · Camada 2 de 4',
     title: 'Análise Estática: Código, Segredos, Infraestrutura & Postura',
@@ -395,7 +432,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'layer-probes',
-    number: 11,
+    number: 12,
     chapter: 'analysis',
     kicker: 'Etapa 4 · Camada 3 de 4',
     title: '19 Safe Probes: Check-up Seguro da Aplicação no Ar',
@@ -433,7 +470,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'guardrails',
-    number: 12,
+    number: 13,
     chapter: 'analysis',
     kicker: 'Cláusula Pétrea de Segurança',
     title: 'Guardrails Invioláveis: Por que o Brynja Não Derruba Sistemas',
@@ -468,7 +505,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'layer-ai',
-    number: 13,
+    number: 14,
     chapter: 'analysis',
     kicker: 'Etapa 4 · Camada 4 de 4 (Opcional)',
     title: 'Consultor AppSec por IA (Modelo BYOK Sob Controle Total)',
@@ -503,7 +540,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'stage-reports',
-    number: 14,
+    number: 15,
     chapter: 'results',
     kicker: 'Etapa 5 de 7',
     title: 'Relatórios Inteligentes: Da Diretoria ao Código',
@@ -539,7 +576,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'stage-governance',
-    number: 15,
+    number: 16,
     chapter: 'results',
     kicker: 'Etapa 6 de 7',
     title: 'Governança, Risco & Conformidade (GRC Automático)',
@@ -575,7 +612,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'stage-history-audit',
-    number: 16,
+    number: 17,
     chapter: 'results',
     kicker: 'Etapa 7 de 7',
     title: 'Histórico, Evolução (Scan Diff), Importações & Auditoria',
@@ -611,7 +648,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'daily-routine',
-    number: 17,
+    number: 18,
     chapter: 'adoption',
     kicker: 'Na Prática do Dia a Dia',
     title: 'Como a TI e a Diretoria Operam o Brynja na Rotina',
@@ -646,7 +683,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
   },
   {
     id: 'pilot-roadmap',
-    number: 18,
+    number: 19,
     chapter: 'adoption',
     kicker: 'Próximos Passos & Aprovação',
     title: 'Plano Sugerido de Piloto (30 Dias) — Risco Zero, Custo Zero',

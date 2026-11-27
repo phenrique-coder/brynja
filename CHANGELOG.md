@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ## [1.23.0] - 2026-11-27
 
 ### Added
-- Added interactive **Executive & IT Presentation** route (`/presentation`) with 18 end-to-end slides detailing every stage of Brynja (access & Local-First architecture, cryptographic domain authorization, 8 SCA ecosystems, 4 analysis layers, 19 Safe Probes, inviolable guardrails, BYOK AI Advisor, reports/exports, GRC compliance, Scan Diff/audit trail, daily routines, and a 30-day pilot roadmap).
+- Added interactive **Executive & IT Presentation** route (`/presentation`) with 19 end-to-end slides (dedicated keynote cover + 18 detailed slides covering access & Local-First architecture, cryptographic domain authorization, 8 SCA ecosystems, 4 analysis layers, 19 Safe Probes, inviolable guardrails, BYOK AI Advisor, reports/exports, GRC compliance, Scan Diff/audit trail, daily routines, and a 30-day pilot roadmap).
 - Added full stage controls in `PresentationDeckView`: live audience focus toggle (**Board + IT** vs **Executive Only**), collapsible presenter speaking notes (`N`), visual slide overview index (`G`), live demo shortcuts opening real platform pages in a new tab, fullscreen stage mode (`F`), keyboard navigation, and 1-slide-per-page landscape PDF print export.
 - Added strict fail-closed server-side access control via `PRESENTATION_ALLOWED_USERS` (`presentation-access.policy.ts` + `resolvePresentationAccess`), matching authenticated GitHub `@login` and verified GitHub emails (`user:email` OAuth scope stored inside the ephemeral AES-256-GCM `HttpOnly` session cookie) and exposing a discrete **Executive Presentation** shortcut in `UserAccountMenu` exclusively for authorized users.
 

@@ -60,7 +60,9 @@ export function SlideVisualDiagram({
 
   const diagram = (() => {
     switch (visual) {
-    case 'cover':
+      case 'hero-cover':
+        return null;
+      case 'cover':
       return (
         <div className="relative overflow-hidden rounded-2xl border border-cyan-500/25 bg-gradient-to-br from-cyan-500/10 via-surface-subtle to-indigo-500/10 p-5 sm:p-6">
           <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left print:flex-row print:text-left">

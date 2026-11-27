@@ -35,6 +35,128 @@ export function PresentationSlideCard({
   const slideNum = String(slide.number).padStart(2, '0');
   const totalNum = String(totalSlides).padStart(2, '0');
 
+  if (slide.isHeroCover) {
+    return (
+      <article
+        className={`relative flex flex-col justify-between overflow-hidden border border-cyan-500/30 bg-gradient-to-br from-surface via-surface to-cyan-500/10 shadow-sm ${
+          isPrintMode
+            ? 'presentation-print-slide rounded-2xl p-6 shadow-none'
+            : 'min-h-[540px] rounded-3xl p-6 sm:p-10'
+        }`}
+      >
+        {/* Decorative ambient glow */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-500/15 blur-3xl print:hidden"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-indigo-500/15 blur-3xl print:hidden"
+        />
+
+        {/* Top bar */}
+        <div className="relative flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-800 dark:text-cyan-200">
+            {slide.kicker}
+          </span>
+          <span className="rounded-lg border border-subtle bg-surface-subtle px-2.5 py-1 font-mono text-xs font-semibold text-fg-secondary">
+            v{appVersion} · {slideNum} / {totalNum}
+          </span>
+        </div>
+
+        {/* Center Keynote Hero */}
+        <div
+          className={`relative mx-auto flex max-w-4xl flex-col items-center text-center ${
+            isPrintMode ? 'my-4 gap-4' : 'my-6 gap-5 sm:my-8'
+          }`}
+        >
+          <div
+            className={`flex items-center justify-center rounded-3xl border border-cyan-500/35 bg-surface shadow-xl shadow-cyan-950/20 ${
+              isPrintMode ? 'h-24 w-24' : 'h-28 w-28 sm:h-32 sm:w-32'
+            }`}
+          >
+            <BrynjaLogo
+              className={
+                isPrintMode
+                  ? 'h-16 w-16 drop-shadow-sm'
+                  : 'h-20 w-20 drop-shadow-sm sm:h-24 sm:w-24'
+              }
+            />
+          </div>
+
+          <div className="space-y-2.5">
+            <h1
+              className={
+                isPrintMode
+                  ? 'text-5xl font-extrabold tracking-tight text-fg'
+                  : 'text-4xl font-extrabold tracking-tight text-fg sm:text-6xl'
+              }
+            >
+              {slide.title}
+            </h1>
+            <p
+              className={
+                isPrintMode
+                  ? 'mx-auto max-w-3xl text-base leading-relaxed text-fg-secondary'
+                  : 'mx-auto max-w-2xl text-base leading-relaxed text-fg-secondary sm:text-lg'
+              }
+            >
+              {slide.subtitle}
+            </p>
+          </div>
+
+          {/* Four signature pillars */}
+          <div
+            className={`grid w-full gap-2.5 ${
+              isPrintMode
+                ? 'grid-cols-4'
+                : 'grid-cols-2 sm:grid-cols-4'
+            }`}
+          >
+            {slide.highlights.map((pillar) => (
+              <div
+                key={pillar.title}
+                className="rounded-2xl border border-subtle bg-surface/85 px-3.5 py-3 text-center shadow-sm"
+              >
+                <div className="text-xs font-bold text-cyan-800 dark:text-cyan-200 sm:text-sm">
+                  {pillar.title}
+                </div>
+                <div className="mt-0.5 text-[11px] text-fg-secondary">
+                  {pillar.description}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom strip */}
+        <div className="relative">
+          {showTechnicalDetails ? (
+            <div
+              data-testid={isPrintMode ? undefined : 'slide-technical-details'}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-indigo-500/25 bg-indigo-50/60 px-4 py-2.5 dark:bg-indigo-500/10"
+            >
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-200">
+                <Terminal className="h-3.5 w-3.5" />
+                {technicalBoxLabel}
+              </span>
+              <span className="font-mono text-[11px] text-fg-secondary">
+                {slide.itDetails.summary}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between border-t border-subtle pt-3 text-xs text-fg-muted">
+              <span>Brynja — Segurança Proativa em Camadas</span>
+              <span className="font-mono">
+                v{appVersion} · Open-Source (MIT)
+              </span>
+            </div>
+          )}
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article
       className={`relative flex flex-col justify-between overflow-hidden border border-subtle bg-surface shadow-sm ${

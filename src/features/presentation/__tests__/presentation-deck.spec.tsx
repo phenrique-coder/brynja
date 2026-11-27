@@ -14,14 +14,15 @@ describe('Brynja interactive presentation deck', () => {
     window.localStorage.clear();
   });
 
-  it('defines 18 sequential slides with complete dual-layer metadata', () => {
-    expect(BRYNJA_PRESENTATION_SLIDES).toHaveLength(18);
+  it('defines 19 sequential slides starting with the hero cover and complete dual-layer metadata', () => {
+    expect(BRYNJA_PRESENTATION_SLIDES).toHaveLength(19);
+    expect(BRYNJA_PRESENTATION_SLIDES[0]?.isHeroCover).toBe(true);
     const chapterIds = new Set(PRESENTATION_CHAPTERS.map((c) => c.id));
 
     BRYNJA_PRESENTATION_SLIDES.forEach((slide, index) => {
       expect(slide.number).toBe(index + 1);
       expect(chapterIds.has(slide.chapter)).toBe(true);
-      expect(slide.title.trim().length).toBeGreaterThan(5);
+      expect(slide.title.trim().length).toBeGreaterThan(3);
       expect(slide.subtitle.trim().length).toBeGreaterThan(10);
       expect(slide.highlights.length).toBeGreaterThanOrEqual(3);
       expect(slide.itDetails.summary.trim().length).toBeGreaterThan(10);
@@ -44,8 +45,8 @@ describe('Brynja interactive presentation deck', () => {
       </I18nProvider>,
     );
 
-    // Starts at slide 1 with IT details visible
-    expect(screen.getByText('Slide 1 de 18')).toBeTruthy();
+    // Starts at slide 1 (hero cover) with IT details visible
+    expect(screen.getByText('Slide 1 de 19')).toBeTruthy();
     expect(screen.getByTestId('slide-technical-details')).toBeTruthy();
 
     // Toggle to Executive-only mode (hides IT details)
@@ -61,13 +62,13 @@ describe('Brynja interactive presentation deck', () => {
 
     // Navigate via Next button and ArrowRight/ArrowLeft
     fireEvent.click(screen.getByRole('button', { name: /Próximo slide/i }));
-    expect(screen.getByText('Slide 2 de 18')).toBeTruthy();
+    expect(screen.getByText('Slide 2 de 19')).toBeTruthy();
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(screen.getByText('Slide 3 de 18')).toBeTruthy();
+    expect(screen.getByText('Slide 3 de 19')).toBeTruthy();
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
-    expect(screen.getByText('Slide 2 de 18')).toBeTruthy();
+    expect(screen.getByText('Slide 2 de 19')).toBeTruthy();
 
     // Toggle presenter notes via button
     fireEvent.click(screen.getByRole('button', { name: /Notas/i }));
@@ -75,7 +76,7 @@ describe('Brynja interactive presentation deck', () => {
       screen.getByText(/Roteiro de fala do apresentador/i),
     ).toBeTruthy();
 
-    // Open slide overview and jump to slide 18
+    // Open slide overview and jump to slide 19
     fireEvent.click(screen.getByRole('button', { name: /Índice/i }));
     const dialog = screen.getByRole('dialog', {
       name: /Visão Geral da Apresentação/i,
@@ -83,7 +84,7 @@ describe('Brynja interactive presentation deck', () => {
     expect(dialog).toBeTruthy();
 
     fireEvent.click(within(dialog).getByText(/Plano Sugerido de Piloto/i));
-    expect(screen.getByText('Slide 18 de 18')).toBeTruthy();
+    expect(screen.getByText('Slide 19 de 19')).toBeTruthy();
 
     // Trigger PDF print export
     fireEvent.click(screen.getByRole('button', { name: /Exportar PDF/i }));

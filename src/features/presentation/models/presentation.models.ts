@@ -6,6 +6,7 @@ export type SlideChapterId =
   | 'adoption';
 
 export type SlideVisualKind =
+  | 'hero-cover'
   | 'cover'
   | 'problem'
   | 'chainmail'
@@ -44,6 +45,7 @@ export interface PresentationSlide {
   readonly id: string;
   readonly number: number;
   readonly chapter: SlideChapterId;
+  readonly isHeroCover?: boolean;
   readonly kicker: string;
   readonly title: string;
   readonly subtitle: string;
