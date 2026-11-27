@@ -108,6 +108,7 @@ describe('NewScanView GitHub OAuth Repo Picker & UserAccountMenu', () => {
           githubUserId: '99',
           login: 'octocat',
           name: 'Octocat Developer',
+          email: 'octocat@github.com',
           avatarUrl: null,
           profileUrl: 'https://github.com/octocat',
           sessionExpiresAt: Date.now() + 3600_000,
@@ -120,8 +121,10 @@ describe('NewScanView GitHub OAuth Repo Picker & UserAccountMenu', () => {
 
     fireEvent.click(screen.getByRole('button'));
     expect(screen.getByText('Octocat Developer')).toBeTruthy();
+    expect(screen.getByText('octocat@github.com')).toBeTruthy();
     expect(screen.getByText('#99')).toBeTruthy();
-    expect(screen.getByText('repo read:user')).toBeTruthy();
+    expect(screen.getByText('repo')).toBeTruthy();
+    expect(screen.getByText('read:user')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('menuitem'));
     await waitFor(() => {

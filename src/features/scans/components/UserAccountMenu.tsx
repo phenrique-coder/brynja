@@ -70,6 +70,10 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
         minute: '2-digit',
       })
     : null;
+  const scopeTokens = (status.scopes || 'app')
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   return (
     <div ref={containerRef} className="relative">
@@ -104,7 +108,7 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-subtle bg-surface shadow-xl shadow-slate-900/10 dark:shadow-black/60"
+          className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-subtle bg-surface shadow-xl shadow-slate-900/10 dark:shadow-black/60"
         >
           <div className="border-b border-subtle p-4">
             <div className="flex items-center gap-3">
@@ -126,6 +130,14 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
                 <div className="truncate font-mono text-xs text-fg-secondary">
                   @{status.login}
                 </div>
+                {status.email ? (
+                  <div
+                    title={status.email}
+                    className="mt-0.5 truncate text-[11px] text-fg-muted"
+                  >
+                    {status.email}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -151,11 +163,18 @@ export function UserAccountMenu({ status, onLogout }: UserAccountMenuProps) {
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-fg-secondary">
-              <span>{messages.accountMenu.scopes}</span>
-              <span className="font-mono text-[11px] font-medium text-fg">
-                {status.scopes || 'app'}
-              </span>
+            <div className="flex items-start justify-between gap-3 text-fg-secondary">
+              <span className="shrink-0 pt-0.5">{messages.accountMenu.scopes}</span>
+              <div className="flex min-w-0 flex-wrap justify-end gap-1">
+                {scopeTokens.map((scope) => (
+                  <span
+                    key={scope}
+                    className="rounded-md border border-subtle bg-surface px-1.5 py-0.5 font-mono text-[10px] font-medium text-fg"
+                  >
+                    {scope}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-fg-secondary">

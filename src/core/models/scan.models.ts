@@ -254,6 +254,7 @@ export interface GitHubIntegrationStatus {
   githubUserId: string | null;
   login: string | null;
   name?: string | null;
+  email?: string | null;
   avatarUrl: string | null;
   profileUrl?: string | null;
   sessionExpiresAt?: number | null;

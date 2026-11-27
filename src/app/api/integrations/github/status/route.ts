@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     githubUserId: session?.githubUserId ?? null,
     login: session?.login ?? null,
     name: session?.name ?? null,
+    email: session?.email ?? null,
     avatarUrl: session?.avatarUrl ?? null,
     profileUrl:
       session?.profileUrl ??

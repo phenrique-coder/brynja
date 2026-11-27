@@ -80,6 +80,7 @@ export function GatewayProvider({ children, gateway }: GatewayProviderProps) {
             githubUserId: null,
             login: null,
             name: null,
+            email: null,
             avatarUrl: null,
             profileUrl: null,
             sessionExpiresAt: null,
