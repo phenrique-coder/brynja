@@ -37,10 +37,10 @@ export function PresentationSlideCard({
 
   return (
     <article
-      className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border border-subtle bg-surface shadow-sm ${
+      className={`relative flex flex-col justify-between overflow-hidden border border-subtle bg-surface shadow-sm ${
         isPrintMode
-          ? 'presentation-print-slide min-h-[180mm] p-7 shadow-none'
-          : 'min-h-[540px] p-5 sm:p-8'
+          ? 'presentation-print-slide rounded-2xl p-5 shadow-none'
+          : 'min-h-[540px] rounded-3xl p-5 sm:p-8'
       }`}
     >
       {/* Subtle decorative ambient accent */}
@@ -49,9 +49,13 @@ export function PresentationSlideCard({
         className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl print:hidden"
       />
 
-      <div className="relative space-y-5">
+      <div className={isPrintMode ? 'relative space-y-3' : 'relative space-y-5'}>
         {/* Slide header metadata */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-subtle pb-3">
+        <div
+          className={`flex flex-wrap items-center justify-between gap-2 border-b border-subtle ${
+            isPrintMode ? 'pb-2' : 'pb-3'
+          }`}
+        >
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-200">
               {chapterLabel}
@@ -85,19 +89,37 @@ export function PresentationSlideCard({
         </div>
 
         {/* Title & universal plain-language summary */}
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold tracking-tight text-fg sm:text-3xl">
+        <div className={isPrintMode ? 'space-y-1' : 'space-y-2'}>
+          <h2
+            className={
+              isPrintMode
+                ? 'text-[21px] font-bold leading-tight tracking-tight text-fg'
+                : 'text-xl font-bold tracking-tight text-fg sm:text-3xl'
+            }
+          >
             {slide.title}
           </h2>
-          <p className="max-w-4xl text-sm leading-relaxed text-fg-secondary sm:text-base">
+          <p
+            className={
+              isPrintMode
+                ? 'max-w-5xl text-[12.5px] leading-snug text-fg-secondary'
+                : 'max-w-4xl text-sm leading-relaxed text-fg-secondary sm:text-base'
+            }
+          >
             {slide.subtitle}
           </p>
         </div>
 
         {/* Plain-language analogy callout when present */}
         {slide.analogy ? (
-          <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/25 bg-amber-50/70 px-4 py-2.5 text-xs leading-relaxed text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
-            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+          <div
+            className={`flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-50/70 text-amber-950 dark:bg-amber-500/10 dark:text-amber-100 ${
+              isPrintMode
+                ? 'px-3 py-1.5 text-[11px] leading-snug'
+                : 'rounded-2xl px-4 py-2.5 text-xs leading-relaxed'
+            }`}
+          >
+            <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
             <span>{slide.analogy}</span>
           </div>
         ) : null}
@@ -107,26 +129,49 @@ export function PresentationSlideCard({
           visual={slide.visual}
           appVersion={appVersion}
           showTechnicalDetails={showTechnicalDetails}
+          compact={isPrintMode}
         />
 
         {/* Key executive takeaways */}
         <div
-          className={`grid gap-3 ${
-            slide.highlights.length === 4 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
+          className={`grid ${
+            isPrintMode ? 'gap-2' : 'gap-3'
+          } ${
+            slide.highlights.length === 4
+              ? isPrintMode
+                ? 'grid-cols-2'
+                : 'sm:grid-cols-2'
+              : isPrintMode
+                ? 'grid-cols-3'
+                : 'sm:grid-cols-3'
           }`}
         >
           {slide.highlights.map((item) => (
             <div
               key={item.title}
-              className="rounded-2xl border border-subtle bg-surface-subtle/60 p-3.5"
+              className={`border border-subtle bg-surface-subtle/60 ${
+                isPrintMode ? 'rounded-xl p-2.5' : 'rounded-2xl p-3.5'
+              }`}
             >
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600 dark:text-cyan-400" />
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
                 <div>
-                  <div className="text-xs font-bold text-fg sm:text-sm">
+                  <div
+                    className={
+                      isPrintMode
+                        ? 'text-[11.5px] font-bold leading-snug text-fg'
+                        : 'text-xs font-bold text-fg sm:text-sm'
+                    }
+                  >
                     {item.title}
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-fg-secondary">
+                  <p
+                    className={
+                      isPrintMode
+                        ? 'mt-0.5 text-[10.5px] leading-snug text-fg-secondary'
+                        : 'mt-1 text-xs leading-relaxed text-fg-secondary'
+                    }
+                  >
                     {item.description}
                   </p>
                 </div>
@@ -137,34 +182,42 @@ export function PresentationSlideCard({
       </div>
 
       {/* Dual-layer optional IT technical footer */}
-      <div className="relative mt-5">
+      <div className={isPrintMode ? 'relative mt-2.5' : 'relative mt-5'}>
         {showTechnicalDetails ? (
           <div
             data-testid={isPrintMode ? undefined : 'slide-technical-details'}
-            className="rounded-2xl border border-indigo-500/25 bg-indigo-50/60 px-4 py-3 dark:bg-indigo-500/10"
+            className={`border border-indigo-500/25 bg-indigo-50/60 dark:bg-indigo-500/10 ${
+              isPrintMode ? 'rounded-xl px-3 py-2' : 'rounded-2xl px-4 py-3'
+            }`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-200">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-200">
                 <Terminal className="h-3.5 w-3.5" />
                 <span>{technicalBoxLabel}</span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {slide.itDetails.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-md border border-indigo-500/25 bg-surface/80 px-2 py-0.5 font-mono text-[10px] font-semibold text-indigo-800 dark:text-indigo-200"
+                    className="rounded-md border border-indigo-500/25 bg-surface/80 px-1.5 py-0.5 font-mono text-[9.5px] font-semibold text-indigo-800 dark:text-indigo-200"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
             </div>
-            <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-fg-secondary">
+            <p
+              className={
+                isPrintMode
+                  ? 'mt-1 font-mono text-[10px] leading-snug text-fg-secondary'
+                  : 'mt-1.5 font-mono text-[11px] leading-relaxed text-fg-secondary'
+              }
+            >
               {slide.itDetails.summary}
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-between border-t border-subtle pt-2.5 text-[11px] text-fg-muted">
+          <div className="flex items-center justify-between border-t border-subtle pt-2 text-[11px] text-fg-muted">
             <span>Brynja v{appVersion} · Apresentação Executiva</span>
             <span className="font-mono">
               {slideNum} / {totalNum}

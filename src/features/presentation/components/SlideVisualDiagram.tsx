@@ -42,23 +42,33 @@ export interface SlideVisualDiagramProps {
   visual: SlideVisualKind;
   appVersion: string;
   showTechnicalDetails: boolean;
+  compact?: boolean;
 }
 
 export function SlideVisualDiagram({
   visual,
   appVersion,
   showTechnicalDetails,
+  compact = false,
 }: SlideVisualDiagramProps) {
-  switch (visual) {
+  const wrap = (content: React.ReactNode) =>
+    compact ? (
+      <div className="presentation-diagram-compact">{content}</div>
+    ) : (
+      content
+    );
+
+  const diagram = (() => {
+    switch (visual) {
     case 'cover':
       return (
         <div className="relative overflow-hidden rounded-2xl border border-cyan-500/25 bg-gradient-to-br from-cyan-500/10 via-surface-subtle to-indigo-500/10 p-5 sm:p-6">
-          <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+          <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left print:flex-row print:text-left">
             <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl border border-cyan-500/30 bg-surface shadow-lg shadow-cyan-950/15">
               <BrynjaLogo className="h-16 w-16 drop-shadow-sm" />
             </div>
             <div className="space-y-3">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:justify-start print:justify-start">
                 <span className="rounded-full border border-cyan-500/30 bg-cyan-500/15 px-3 py-0.5 font-mono text-xs font-semibold text-cyan-800 dark:text-cyan-200">
                   v{appVersion}
                 </span>
@@ -69,7 +79,7 @@ export function SlideVisualDiagram({
                   Uso 100% Defensivo
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 print:grid-cols-4">
                 {[
                   { value: '8', label: 'Ecossistemas SCA' },
                   { value: '19', label: 'Safe Probes' },
@@ -96,7 +106,7 @@ export function SlideVisualDiagram({
 
     case 'problem':
       return (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3 print:grid-cols-3">
           {[
             {
               icon: AlertTriangle,
@@ -153,7 +163,7 @@ export function SlideVisualDiagram({
 
     case 'chainmail':
       return (
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-4 print:grid-cols-4">
           {[
             {
               ring: 'Anel 01',
@@ -217,7 +227,7 @@ export function SlideVisualDiagram({
 
     case 'local-first':
       return (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
             <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
               <Laptop className="h-5 w-5" />
@@ -274,7 +284,7 @@ export function SlideVisualDiagram({
 
     case 'journey-map':
       return (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7 print:grid-cols-7">
           {[
             { n: '01', title: 'Login GitHub', icon: Github },
             { n: '02', title: 'Autorizar Domínio', icon: Lock },
@@ -307,7 +317,7 @@ export function SlideVisualDiagram({
 
     case 'stage-auth':
       return (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3 print:grid-cols-3">
           {[
             {
               icon: Github,
@@ -356,7 +366,7 @@ export function SlideVisualDiagram({
 
     case 'stage-authz':
       return (
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-4 print:grid-cols-4">
           {[
             {
               step: 'Passo 1',
@@ -408,7 +418,7 @@ export function SlideVisualDiagram({
     case 'stage-new-scan':
       return (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:grid-cols-4">
             {[
               { eco: 'Node.js / JS / TS', files: 'package.json, pnpm, yarn' },
               { eco: 'Python', files: 'requirements.txt, pyproject' },
@@ -444,7 +454,7 @@ export function SlideVisualDiagram({
 
     case 'layer-sca':
       return (
-        <div className="grid gap-2.5 sm:grid-cols-5">
+        <div className="grid gap-2.5 sm:grid-cols-5 print:grid-cols-5">
           {[
             {
               name: 'OSV.dev',
@@ -491,7 +501,7 @@ export function SlideVisualDiagram({
 
     case 'layer-static':
       return (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
           {[
             {
               icon: KeyRound,
@@ -548,7 +558,7 @@ export function SlideVisualDiagram({
 
     case 'layer-probes':
       return (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
           {[
             {
               count: '5 Sondas',
@@ -601,7 +611,7 @@ export function SlideVisualDiagram({
 
     case 'guardrails':
       return (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
           {[
             {
               icon: Lock,
@@ -654,7 +664,7 @@ export function SlideVisualDiagram({
 
     case 'layer-ai':
       return (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
           <div className="rounded-2xl border border-subtle bg-surface-subtle p-4">
             <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
               <KeyRound className="h-4 w-4" />
@@ -696,7 +706,7 @@ export function SlideVisualDiagram({
 
     case 'stage-reports':
       return (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
           {[
             {
               audience: 'Diretoria & Gerência',
@@ -769,7 +779,7 @@ export function SlideVisualDiagram({
     case 'stage-governance':
       return (
         <div className="space-y-3">
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
             {[
               {
                 fw: 'CIS Controls v8',
@@ -820,7 +830,7 @@ export function SlideVisualDiagram({
 
     case 'stage-history-audit':
       return (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 print:grid-cols-3">
           {[
             {
               icon: Activity,
@@ -867,7 +877,7 @@ export function SlideVisualDiagram({
 
     case 'daily-routine':
       return (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 print:grid-cols-2">
           <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4">
             <div className="flex items-center gap-2 text-sm font-bold text-cyan-800 dark:text-cyan-200">
               <Terminal className="h-4 w-4" />
@@ -940,7 +950,7 @@ export function SlideVisualDiagram({
 
     case 'pilot-roadmap':
       return (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
           {[
             {
               week: 'Semana 1',
@@ -984,5 +994,8 @@ export function SlideVisualDiagram({
           ))}
         </div>
       );
-  }
+    }
+  })();
+
+  return wrap(diagram);
 }
