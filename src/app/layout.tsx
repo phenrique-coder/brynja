@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import React from 'react';
 import { GatewayProvider } from '@/core/providers/gateway-provider';
 import { I18nProvider } from '@/core/providers/i18n-provider';
@@ -13,13 +14,13 @@ export const metadata: Metadata = {
     'Plataforma web de análise proativa de dependências, inteligência de CVEs e verificação ativa não destrutiva.',
 };
 
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('brynja-theme');var dark=t?t==='dark':!window.matchMedia('(prefers-color-scheme: light)').matches;document.documentElement.classList.toggle('dark',dark);}catch(e){document.documentElement.classList.add('dark');}})();`;
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     <html lang="pt-BR" suppressHydrationWarning className="dark">
       <head>
@@ -33,7 +34,7 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
         />
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script src="/theme-init.js" nonce={nonce} />
       </head>
       <body className="min-h-screen bg-canvas font-sans text-fg antialiased">
         <ThemeProvider>

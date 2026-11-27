@@ -394,4 +394,45 @@ describe('Governance GRC Local-First Storage & UI', () => {
       fetchSpy.mockRestore();
     }
   });
+
+  it('recovers orphaned RUNNING scans older than 2 minutes as FAILED on read so IndexedDB never stalls forever', async () => {
+    const store = new InMemoryBrynjaStore();
+    const staleDate = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    await store.putScan('gh-user-1', {
+      ...makeSampleReport('scan-orphaned-1'),
+      status: 'RUNNING',
+      currentStage: 'querying_vulnerability_intel',
+      completedAt: null,
+      startedAt: staleDate,
+      createdAt: staleDate,
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          configured: true,
+          connected: true,
+          githubUserId: 'gh-user-1',
+          login: 'pedro',
+          avatarUrl: null,
+          callbackUrl: 'http://localhost:3000/api/integrations/github/callback',
+          scopes: 'repo',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    try {
+      const gateway = new HttpScanGateway('/api', store);
+      const list = await gateway.listScans(10);
+      expect(list[0]?.status).toBe('FAILED');
+
+      const detail = await gateway.getScanReport('scan-orphaned-1');
+      expect(detail.status).toBe('FAILED');
+      expect(detail.currentStage).toBe('failed');
+      expect(detail.errorMessage).toContain('interrompida');
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
 });

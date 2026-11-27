@@ -6,6 +6,18 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.21.0] - 2026-11-26
+
+### Adicionado
+- Adicionado `.github/dependabot.yml` para atualizações automáticas semanais de `npm` e GitHub Actions (resolvendo `posture:missing-dependency-automation` / CIS 7.4).
+- Adicionados cabeçalhos HTTP defensivos em `next.config.ts` e política CSP com *nonce* criptográfico em `src/middleware.ts` (`Content-Security-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` e remoção de `X-Powered-By`).
+- Movida a inicialização imediata de tema para `public/theme-init.js`, eliminando `dangerouslySetInnerHTML` em `src/app/layout.tsx` (`sast:react-dangerously-set-inner-html`).
+
+### Corrigido
+- Atualizada a dependência `next` em `package.json` para `^15.5.29` e aprimorado `AnalyzeScaUseCase` para priorizar versões exatas travadas em lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, etc.) preservando `isDirect`, evitando falsos positivos de faixas `^`/`~`.
+- Paralelizado o enriquecimento de vulnerabilidades (`NVD`, `FIRST EPSS` e `CISA KEV` via `Promise.all`) com *budget* serverless mais enxuto (`8.5s` no NVD) para evitar estouro de timeout na Vercel.
+- Adicionado timeout de cliente (`65s`) e recuperação automática de varreduras órfãs presas em `RUNNING` (`> 2 min`) no `HttpScanGateway`, evitando telas travadas indefinidamente no `IndexedDB`.
+
 ## [1.20.0] - 2026-11-26
 
 ### Adicionado

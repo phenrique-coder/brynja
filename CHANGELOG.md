@@ -6,6 +6,18 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0] - 2026-11-26
+
+### Added
+- Added `.github/dependabot.yml` automating weekly npm and GitHub Actions security updates (resolving `posture:missing-dependency-automation` / CIS 7.4).
+- Added strict defense-in-depth HTTP response headers across `next.config.ts` and cryptographic nonce CSP in `src/middleware.ts` (`Content-Security-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and disabled `X-Powered-By`).
+- Externalized early dark/light theme initialization to `public/theme-init.js`, eliminating `dangerouslySetInnerHTML` in `src/app/layout.tsx` (`sast:react-dangerously-set-inner-html`).
+
+### Fixed
+- Upgraded `next` direct range in `package.json` from `^15.2.3` to `^15.5.29` and updated `AnalyzeScaUseCase` to prioritize resolved lockfile versions (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, etc.) while preserving `isDirect` flags so speculative ranges never trigger false CVE storms.
+- Parallelized NVD, FIRST EPSS, and CISA KEV vulnerability enrichment (`Promise.all`) with tighter NVD serverless timeout budgets (`8.5s`) to keep `/api/analyze/sca` well under Vercel serverless limits.
+- Added client fetch timeouts (`65s`) and orphaned `RUNNING` scan recovery (`> 2m`) in `HttpScanGateway` so interrupted or timed-out scans transition cleanly to `FAILED` instead of hanging forever in `IndexedDB`.
+
 ## [1.20.0] - 2026-11-26
 
 ### Added

@@ -1,4 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import { AnalyzeScaUseCase } from '../application/analyze-sca.use-case';
+import {
+  NormalizedAdvisory,
+  ParsedDependency,
+} from '../domain/entities/scan.types';
 import { MemoryVulnerabilityCacheService } from '../infrastructure/cache/memory-vuln-cache.service';
 import { GitHubApiRepositoryFetcher } from '../infrastructure/github/github-api-repository.fetcher';
 import { GitHubOAuthClient } from '../infrastructure/github/github-oauth.client';
@@ -457,5 +462,113 @@ describe('Manifest Parsers, OSV SemVer Resolver & GitHub API Fetcher', () => {
     } finally {
       fetchSpy.mockRestore();
     }
+  });
+
+  it('prefers lockfile-resolved versions over loose package.json ranges and merges parallel enrichers', async () => {
+    const useCase = new AnalyzeScaUseCase(
+      [],
+      [new NpmManifestParser()],
+      {
+        name: 'mock-osv',
+        lookupBatch: vi.fn(async (deps: ParsedDependency[]) => ({
+          advisories: deps
+            .filter((d) => d.name === 'lodash')
+            .map((d) => ({
+              advisoryId: 'GHSA-test-lodash',
+              cveId: 'CVE-2026-0001',
+              packageName: d.name,
+              packageVersion: d.version,
+              ecosystem: d.ecosystem,
+              title: 'Sample Lodash Issue',
+              description: 'Desc',
+              severity: 'HIGH' as const,
+              cvssScore: null,
+              cvssVector: null,
+              cweIds: [],
+              epssScore: null,
+              epssPercentile: null,
+              isKnownExploited: false,
+              fixedVersion: '4.17.21',
+              references: [],
+              verdict: 'DEPENDENCY_ONLY' as const,
+              source: 'OSV.dev',
+            })),
+          warnings: [],
+        })),
+      },
+      [
+        {
+          name: 'mock-nvd',
+          enrich: vi.fn(async (advs: NormalizedAdvisory[]) => ({
+            advisories: advs.map((a) => ({
+              ...a,
+              cvssScore: 8.2,
+              cweIds: ['CWE-1321'],
+              source: `${a.source} + NVD`,
+            })),
+            warnings: [],
+          })),
+        },
+        {
+          name: 'mock-epss',
+          enrich: vi.fn(async (advs: NormalizedAdvisory[]) => ({
+            advisories: advs.map((a) => ({
+              ...a,
+              epssScore: 0.77,
+              epssPercentile: 0.94,
+              source: `${a.source} + EPSS`,
+            })),
+            warnings: [],
+          })),
+        },
+        {
+          name: 'mock-kev',
+          enrich: vi.fn(async (advs: NormalizedAdvisory[]) => ({
+            advisories: advs.map((a) => ({
+              ...a,
+              isKnownExploited: true,
+              verdict: 'POTENTIALLY_EXPOSED' as const,
+              source: `${a.source} + KEV`,
+            })),
+            warnings: [],
+          })),
+        },
+      ],
+    );
+
+    const out = await useCase.execute({
+      repositoryUrl: 'https://github.com/acme/web',
+      branch: 'main',
+      manifestFiles: [
+        {
+          path: 'package.json',
+          content: JSON.stringify({
+            dependencies: {
+              next: '^15.2.3',
+              lodash: '^4.17.20',
+            },
+          }),
+        },
+        {
+          path: 'pnpm-lock.yaml',
+          content: `lockfileVersion: '9.0'\npackages:\n  'next@15.5.29':\n    resolution: {}\n  'lodash@4.17.20':\n    resolution: {}\n`,
+        },
+      ],
+    });
+
+    // Must keep resolved lockfile version 15.5.29 (with isDirect: true) and skip speculative 15.2.3
+    const nextDeps = out.dependencies.filter((d) => d.name === 'next');
+    expect(nextDeps).toHaveLength(1);
+    expect(nextDeps[0]?.version).toBe('15.5.29');
+    expect(nextDeps[0]?.isDirect).toBe(true);
+
+    // Parallel enrichers should all merge onto the single advisory
+    expect(out.findings).toHaveLength(1);
+    expect(out.findings[0]?.cvssScore).toBe(8.2);
+    expect(out.findings[0]?.cweIds).toEqual(['CWE-1321']);
+    expect(out.findings[0]?.epssScore).toBe(0.77);
+    expect(out.findings[0]?.isKnownExploited).toBe(true);
+    expect(out.findings[0]?.verdict).toBe('POTENTIALLY_EXPOSED');
+    expect(out.findings[0]?.source).toBe('OSV.dev + NVD + EPSS + KEV');
   });
 });

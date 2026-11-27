@@ -37,9 +37,9 @@ interface NvdCachedRecord {
 }
 
 const NVD_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const NVD_REQUEST_TIMEOUT_MS = 8_500;
-const NVD_TOTAL_BUDGET_MS = 22_000;
-const NVD_RETRY_DELAY_MS = 350;
+const NVD_REQUEST_TIMEOUT_MS = 4_500;
+const NVD_TOTAL_BUDGET_MS = 8_500;
+const NVD_RETRY_DELAY_MS = 250;
 const NVD_MAX_CONSECUTIVE_FAILURES = 2;
 
 export class NvdVulnerabilityEnricher implements IVulnerabilityEnricher {

@@ -101,6 +101,9 @@ function summarizeReport(report: ScanReport): ScanSummary {
   };
 }
 
+const STALE_SCAN_TIMEOUT_MS = 120_000;
+const PIPELINE_REQUEST_TIMEOUT_MS = 65_000;
+
 export class HttpScanGateway
   implements
     IBrynjaGateway,
@@ -110,16 +113,47 @@ export class HttpScanGateway
 {
   private cachedOwner: { githubUserId: string; login: string | null } | null =
     null;
+  private readonly activePipelineIds = new Set<string>();
 
   constructor(
     private readonly baseUrl: string = '/api',
     private readonly store: ILocalBrynjaStore = new IndexedDbBrynjaStore(),
   ) {}
 
+  private async recoverIfStale(
+    ownerId: string,
+    report: ScanReport,
+  ): Promise<ScanReport> {
+    if (report.status !== 'RUNNING' && report.status !== 'QUEUED') {
+      return report;
+    }
+    if (this.activePipelineIds.has(report.id)) {
+      return report;
+    }
+    const refTime = Date.parse(report.startedAt ?? report.createdAt);
+    if (!Number.isFinite(refTime) || Date.now() - refTime <= STALE_SCAN_TIMEOUT_MS) {
+      return report;
+    }
+
+    const recovered: ScanReport = {
+      ...report,
+      status: 'FAILED',
+      currentStage: 'failed',
+      errorMessage:
+        'A execução anterior foi interrompida ou excedeu o tempo limite antes de concluir. Inicie uma nova varredura.',
+      completedAt: new Date().toISOString(),
+    };
+    await this.store.putScan(ownerId, recovered);
+    return recovered;
+  }
+
   async listScans(limit = 25): Promise<ScanSummary[]> {
     const owner = await this.requireOwner();
     const reports = await this.store.listScans(owner.githubUserId, limit);
-    return reports.map(summarizeReport);
+    const synced = await Promise.all(
+      reports.map((r) => this.recoverIfStale(owner.githubUserId, r)),
+    );
+    return synced.map(summarizeReport);
   }
 
   async getScanReport(id: string): Promise<ScanReport> {
@@ -132,7 +166,7 @@ export class HttpScanGateway
         'Relatório não encontrado no histórico local deste navegador.',
       );
     }
-    return report;
+    return this.recoverIfStale(owner.githubUserId, report);
   }
 
   async deleteScan(id: string): Promise<void> {
@@ -436,6 +470,7 @@ export class HttpScanGateway
     payload: CreateScanPayload,
     verifiedAuth: TargetAuthorization | null,
   ): Promise<void> {
+    this.activePipelineIds.add(report.id);
     let current: ScanReport = { ...report };
     try {
       current = {
@@ -444,14 +479,18 @@ export class HttpScanGateway
       };
       await this.store.putScan(ownerId, current);
 
-      const sca = await this.request<ScaApiResponse>('/analyze/sca', {
-        method: 'POST',
-        body: JSON.stringify({
-          repositoryUrl: current.repositoryUrl,
-          branch: current.branch,
-          manifestFiles: payload.manifestFiles,
-        }),
-      });
+      const sca = await this.request<ScaApiResponse>(
+        '/analyze/sca',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            repositoryUrl: current.repositoryUrl,
+            branch: current.branch,
+            manifestFiles: payload.manifestFiles,
+          }),
+        },
+        PIPELINE_REQUEST_TIMEOUT_MS,
+      );
 
       let findings = sca.findings;
       let probeResults: ProbeFinding[] = [];
@@ -486,6 +525,7 @@ export class HttpScanGateway
                 branch: current.branch,
               }),
             },
+            PIPELINE_REQUEST_TIMEOUT_MS,
           );
           staticFindings = staticRes.staticFindings ?? [];
           warnings.push(...(staticRes.warnings ?? []));
@@ -521,6 +561,7 @@ export class HttpScanGateway
               advisories: sca.findings,
             }),
           },
+          PIPELINE_REQUEST_TIMEOUT_MS,
         );
 
         probeResults = probes.probeResults;
@@ -590,6 +631,8 @@ export class HttpScanGateway
         completedAt: new Date().toISOString(),
       };
       await this.store.putScan(ownerId, current);
+    } finally {
+      this.activePipelineIds.delete(report.id);
     }
   }
 
@@ -609,16 +652,43 @@ export class HttpScanGateway
     return { githubUserId: status.githubUserId, login: status.login };
   }
 
-  private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(init?.headers ?? {}),
-      },
-      cache: 'no-store',
-    });
+  private async request<T>(
+    path: string,
+    init?: RequestInit,
+    timeoutMs?: number,
+  ): Promise<T> {
+    const signal =
+      timeoutMs &&
+      typeof AbortSignal !== 'undefined' &&
+      typeof AbortSignal.timeout === 'function'
+        ? AbortSignal.timeout(timeoutMs)
+        : init?.signal;
+
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}${path}`, {
+        ...init,
+        signal,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(init?.headers ?? {}),
+        },
+        cache: 'no-store',
+      });
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        (err.name === 'TimeoutError' || err.name === 'AbortError')
+      ) {
+        throw new GatewayHttpError(
+          504,
+          'REQUEST_TIMEOUT',
+          'A requisição excedeu o tempo limite no servidor.',
+        );
+      }
+      throw err;
+    }
 
     if (!res.ok) {
       let message = `Erro HTTP ${res.status}`;
