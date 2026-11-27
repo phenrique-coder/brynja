@@ -78,6 +78,9 @@ describe('NewScanView GitHub OAuth Repo Picker & UserAccountMenu', () => {
       expect(screen.getByText('octocat/demo-app')).toBeTruthy();
     });
     expect(screen.queryByText('Desconectar')).toBeNull();
+    expect(
+      screen.getByText('Ecossistemas, Manifestos & Linguagens Suportadas'),
+    ).toBeTruthy();
     expect(screen.getByText('Tipos de Safe Probes Executados')).toBeTruthy();
     expect(screen.getByText('Cabeçalhos de Segurança HTTP & Banners')).toBeTruthy();
 

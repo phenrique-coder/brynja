@@ -6,6 +6,13 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0] - 2026-11-27
+
+### Added
+- Added canonical single-source-of-truth ecosystems catalog (`src/core/catalog/ecosystems.catalog.ts`) synced 1-to-1 with `createRegisteredDependencyParsers()` (`src/server/application/container.ts`) and verified by automated parity tests (`ecosystems-catalog.spec.tsx`).
+- Added interactive **Supported Ecosystems, Manifests & Languages** matrix (`SupportedEcosystemsSection` on `/scans/new#ecosystems-catalog`) and a compact **Supported Ecosystems** bar (`SupportedEcosystemsBar` on `/` Dashboard) displaying all 8 SCA ecosystems (`npm`, `PyPI`, `Go`, `crates.io`, `Maven`, `NuGet`, `Packagist`, `RubyGems`), native JS/TS & Python SAST/Reachability coverage, and language-agnostic layers (IaC/CI-CD, Secrets/Posture, 19 Safe Probes, and SARIF/Trivy/Semgrep/Prowler imports) across PT-BR, EN, and ES.
+- Added `*.csproj` (`App.csproj`) option to the manual manifest paste selector in `NewScanView` and refreshed pipeline/footer stack summaries.
+
 ## [1.21.0] - 2026-11-26
 
 ### Added

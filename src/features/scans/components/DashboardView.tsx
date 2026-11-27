@@ -17,6 +17,7 @@ import { useScanList } from '../hooks/use-scans';
 import { computeDashboardMetrics } from '../presenters/scan.presenter';
 import { AuthRequiredCard } from './AuthRequiredCard';
 import { ScanHistoryTable } from './ScanHistoryTable';
+import { SupportedEcosystemsBar } from './SupportedEcosystemsSection';
 import {
   KpiStatCard,
   PageHeader,
@@ -111,6 +112,8 @@ export function DashboardView() {
           icon={<Code2 className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />}
         />
       </section>
+
+      <SupportedEcosystemsBar />
 
       <SurfaceCard className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-5 py-4 sm:px-6">

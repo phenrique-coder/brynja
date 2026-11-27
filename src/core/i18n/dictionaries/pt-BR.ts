@@ -1,7 +1,79 @@
 import type {
+  CrossStackLayerCopy,
+  CrossStackLayerId,
+  EcosystemCopy,
+} from '../../catalog/ecosystems.catalog';
+import type {
   SafeProbeCopy,
   SafeProbeId,
 } from '../../catalog/safe-probes.catalog';
+import type { Ecosystem } from '../../models/scan.models';
+
+const ECOSYSTEM_ITEMS_PT_BR: Record<Ecosystem, EcosystemCopy> = {
+  npm: {
+    language: 'JavaScript / TypeScript',
+    description:
+      'Inventário SCA/SBOM completo com lockfiles exatos, SAST nativo em JS/TS e correlação de imports (Reachability) via IA.',
+  },
+  PyPI: {
+    language: 'Python',
+    description:
+      'Análise de dependências pip/pyproject, SAST nativo para exec/shell/desserialização em .py e análise de imports via IA.',
+  },
+  Go: {
+    language: 'Go (Golang)',
+    description:
+      'Extração de módulos Go em go.mod e go.sum com consulta em lote no OSV.dev, NVD 2.0, EPSS, CISA KEV e SBOM CycloneDX.',
+  },
+  'crates.io': {
+    language: 'Rust',
+    description:
+      'Leitura de Cargo.toml e versões exatas de Cargo.lock para rastreamento contínuo de CVEs, licenças SPDX e OpenSSF Scorecard.',
+  },
+  Maven: {
+    language: 'Java / Kotlin (JVM)',
+    description:
+      'Suporte nativo a pom.xml (Maven) e gradle.lockfile (Gradle) com correlação OSV/NVD e enriquecimento de cadeia de suprimentos.',
+  },
+  NuGet: {
+    language: 'C# / .NET',
+    description:
+      'Extração de dependências em packages.lock.json e arquivos *.csproj com resolução de pacotes diretos/transitivos no ecossistema NuGet.',
+  },
+  Packagist: {
+    language: 'PHP',
+    description:
+      'Leitura de composer.json e versões travadas de composer.lock (excluindo dev se aplicável no lockfile) para detecção rápida de CVEs.',
+  },
+  RubyGems: {
+    language: 'Ruby',
+    description:
+      'Parser de Gemfile.lock (bloco specs) com geração automática de PURLs pkg:gem e consulta direta às bases públicas de vulnerabilidades.',
+  },
+};
+
+const CROSS_STACK_ITEMS_PT_BR: Record<CrossStackLayerId, CrossStackLayerCopy> = {
+  'iac-cicd': {
+    title: 'IaC, Containers & CI/CD',
+    summary:
+      'Analisa Dockerfiles, docker-compose, Terraform (.tf), GitHub Actions e manifestos Kubernetes YAML.',
+  },
+  'secrets-posture': {
+    title: 'Segredos & Postura GitHub',
+    summary:
+      'Detecta tokens e chaves privadas com mascaramento automático, além de SECURITY.md, Dependabot, CODEOWNERS e Branch Protection.',
+  },
+  'safe-probes': {
+    title: '19 Safe Probes em Runtime',
+    summary:
+      'Agnósticos à linguagem do backend: avaliam cabeçalhos HTTP, HSTS/TLS, CSP, CORS, cookies e DNS com GET/HEAD após prova de posse.',
+  },
+  'external-imports': {
+    title: 'Importação Externa (Qualquer Linguagem)',
+    summary:
+      'Aceita relatórios JSON de SARIF 2.1.0, Trivy, Semgrep e Prowler para unificar SAST/SCA de qualquer stack no painel e GRC.',
+  },
+};
 
 const SAFE_PROBE_ITEMS_PT_BR: Record<SafeProbeId, SafeProbeCopy> = {
   'safe-probe:security-headers': {
@@ -245,7 +317,7 @@ export const PT_BR_MESSAGES = {
   },
   footer: {
     versionTooltip: 'Ver changelog e novidades de cada versão',
-    stackSummary: 'SCA / SBOM · OSV · NVD · EPSS · CISA KEV · 19 Safe Probes',
+    stackSummary: '8 Ecossistemas SCA/SBOM · OSV · NVD · EPSS · CISA KEV · 19 Safe Probes',
     linksAria: 'Links do projeto',
     changelog: 'Changelog',
     repository: 'Repositório',
@@ -408,14 +480,39 @@ export const PT_BR_MESSAGES = {
     probesNoneOption: 'Somente SCA + CVEs (sem sondas)',
     viewProbesCatalog: 'Ver os {count} tipos de Safe Probes abaixo',
     probesReadyLink: '{count} Safe Probes prontos para este alvo',
+    viewEcosystemsCatalog: 'Ver os {count} ecossistemas e linguagens abaixo',
     pipelineTitle: 'Pipeline da Avaliação',
     pipelineSteps: [
-      'Inventário SBOM (npm, pnpm, pip, pyproject)',
+      'Inventário SBOM (8 ecossistemas: npm, PyPI, Go, Rust, Java, .NET, PHP, Ruby)',
       'Consulta em lote na API pública OSV.dev',
       'Enriquecimento CVSS/CWE (NVD 2.0)',
       'Probabilidade real (EPSS) + CISA KEV',
       'Safe Probes autorizados + trilha imutável',
     ],
+  },
+  ecosystemsCatalog: {
+    title: 'Ecossistemas, Manifestos & Linguagens Suportadas',
+    subtitle:
+      'Cobertura completa por camada de análise: 8 ecossistemas de dependências (SCA/SBOM), SAST leve em JS/TS e Python, além de camadas agnósticas para IaC, segredos, runtime e importação externa.',
+    countBadge: '{count} ecossistemas SCA',
+    sbomBadge: 'CycloneDX SBOM + OSV/NVD/EPSS/KEV',
+    sastScopePill: 'SAST nativo: JS/TS (.ts/.tsx/.js/.jsx/.mjs) e Python (.py)',
+    compactTitle: 'Ecossistemas suportados',
+    compactSubtitle:
+      'SCA + SBOM nativo em 8 ecossistemas · SAST em JS/TS e Python · IaC · 19 Safe Probes',
+    compactExploreLink: 'Ver matriz completa',
+    filterAll: 'Todos ({count})',
+    filterWithNativeSast: 'SCA + SAST Nativo ({count})',
+    filterScaExternal: 'SCA + Importação SARIF ({count})',
+    scaBadge: 'SCA + SBOM',
+    nativeSastBadge: 'SAST Nativo + Reachability',
+    externalSastBadge: 'SARIF / Semgrep / Trivy',
+    manifestsLabel: 'Manifestos & arquivos analisados',
+    crossStackTitle: 'Camadas Agnósticas de Linguagem (Cross-Stack)',
+    crossStackSubtitle:
+      'Executadas independentemente da stack principal da aplicação ou importadas de outras ferramentas.',
+    items: ECOSYSTEM_ITEMS_PT_BR,
+    crossStack: CROSS_STACK_ITEMS_PT_BR,
   },
   safeProbesCatalog: {
     title: 'Tipos de Safe Probes Executados',

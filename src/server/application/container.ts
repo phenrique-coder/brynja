@@ -46,7 +46,10 @@ import { DepsDevDependencyEnricher } from '../infrastructure/vuln-intel/deps-dev
 import { EpssVulnerabilityEnricher } from '../infrastructure/vuln-intel/epss-enricher.adapter';
 import { NvdVulnerabilityEnricher } from '../infrastructure/vuln-intel/nvd-enricher.adapter';
 import { OsvVulnerabilityProvider } from '../infrastructure/vuln-intel/osv-client.adapter';
-import { IControlledProbe } from '../domain/ports/server.ports';
+import {
+  IControlledProbe,
+  IDependencyParser,
+} from '../domain/ports/server.ports';
 import { AnalyzeAdviseUseCase } from './analyze-advise.use-case';
 import { AnalyzeScaUseCase } from './analyze-sca.use-case';
 import { AnalyzeStaticUseCase } from './analyze-static.use-case';
@@ -82,6 +85,24 @@ export function createRegisteredSafeProbes(): IControlledProbe[] {
   ];
 }
 
+/**
+ * Single server-side factory for all registered SCA dependency manifest/lockfile parsers.
+ * Exported so automated parity tests enforce that every supported ecosystem and manifest
+ * format is documented in `src/core/catalog/ecosystems.catalog.ts` and shown in the UI.
+ */
+export function createRegisteredDependencyParsers(): IDependencyParser[] {
+  return [
+    new NpmManifestParser(),
+    new PythonManifestParser(),
+    new GoManifestParser(),
+    new RustManifestParser(),
+    new JavaManifestParser(),
+    new DotNetManifestParser(),
+    new PhpComposerParser(),
+    new RubyGemfileParser(),
+  ];
+}
+
 export interface ServerContainer {
   cipher: AesTokenCipherService;
   sessionCodec: SealedSessionService;
@@ -112,16 +133,7 @@ export function getServerContainer(): ServerContainer {
 
   // OCP Extensible Registries
   const fetchers = [new GitHubApiRepositoryFetcher()];
-  const parsers = [
-    new NpmManifestParser(),
-    new PythonManifestParser(),
-    new GoManifestParser(),
-    new RustManifestParser(),
-    new JavaManifestParser(),
-    new DotNetManifestParser(),
-    new PhpComposerParser(),
-    new RubyGemfileParser(),
-  ];
+  const parsers = createRegisteredDependencyParsers();
   const vulnProvider = new OsvVulnerabilityProvider(vulnCache);
   const enrichers = [
     new NvdVulnerabilityEnricher(vulnCache),

@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   Sparkles,
 } from 'lucide-react';
+import { ECOSYSTEMS_CATALOG } from '@/core/catalog/ecosystems.catalog';
 import { SAFE_PROBES_CATALOG } from '@/core/catalog/safe-probes.catalog';
 import { useScanCreator } from '@/core/providers/gateway-provider';
 import { useI18n } from '@/core/providers/i18n-provider';
@@ -28,6 +29,7 @@ import {
 } from '../hooks/use-scans';
 import { AuthRequiredCard } from './AuthRequiredCard';
 import { SafeProbesCatalogSection } from './SafeProbesCatalogSection';
+import { SupportedEcosystemsSection } from './SupportedEcosystemsSection';
 import {
   PageHeader,
   PageLoadingState,
@@ -484,6 +486,7 @@ export function NewScanView() {
                     <option value="packages.lock.json">
                       packages.lock.json (NuGet / .NET)
                     </option>
+                    <option value="App.csproj">*.csproj (NuGet / .NET)</option>
                     <option value="composer.json">
                       composer.json (Packagist / PHP)
                     </option>
@@ -636,9 +639,22 @@ export function NewScanView() {
                 </li>
               ))}
             </ul>
+            <a
+              href="#ecosystems-catalog"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700 transition hover:underline dark:text-cyan-300"
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+              <span>
+                {t(messages.newScan.viewEcosystemsCatalog, {
+                  count: ECOSYSTEMS_CATALOG.length,
+                })}
+              </span>
+            </a>
           </SurfaceCard>
         </div>
       </form>
+
+      <SupportedEcosystemsSection id="ecosystems-catalog" />
 
       <SafeProbesCatalogSection
         id="safe-probes-catalog"
