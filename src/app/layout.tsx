@@ -19,7 +19,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // Keep dynamic rendering so Next.js injects the per-request CSP nonce
+  // from middleware into its own inline hydration scripts.
+  await headers();
 
   return (
     <html lang="pt-BR" suppressHydrationWarning className="dark">
@@ -34,7 +36,7 @@ export default async function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
         />
-        <script src="/theme-init.js" nonce={nonce} />
+        <script src="/theme-init.js" />
       </head>
       <body className="min-h-screen bg-canvas font-sans text-fg antialiased">
         <ThemeProvider>

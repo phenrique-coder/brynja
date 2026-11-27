@@ -13,6 +13,9 @@ O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.
 - Adicionados controles completos de palco em `PresentationDeckView`: alternador ao vivo de foco (**Diretoria + TI** vs **Só Executivo**), roteiro de fala ocultável do apresentador (`N`), índice visual de slides (`G`), atalhos de demonstração ao vivo abrindo telas reais em nova aba, modo palco em tela cheia (`F`), navegação por teclado e exportação limpa para PDF em paisagem (1 slide por página).
 - Adicionado controle de acesso server-side *fail-closed* via variável de ambiente `PRESENTATION_ALLOWED_USERS` (`presentation-access.policy.ts` + `resolvePresentationAccess`), cruzando o `@login` e os e-mails verificados da conta GitHub autenticada (escopo OAuth `user:email` selado exclusivamente no cookie efêmero AES-256-GCM `HttpOnly`), com atalho discreto **Apresentação Executiva** em `UserAccountMenu` visível somente para usuários autorizados.
 
+### Corrigido
+- Removido o atributo redundante `nonce` da tag externa de mesma origem `<script src="/theme-init.js" />` em `src/app/layout.tsx` (já permitida por `script-src 'self'`), eliminando o erro de hidratação do React 19 causado pela remoção de `nonce` no DOM pelos navegadores e preservando a injeção dinâmica de `nonce` CSP nos scripts inline do Next.js.
+
 ## [1.22.0] - 2026-11-27
 
 ### Adicionado

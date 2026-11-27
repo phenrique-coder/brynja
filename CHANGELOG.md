@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Added full stage controls in `PresentationDeckView`: live audience focus toggle (**Board + IT** vs **Executive Only**), collapsible presenter speaking notes (`N`), visual slide overview index (`G`), live demo shortcuts opening real platform pages in a new tab, fullscreen stage mode (`F`), keyboard navigation, and 1-slide-per-page landscape PDF print export.
 - Added strict fail-closed server-side access control via `PRESENTATION_ALLOWED_USERS` (`presentation-access.policy.ts` + `resolvePresentationAccess`), matching authenticated GitHub `@login` and verified GitHub emails (`user:email` OAuth scope stored inside the ephemeral AES-256-GCM `HttpOnly` session cookie) and exposing a discrete **Executive Presentation** shortcut in `UserAccountMenu` exclusively for authorized users.
 
+### Fixed
+- Removed the redundant `nonce` attribute from the same-origin external `/theme-init.js` script tag in `src/app/layout.tsx` (already permitted by `script-src 'self'`), fixing React 19 hydration mismatches when browsers strip script nonces from the DOM while preserving dynamic CSP nonce injection for Next.js inline hydration scripts.
+
 ## [1.22.0] - 2026-11-27
 
 ### Added
