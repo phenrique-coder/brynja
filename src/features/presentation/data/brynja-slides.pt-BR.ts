@@ -46,7 +46,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
       tags: ['100% Serverless', 'Local-First', 'Open-Source MIT', 'Defensivo'],
     },
     presenterNotes:
-      'Slide de abertura enquanto todos entram na sala ou na chamada. Apresente o nome Brynja ("cota de malha" em nórdico antigo) e antecipe o roteiro: em cerca de 25 minutos vamos passar pelo valor de negócio, privacidade Local-First, todas as 7 etapas da plataforma na prática e uma proposta de piloto de 30 dias sem custo.',
+      'Slide de abertura enquanto todos entram na sala ou na chamada. Apresente o nome Brynja ("armadura de malha" em nórdico antigo) e antecipe o roteiro: em cerca de 25 minutos vamos passar pelo valor de negócio, privacidade Local-First, todas as 7 etapas da plataforma na prática e uma proposta de piloto de 30 dias sem custo.',
     estimatedTime: '0,5 min',
   },
   {
@@ -58,7 +58,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
     subtitle:
       'Da inspeção de código e bibliotecas até conformidade regulatória (LGPD, ISO 27001, CIS v8), sem banco de dados na nuvem e sem risco de derrubar sistemas.',
     analogy:
-      'Brynja (pronuncia-se BRIN-ya) significa "cota de malha" em nórdico antigo: centenas de anéis interligados que distribuem o impacto sem engessar quem a veste.',
+      'Brynja (pronuncia-se BRIN-ya) significa "armadura de malha" em nórdico antigo: centenas de anéis interligados que distribuem o impacto sem engessar quem a veste.',
     visual: 'cover',
     highlights: [
       {
@@ -133,7 +133,7 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
     number: 4,
     chapter: 'vision',
     kicker: 'Nossa Filosofia',
-    title: 'Defesa em Profundidade: Como a Cota de Malha Protege',
+    title: 'Defesa em Profundidade: Como a Armadura de Malha Protege',
     subtitle:
       'Em vez de confiar em uma única verificação isolada, o Brynja cruza quatro camadas complementares em uma única plataforma simples.',
     analogy:
