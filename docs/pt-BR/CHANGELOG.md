@@ -6,6 +6,12 @@ Todas as alterações relevantes do **Brynja** são documentadas neste arquivo.
 
 O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico 2.0.0 (SemVer)](https://semver.org/lang/pt-BR/).
 
+## [1.24.0] - 2026-11-27
+
+### Adicionado
+- Adicionadas as traduções completas em **Inglês (`en`)** e **Espanhol (`es`)** para a **Apresentação Executiva & Técnica** (`/presentation`), cobrindo todos os 19 slides, capítulos, diagramas visuais (`diagram-copy.ts`), notas do apresentador, títulos/rodapés e exportação em PDF sincronizados em tempo real com o seletor de idioma (`PT / EN / ES`).
+- Adicionados testes automatizados de paridade estrutural 1-para-1 e alternância de idioma ao vivo entre `pt-BR`, `en` e `es` em `src/features/presentation/__tests__/presentation-deck.spec.tsx`.
+
 ## [1.23.0] - 2026-11-27
 
 ### Adicionado

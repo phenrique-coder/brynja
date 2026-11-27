@@ -2,10 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import React from 'react';
 import pkg from '../../../package.json';
-import {
-  BRYNJA_PRESENTATION_SLIDES,
-  PRESENTATION_CHAPTERS,
-} from '@/features/presentation/data/brynja-slides.pt-BR';
+import { PRESENTATION_DECKS } from '@/features/presentation/data';
 import {
   PresentationAccessDeniedCard,
   PresentationAuthRequiredView,
@@ -44,8 +41,7 @@ export default async function PresentationPage() {
 
   return (
     <PresentationDeckView
-      slides={BRYNJA_PRESENTATION_SLIDES}
-      chapters={PRESENTATION_CHAPTERS}
+      decks={PRESENTATION_DECKS}
       appVersion={pkg.version}
     />
   );

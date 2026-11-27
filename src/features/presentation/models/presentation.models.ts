@@ -1,3 +1,5 @@
+import type { Locale } from '@/core/i18n/types';
+
 export type SlideChapterId =
   | 'vision'
   | 'onboarding'
@@ -62,3 +64,13 @@ export interface SlideChapterMeta {
   readonly id: SlideChapterId;
   readonly label: string;
 }
+
+export interface LocalizedPresentationDeck {
+  readonly chapters: readonly SlideChapterMeta[];
+  readonly slides: readonly PresentationSlide[];
+}
+
+export type PresentationDecksByLocale = Record<
+  Locale,
+  LocalizedPresentationDeck
+>;

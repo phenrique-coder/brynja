@@ -332,6 +332,9 @@ export const EN_MESSAGES: Messages = {
     overviewSubtitle: 'Click any slide to jump directly during the meeting or Q&A.',
     shortcutsHint: 'Shortcuts: ←/→ navigate · T toggle IT · N notes · G index · F fullscreen',
     technicalBoxLabel: 'In practice for IT',
+    deckBrandTitle: 'Brynja · Presentation',
+    heroFooterTagline: 'Brynja — Proactive Layered Security',
+    executiveFooter: 'Brynja v{version} · Executive Presentation',
   },
   authCard: {
     defaultTitle: 'Connect your GitHub to start this session',

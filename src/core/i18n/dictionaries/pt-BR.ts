@@ -331,6 +331,9 @@ export const PT_BR_MESSAGES = {
     overviewSubtitle: 'Clique em qualquer slide para ir diretamente durante a reunião ou perguntas.',
     shortcutsHint: 'Atalhos: ←/→ navegar · T alternar TI · N notas · G índice · F tela cheia',
     technicalBoxLabel: 'Na prática para TI',
+    deckBrandTitle: 'Brynja · Apresentação',
+    heroFooterTagline: 'Brynja — Segurança Proativa em Camadas',
+    executiveFooter: 'Brynja v{version} · Apresentação Executiva',
   },
   authCard: {
     defaultTitle: 'Conecte seu GitHub para iniciar esta sessão',

@@ -1,9 +1,12 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Locale } from '@/core/i18n/types';
 import { I18nProvider } from '@/core/providers/i18n-provider';
+import { LanguageSwitcher } from '@/features/scans/components/LanguageSwitcher';
 import { UserAccountMenu } from '@/features/scans/components/UserAccountMenu';
 import { PresentationDeckView } from '../components/PresentationDeckView';
+import { PRESENTATION_DECKS } from '../data';
 import {
   BRYNJA_PRESENTATION_SLIDES,
   PRESENTATION_CHAPTERS,
@@ -14,22 +17,42 @@ describe('Brynja interactive presentation deck', () => {
     window.localStorage.clear();
   });
 
-  it('defines 19 sequential slides starting with the hero cover and complete dual-layer metadata', () => {
-    expect(BRYNJA_PRESENTATION_SLIDES).toHaveLength(19);
-    expect(BRYNJA_PRESENTATION_SLIDES[0]?.isHeroCover).toBe(true);
-    const chapterIds = new Set(PRESENTATION_CHAPTERS.map((c) => c.id));
+  it('maintains 1-to-1 structural parity across PT-BR, EN, and ES for all 19 slides', () => {
+    const locales: Locale[] = ['pt-BR', 'en', 'es'];
+    const baseDeck = PRESENTATION_DECKS['pt-BR'];
 
-    BRYNJA_PRESENTATION_SLIDES.forEach((slide, index) => {
-      expect(slide.number).toBe(index + 1);
-      expect(chapterIds.has(slide.chapter)).toBe(true);
-      expect(slide.title.trim().length).toBeGreaterThan(3);
-      expect(slide.subtitle.trim().length).toBeGreaterThan(10);
-      expect(slide.highlights.length).toBeGreaterThanOrEqual(3);
-      expect(slide.itDetails.summary.trim().length).toBeGreaterThan(10);
-      expect(slide.itDetails.tags.length).toBeGreaterThanOrEqual(3);
-      expect(slide.presenterNotes.trim().length).toBeGreaterThan(20);
-      expect(slide.estimatedTime.trim().length).toBeGreaterThan(0);
-    });
+    expect(baseDeck.slides).toHaveLength(19);
+    expect(baseDeck.slides[0]?.isHeroCover).toBe(true);
+
+    for (const locale of locales) {
+      const deck = PRESENTATION_DECKS[locale];
+      const chapterIds = new Set(deck.chapters.map((c) => c.id));
+
+      expect(deck.chapters).toHaveLength(baseDeck.chapters.length);
+      expect(deck.slides).toHaveLength(19);
+
+      deck.slides.forEach((slide, index) => {
+        const ref = baseDeck.slides[index];
+        expect(slide.id).toBe(ref.id);
+        expect(slide.number).toBe(index + 1);
+        expect(slide.chapter).toBe(ref.chapter);
+        expect(slide.visual).toBe(ref.visual);
+        expect(Boolean(slide.isHeroCover)).toBe(Boolean(ref.isHeroCover));
+        expect(chapterIds.has(slide.chapter)).toBe(true);
+        expect(slide.title.trim().length).toBeGreaterThan(3);
+        expect(slide.subtitle.trim().length).toBeGreaterThan(10);
+        expect(slide.highlights.length).toBe(ref.highlights.length);
+        expect(slide.itDetails.summary.trim().length).toBeGreaterThan(10);
+        expect(slide.itDetails.tags.length).toBeGreaterThanOrEqual(3);
+        expect(slide.presenterNotes.trim().length).toBeGreaterThan(20);
+        expect(slide.estimatedTime.trim().length).toBeGreaterThan(0);
+
+        if (locale !== 'pt-BR' && !slide.isHeroCover) {
+          expect(slide.title).not.toBe(ref.title);
+          expect(slide.subtitle).not.toBe(ref.subtitle);
+        }
+      });
+    }
   });
 
   it('navigates slides, toggles IT technical details, shows presenter notes, overview, and exports PDF', () => {
@@ -38,9 +61,8 @@ describe('Brynja interactive presentation deck', () => {
     render(
       <I18nProvider defaultLocale="pt-BR">
         <PresentationDeckView
-          slides={BRYNJA_PRESENTATION_SLIDES}
-          chapters={PRESENTATION_CHAPTERS}
-          appVersion="1.23.0"
+          decks={PRESENTATION_DECKS}
+          appVersion="1.24.0"
         />
       </I18nProvider>,
     );
@@ -91,6 +113,61 @@ describe('Brynja interactive presentation deck', () => {
     expect(printSpy).toHaveBeenCalledTimes(1);
 
     printSpy.mockRestore();
+  });
+
+  it('translates toolbar, slide content, visual diagrams, and presenter notes live across PT-BR, EN, and ES', () => {
+    render(
+      <I18nProvider defaultLocale="pt-BR">
+        <LanguageSwitcher />
+        <PresentationDeckView
+          decks={PRESENTATION_DECKS}
+          slides={BRYNJA_PRESENTATION_SLIDES}
+          chapters={PRESENTATION_CHAPTERS}
+          appVersion="1.24.0"
+        />
+      </I18nProvider>,
+    );
+
+    // Jump to slide 3 (Problem slide) and open presenter notes
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'n' });
+
+    expect(screen.getByText('Brynja · Apresentação')).toBeTruthy();
+    expect(
+      screen.getAllByText('O Desafio Atual da Segurança em Aplicações').length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Código de Terceiros').length).toBeGreaterThanOrEqual(
+      1,
+    );
+
+    // Switch to English
+    fireEvent.click(screen.getByRole('button', { name: 'Selecionar idioma' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'English' }));
+
+    expect(screen.getByText('Brynja · Presentation')).toBeTruthy();
+    expect(
+      screen.getAllByText('The Current Challenge in Application Security')
+        .length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Third-Party Code').length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(screen.getByText(/Frame the pain before introducing/i)).toBeTruthy();
+
+    // Switch to Spanish
+    fireEvent.click(screen.getByRole('button', { name: 'Select language' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Español' }));
+
+    expect(screen.getByText('Brynja · Presentación')).toBeTruthy();
+    expect(
+      screen.getAllByText('El Desafío Actual de la Seguridad en Aplicaciones')
+        .length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Código de Terceros').length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(screen.getByText(/Contextualiza el problema antes/i)).toBeTruthy();
   });
 });
 

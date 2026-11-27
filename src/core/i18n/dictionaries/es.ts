@@ -332,6 +332,9 @@ export const ES_MESSAGES: Messages = {
     overviewSubtitle: 'Haz clic en cualquier diapositiva para saltar directamente durante la reunión.',
     shortcutsHint: 'Atajos: ←/→ navegar · T alternar TI · N notas · G índice · F pantalla completa',
     technicalBoxLabel: 'En la práctica para TI',
+    deckBrandTitle: 'Brynja · Presentación',
+    heroFooterTagline: 'Brynja — Seguridad Proactiva en Capas',
+    executiveFooter: 'Brynja v{version} · Presentación Ejecutiva',
   },
   authCard: {
     defaultTitle: 'Conecta tu GitHub para iniciar esta sesión',

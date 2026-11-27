@@ -1,4 +1,5 @@
 import type {
+  LocalizedPresentationDeck,
   PresentationSlide,
   SlideChapterMeta,
 } from '../models/presentation.models';
@@ -718,3 +719,8 @@ export const BRYNJA_PRESENTATION_SLIDES: readonly PresentationSlide[] = [
     demoLink: { label: 'Iniciar Demonstração Ao Vivo', href: '/scans/new' },
   },
 ];
+
+export const PT_BR_PRESENTATION_DECK: LocalizedPresentationDeck = {
+  chapters: PRESENTATION_CHAPTERS,
+  slides: BRYNJA_PRESENTATION_SLIDES,
+};

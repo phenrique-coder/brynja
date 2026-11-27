@@ -6,6 +6,12 @@ All notable changes to **Brynja** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0] - 2026-11-27
+
+### Added
+- Added complete English (`en`) and Spanish (`es`) translations for the interactive **Executive & IT Presentation** (`/presentation`), covering all 19 slides, chapters, bespoke visual diagrams (`diagram-copy.ts`), presenter speaking scripts, toolbar headers, footers, and PDF print exports synchronized live with the top language selector (`PT / EN / ES`).
+- Added automated 1-to-1 structural parity and live language-switching tests across `pt-BR`, `en`, and `es` in `src/features/presentation/__tests__/presentation-deck.spec.tsx`.
+
 ## [1.23.0] - 2026-11-27
 
 ### Added

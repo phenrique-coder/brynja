@@ -7,6 +7,7 @@ import {
   Lightbulb,
   Terminal,
 } from 'lucide-react';
+import type { Locale } from '@/core/i18n/types';
 import { BrynjaLogo } from '@/features/scans/components/BrynjaLogo';
 import type { PresentationSlide } from '../models/presentation.models';
 import { SlideVisualDiagram } from './SlideVisualDiagram';
@@ -16,9 +17,12 @@ export interface PresentationSlideCardProps {
   totalSlides: number;
   chapterLabel: string;
   appVersion: string;
+  locale: Locale;
   showTechnicalDetails: boolean;
   technicalBoxLabel: string;
   openLiveDemoLabel: string;
+  heroFooterTagline: string;
+  executiveFooter: string;
   isPrintMode?: boolean;
 }
 
@@ -27,9 +31,12 @@ export function PresentationSlideCard({
   totalSlides,
   chapterLabel,
   appVersion,
+  locale,
   showTechnicalDetails,
   technicalBoxLabel,
   openLiveDemoLabel,
+  heroFooterTagline,
+  executiveFooter,
   isPrintMode = false,
 }: PresentationSlideCardProps) {
   const slideNum = String(slide.number).padStart(2, '0');
@@ -146,7 +153,7 @@ export function PresentationSlideCard({
             </div>
           ) : (
             <div className="flex items-center justify-between border-t border-subtle pt-3 text-xs text-fg-muted">
-              <span>Brynja — Segurança Proativa em Camadas</span>
+              <span>{heroFooterTagline}</span>
               <span className="font-mono">
                 v{appVersion} · Open-Source (MIT)
               </span>
@@ -251,6 +258,7 @@ export function PresentationSlideCard({
           visual={slide.visual}
           appVersion={appVersion}
           showTechnicalDetails={showTechnicalDetails}
+          locale={locale}
           compact={isPrintMode}
         />
 
@@ -340,7 +348,7 @@ export function PresentationSlideCard({
           </div>
         ) : (
           <div className="flex items-center justify-between border-t border-subtle pt-2 text-[11px] text-fg-muted">
-            <span>Brynja v{appVersion} · Apresentação Executiva</span>
+            <span>{executiveFooter}</span>
             <span className="font-mono">
               {slideNum} / {totalNum}
             </span>

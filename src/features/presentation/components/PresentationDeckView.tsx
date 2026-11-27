@@ -17,6 +17,7 @@ import {
 import { useI18n } from '@/core/providers/i18n-provider';
 import { BrynjaLogo } from '@/features/scans/components/BrynjaLogo';
 import type {
+  PresentationDecksByLocale,
   PresentationSlide,
   SlideChapterId,
   SlideChapterMeta,
@@ -24,25 +25,34 @@ import type {
 import { PresentationSlideCard } from './PresentationSlideCard';
 
 export interface PresentationDeckViewProps {
-  slides: readonly PresentationSlide[];
-  chapters: readonly SlideChapterMeta[];
+  decks?: PresentationDecksByLocale;
+  slides?: readonly PresentationSlide[];
+  chapters?: readonly SlideChapterMeta[];
   appVersion: string;
 }
 
 export function PresentationDeckView({
-  slides,
-  chapters,
+  decks,
+  slides: fallbackSlides,
+  chapters: fallbackChapters,
   appVersion,
 }: PresentationDeckViewProps) {
-  const { messages, t } = useI18n();
+  const { locale, messages, t } = useI18n();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(true);
   const [showNotes, setShowNotes] = useState(false);
   const [showOverview, setShowOverview] = useState(false);
   const [isStageMode, setIsStageMode] = useState(false);
 
+  const activeDeck = decks ? (decks[locale] ?? decks['pt-BR']) : null;
+  const slides = activeDeck?.slides ?? fallbackSlides ?? [];
+  const chapters = activeDeck?.chapters ?? fallbackChapters ?? [];
+
   const totalSlides = slides.length;
   const activeSlide = slides[currentIndex] ?? slides[0];
+  const executiveFooter = t(messages.presentation.executiveFooter, {
+    version: appVersion,
+  });
 
   const chapterLabelMap = useMemo(() => {
     const map = new Map<SlideChapterId, string>();
@@ -208,7 +218,7 @@ export function PresentationDeckView({
               <BrynjaLogo className="h-7 w-7 shrink-0" />
               <div className="leading-tight">
                 <div className="text-xs font-bold text-fg">
-                  Brynja · Apresentação
+                  {messages.presentation.deckBrandTitle}
                 </div>
                 <div className="font-mono text-[11px] text-fg-muted">
                   {t(messages.presentation.slideOf, {
@@ -356,9 +366,12 @@ export function PresentationDeckView({
                 chapterLabelMap.get(activeSlide.chapter) ?? activeSlide.chapter
               }
               appVersion={appVersion}
+              locale={locale}
               showTechnicalDetails={showTechnicalDetails}
               technicalBoxLabel={messages.presentation.technicalBoxLabel}
               openLiveDemoLabel={messages.presentation.openLiveDemo}
+              heroFooterTagline={messages.presentation.heroFooterTagline}
+              executiveFooter={executiveFooter}
             />
           </div>
 
@@ -513,9 +526,12 @@ export function PresentationDeckView({
               chapterLabelMap.get(slide.chapter) ?? slide.chapter
             }
             appVersion={appVersion}
+            locale={locale}
             showTechnicalDetails={showTechnicalDetails}
             technicalBoxLabel={messages.presentation.technicalBoxLabel}
             openLiveDemoLabel={messages.presentation.openLiveDemo}
+            heroFooterTagline={messages.presentation.heroFooterTagline}
+            executiveFooter={executiveFooter}
             isPrintMode
           />
         ))}
